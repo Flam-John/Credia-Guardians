@@ -1,0 +1,202 @@
+extends Node
+## Only class that touches the disk. Slot saves are JSON with atomic writes
+## (tmp + rename) and a version/migration chain. See docs/SAVE_STRUCTURE.md.
+
+const SAVE_DIR := "user://saves"
+const SETTINGS_PATH := "user://settings.cfg"
+const SLOT_COUNT := 3
+const CURRENT_VERSION := 1
+const RANK_ORDER := ["", "D", "C", "B", "A", "S"]
+
+## version (int) -> Callable(Dictionary) -> Dictionary. Filled as versions grow.
+var _migrations: Dictionary = {}
+
+var active_slot: int = -1
+
+
+func _ready() -> void:
+	DirAccess.make_dir_recursive_absolute(SAVE_DIR)
+
+
+func slot_path(slot: int) -> String:
+	return "%s/slot_%d.json" % [SAVE_DIR, slot]
+
+
+## Lightweight summaries for the slot-select UI. Never loads full state.
+func get_slot_summaries() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for i in range(1, SLOT_COUNT + 1):
+		var data := load_slot(i)
+		if data.is_empty():
+			out.append({"slot": i, "empty": true})
+		else:
+			out.append({
+				"slot": i,
+				"empty": false,
+				"last_character": data.get("last_character", "chris"),
+				"play_time_sec": data.get("play_time_sec", 0),
+				"stages_cleared": _count_cleared(data),
+				"global_hi_score": data.get("global_hi_score", 0),
+			})
+	return out
+
+
+## Returns {} for missing or unreadable slots. A corrupt file is preserved as
+## .bak and reported empty — never silently deleted.
+func load_slot(slot: int) -> Dictionary:
+	var path := slot_path(slot)
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var text := file.get_as_text()
+	file.close()
+	# Instance parse: returns an Error instead of spamming the engine log
+	# (a corrupt save is an expected condition, not an engine fault).
+	var json := JSON.new()
+	if json.parse(text) != OK or not json.data is Dictionary or not json.data.has("version"):
+		_quarantine(path)
+		return {}
+	var data: Dictionary = json.data
+	var version := int(data.version)
+	if version > CURRENT_VERSION:
+		push_warning("Save slot %d is from a newer build (v%d) — refusing to load." % [slot, version])
+		return {}
+	while version < CURRENT_VERSION:
+		if not _migrations.has(version):
+			_quarantine(path)
+			return {}
+		data = _migrations[version].call(data)
+		version = int(data.version)
+	return data
+
+
+func write_slot(slot: int, data: Dictionary) -> Error:
+	data["version"] = CURRENT_VERSION
+	data["updated_utc"] = Time.get_datetime_string_from_system(true)
+	var path := slot_path(slot)
+	var tmp := path + ".tmp"
+	var file := FileAccess.open(tmp, FileAccess.WRITE)
+	if file == null:
+		return FileAccess.get_open_error()
+	file.store_string(JSON.stringify(data, "  "))
+	file.close()
+	# Atomic-enough on the same volume: old file is replaced in one step.
+	var dir := DirAccess.open(SAVE_DIR)
+	dir.remove(path.get_file()) # no-op if missing
+	return dir.rename(tmp.get_file(), path.get_file())
+
+
+func delete_slot(slot: int) -> Error:
+	var path := slot_path(slot)
+	if not FileAccess.file_exists(path):
+		return OK
+	return DirAccess.open(SAVE_DIR).remove(path.get_file())
+
+
+func new_slot_data(character: StringName) -> Dictionary:
+	return {
+		"version": CURRENT_VERSION,
+		"created_utc": Time.get_datetime_string_from_system(true),
+		"updated_utc": Time.get_datetime_string_from_system(true),
+		"play_time_sec": 0,
+		"last_character": String(character),
+		"stages": {
+			"1": _new_stage_entry(true),
+		},
+		"hp_upgrades_found": [],
+		"global_hi_score": 0,
+	}
+
+
+## Records a clear: max-merges bests, unlocks the next stage.
+## stats: {stage_id, rank (String), score, time, coins, hidden_rooms (Array[bool]),
+##         character, next_stage_id}
+func record_stage_clear(data: Dictionary, stats: Dictionary) -> Dictionary:
+	var key := str(stats.stage_id)
+	var stages: Dictionary = data.get("stages", {})
+	var entry: Dictionary = stages.get(key, _new_stage_entry(true))
+	entry.cleared = true
+	entry.best_rank = _best_rank(entry.get("best_rank", ""), stats.rank)
+	entry.hi_score = maxi(int(entry.get("hi_score", 0)), int(stats.score))
+	var prev_time := float(entry.get("best_time_sec", 0.0))
+	entry.best_time_sec = stats.time if prev_time <= 0.0 else minf(prev_time, stats.time)
+	entry.max_coins_collected = maxi(int(entry.get("max_coins_collected", 0)), int(stats.coins))
+	var found: Array = entry.get("hidden_rooms_found", [])
+	var new_found: Array = stats.get("hidden_rooms", [])
+	for i in new_found.size():
+		if i >= found.size():
+			found.append(new_found[i])
+		else:
+			found[i] = found[i] or new_found[i]
+	entry.hidden_rooms_found = found
+	var cleared_with: Array = entry.get("cleared_with", [])
+	if not cleared_with.has(String(stats.character)):
+		cleared_with.append(String(stats.character))
+	entry.cleared_with = cleared_with
+	stages[key] = entry
+	var next_id: int = stats.get("next_stage_id", 0)
+	if next_id > 0:
+		var next_key := str(next_id)
+		if not stages.has(next_key):
+			stages[next_key] = _new_stage_entry(true)
+		else:
+			stages[next_key]["unlocked"] = true
+	data.stages = stages
+	data.global_hi_score = maxi(int(data.get("global_hi_score", 0)), int(stats.score))
+	return data
+
+
+# -- Settings ---------------------------------------------------------------
+
+func save_settings(settings: Dictionary) -> void:
+	var cfg := ConfigFile.new()
+	for section: String in settings:
+		for key: String in settings[section]:
+			cfg.set_value(section, key, settings[section][key])
+	cfg.save(SETTINGS_PATH)
+
+
+func load_settings() -> Dictionary:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_PATH) != OK:
+		return {}
+	var out := {}
+	for section in cfg.get_sections():
+		out[section] = {}
+		for key in cfg.get_section_keys(section):
+			out[section][key] = cfg.get_value(section, key)
+	return out
+
+
+# -- Internals ---------------------------------------------------------------
+
+func _count_cleared(data: Dictionary) -> int:
+	var count := 0
+	for entry: Dictionary in data.get("stages", {}).values():
+		if entry.get("cleared", false):
+			count += 1
+	return count
+
+
+func _new_stage_entry(unlocked: bool) -> Dictionary:
+	return {
+		"unlocked": unlocked,
+		"cleared": false,
+		"best_rank": "",
+		"hi_score": 0,
+		"best_time_sec": 0.0,
+		"max_coins_collected": 0,
+		"hidden_rooms_found": [],
+		"cleared_with": [],
+	}
+
+
+func _best_rank(a: String, b: String) -> String:
+	return a if RANK_ORDER.find(a) >= RANK_ORDER.find(b) else b
+
+
+func _quarantine(path: String) -> void:
+	push_warning("Corrupt save at %s — moved to .bak" % path)
+	DirAccess.open(SAVE_DIR).rename(path.get_file(), path.get_file() + ".bak")
