@@ -40,7 +40,7 @@ func build() -> void:
 	tile_layer = TileMapLayer.new()
 	tile_layer.tile_set = _build_tileset()
 	add_child(tile_layer)
-	var lines := map.split("\n")
+	var lines := map.strip_edges().split("\n")
 	var width := 0
 	for y in lines.size():
 		var line := lines[y]

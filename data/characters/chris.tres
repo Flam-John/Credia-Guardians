@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="CharacterStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/resources/character_stats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/art/characters/chris_sheet.png" id="2_sheet"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "Chris"
+sheet = ExtResource("2_sheet")
+max_hp = 6
+run_speed = 95.0
+ground_accel = 900.0
+ground_friction = 1100.0
+air_control = 0.75
+jump_velocity = -290.0
+double_jump_velocity = -260.0
+gravity_rise = 900.0
+gravity_fall = 1150.0
+max_fall_speed = 320.0
+coyote_time = 0.1
+jump_buffer = 0.12
+jump_cut_multiplier = 0.45
+dash_speed = 240.0
+dash_duration = 0.12
+dash_cooldown = 0.6
+air_dash_charges = 1
+dash_has_iframes = false
+dash_deals_damage = false
+has_shield = true
+shield_capacity = 3.0
+shield_regen_delay = 1.5
+shield_regen_rate = 1.0
+attack_damage = 1

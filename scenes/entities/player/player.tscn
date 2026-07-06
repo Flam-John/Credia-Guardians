@@ -1,0 +1,54 @@
+[gd_scene load_steps=12 format=3 uid="uid://player_scene_cg"]
+
+[ext_resource type="Script" path="res://src/entities/player/player.gd" id="1_player"]
+[ext_resource type="Resource" path="res://data/characters/chris.tres" id="2_stats"]
+[ext_resource type="Script" path="res://src/fsm/state_machine.gd" id="3_sm"]
+[ext_resource type="Script" path="res://src/entities/player/states/idle_state.gd" id="4_idle"]
+[ext_resource type="Script" path="res://src/entities/player/states/run_state.gd" id="5_run"]
+[ext_resource type="Script" path="res://src/entities/player/states/jump_state.gd" id="6_jump"]
+[ext_resource type="Script" path="res://src/entities/player/states/double_jump_state.gd" id="7_dj"]
+[ext_resource type="Script" path="res://src/entities/player/states/fall_state.gd" id="8_fall"]
+[ext_resource type="Script" path="res://src/entities/player/states/dash_state.gd" id="9_dash"]
+[ext_resource type="Script" path="res://src/entities/player/player_camera.gd" id="10_cam"]
+
+[sub_resource type="CapsuleShape2D" id="capsule_body"]
+radius = 5.0
+height = 24.0
+
+[node name="Player" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 257
+script = ExtResource("1_player")
+stats = ExtResource("2_stats")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -14)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+position = Vector2(0, -12)
+shape = SubResource("capsule_body")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3_sm")
+initial_state = &"Fall"
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("4_idle")
+
+[node name="Run" type="Node" parent="StateMachine"]
+script = ExtResource("5_run")
+
+[node name="Jump" type="Node" parent="StateMachine"]
+script = ExtResource("6_jump")
+
+[node name="DoubleJump" type="Node" parent="StateMachine"]
+script = ExtResource("7_dj")
+
+[node name="Fall" type="Node" parent="StateMachine"]
+script = ExtResource("8_fall")
+
+[node name="Dash" type="Node" parent="StateMachine"]
+script = ExtResource("9_dash")
+
+[node name="Camera" type="Camera2D" parent="."]
+script = ExtResource("10_cam")
