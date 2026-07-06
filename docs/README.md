@@ -1,0 +1,24 @@
+# Credia Guardians — Documentation Index
+
+| # | Document | What's inside |
+|---|---|---|
+| 1 | [GDD.md](GDD.md) | Game design: story, characters, mechanics tuning, stages, enemies, boss, collectibles, scoring/ranks |
+| 2 | [TDD.md](TDD.md) | Technical design: pixel-perfect setup, architecture, autoloads, components, FSM, resources, physics layers, input |
+| 3 | [SCENE_HIERARCHY.md](SCENE_HIERARCHY.md) | Scene trees for main/level/player/enemy/UI + ownership rules |
+| 4 | [FOLDER_STRUCTURE.md](FOLDER_STRUCTURE.md) | Full `res://` layout + naming conventions |
+| 5 | [ASSET_LIST.md](ASSET_LIST.md) | Every texture/font/audio file with paths and dimensions |
+| 6 | [SPRITE_LIST.md](SPRITE_LIST.md) | Canonical palette, per-sprite specs, art direction rules |
+| 7 | [ANIMATION_LIST.md](ANIMATION_LIST.md) | Animation names, frame counts, FPS, loop flags, events |
+| 8 | [AUDIO_LIST.md](AUDIO_LIST.md) | Bus layout, 12 music tracks, ~40 SFX, mixing rules |
+| 9 | [ENEMY_AI.md](ENEMY_AI.md) | Mermaid FSM diagram per enemy + CEO boss phases |
+| 10 | [PLAYER_FSM.md](PLAYER_FSM.md) | Player state diagram, state responsibilities, feel buffers |
+| 11 | [UML.md](UML.md) | Class diagram: autoloads, FSM, components, entities, resources |
+| 12 | [DATA_FLOW.md](DATA_FLOW.md) | Input, pickup, damage, save, and stage-lifecycle flows |
+| 13 | [SAVE_STRUCTURE.md](SAVE_STRUCTURE.md) | Slot JSON schema, settings, atomic writes, migrations |
+| 14 | [MILESTONES.md](MILESTONES.md) | M0–M8 with acceptance criteria per playable build |
+| 15 | [GIT_STRATEGY.md](GIT_STRATEGY.md) | Trunk-based branching, conventional commits, Godot merge rules |
+| 16 | [TESTING.md](TESTING.md) | GUT unit suites, debug scenes, playtest checklists |
+| 17 | [PERFORMANCE.md](PERFORMANCE.md) | 60 FPS budgets + per-milestone optimization checklist |
+
+**Status:** awaiting stakeholder approval before implementation (per project rule: no code until docs approved).
+Reference key art: `CHRIS_FLAM_LEVEL_1_VICTORY.png` (desktop) — canonical palette and tone source.

@@ -1,0 +1,16 @@
+# Godot 4 editor cache — never commit
+.godot/
+
+# Local export config (contains machine paths); commit export_presets.example.cfg instead
+export_presets.cfg
+
+# Build artifacts
+build/
+*.tmp
+
+# IDE
+.idea/
+
+# OS
+Thumbs.db
+desktop.ini
