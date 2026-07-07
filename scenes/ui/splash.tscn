@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://splash_cg"]
+
+[ext_resource type="Script" path="res://src/ui/splash.gd" id="1_s"]
+
+[node name="Splash" type="Control"]
+script = ExtResource("1_s")

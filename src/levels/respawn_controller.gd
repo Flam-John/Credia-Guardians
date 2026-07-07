@@ -54,10 +54,12 @@ func _on_checkpoint_reached(_id: StringName, respawn_pos: Vector2) -> void:
 
 
 func _on_player_died() -> void:
-	await get_tree().create_timer(RESPAWN_DELAY).timeout
+	# process_always=false: the respawn countdown respects pause
+	await get_tree().create_timer(RESPAWN_DELAY, false).timeout
+	if not is_inside_tree():
+		return # level already unloading (quit to menu during the delay)
 	if GameManager.lives <= 0:
-		# Game Over screen arrives in M3; for now restart the room fresh.
-		GameManager.start_stage(GameManager.stage_id, GameManager.character)
-		SceneManager.reload_current()
+		GameManager.end_stage()
+		SceneManager.change_scene("res://scenes/ui/game_over.tscn")
 		return
 	_spawn_at(_active_checkpoint_pos)

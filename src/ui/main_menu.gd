@@ -1,0 +1,47 @@
+extends Control
+## Main menu: New Game / Continue / Options / Quit.
+
+func _ready() -> void:
+	UIKit.fill_background(self)
+	var has_saves := SaveManager.get_slot_summaries().any(
+		func(s: Dictionary) -> bool: return not s.get("empty", true))
+	var continue_btn := UIKit.button("CONTINUE", _on_continue)
+	continue_btn.disabled = not has_saves
+	var column := UIKit.menu_column([
+		UIKit.title("CREDIA GUARDIANS", 28),
+		UIKit.caption("BANK SYSTEM UNDER ATTACK", 8, UIKit.RED),
+		_spacer(10),
+		UIKit.button("NEW GAME", _on_new_game),
+		continue_btn,
+		UIKit.button("OPTIONS", _on_options),
+		UIKit.button("QUIT", _on_quit),
+		_spacer(8),
+		UIKit.caption("v%s" % ProjectSettings.get_setting("application/config/version")),
+	])
+	add_child(UIKit.center(column))
+	AudioManager.play_music("menu")
+	UIKit.grab_first_focus(self)
+
+
+func _on_new_game() -> void:
+	SlotSelectFlow.mode = SlotSelectFlow.Mode.NEW_GAME
+	SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
+
+
+func _on_continue() -> void:
+	SlotSelectFlow.mode = SlotSelectFlow.Mode.CONTINUE
+	SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
+
+
+func _on_options() -> void:
+	SceneManager.change_scene("res://scenes/ui/options_menu.tscn")
+
+
+func _on_quit() -> void:
+	get_tree().quit()
+
+
+func _spacer(height: int) -> Control:
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0, height)
+	return spacer

@@ -38,13 +38,16 @@ func _ready() -> void:
 	add_child(builder)
 	add_child(DebugOverlay.new())
 
-	GameManager.start_stage(0, &"chris")
+	# Arriving via the menu flow: GameManager already runs the stage with the
+	# chosen character. Direct F5/F6 boot: start a throwaway run as Chris.
+	if not GameManager.is_stage_running():
+		GameManager.start_stage(1, &"chris")
 
 	_respawner = RespawnController.new()
 	_respawner.spawn_point = Vector2(3 * T, 12 * T)
 	_respawner.camera_limits = Rect2(Vector2.ZERO, builder.room_size)
 	add_child(_respawner)
-	_respawner.spawn(CHRIS)
+	_respawner.spawn(GameManager.character_stats())
 
 	_place_enemies()
 	_place_collectibles()

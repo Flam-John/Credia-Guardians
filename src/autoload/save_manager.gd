@@ -2,8 +2,6 @@ extends Node
 ## Only class that touches the disk. Slot saves are JSON with atomic writes
 ## (tmp + rename) and a version/migration chain. See docs/SAVE_STRUCTURE.md.
 
-const SAVE_DIR := "user://saves"
-const SETTINGS_PATH := "user://settings.cfg"
 const SLOT_COUNT := 3
 const CURRENT_VERSION := 1
 
@@ -12,19 +10,35 @@ var _migrations: Dictionary = {}
 
 var active_slot: int = -1
 
-## "" (never cleared) followed by GameManager.Rank names, worst→best.
+## Overridable so the test suite writes to a sandbox instead of the player's
+## real files (a test once shipped fullscreen=true to a real settings.cfg).
+var save_dir := "user://saves"
+var settings_path := "user://settings.cfg"
+
+
+func redirect_for_tests(dir: String, cfg_path: String) -> void:
+	save_dir = dir
+	settings_path = cfg_path
+	DirAccess.make_dir_recursive_absolute(save_dir)
+
+
+func restore_default_paths() -> void:
+	save_dir = "user://saves"
+	settings_path = "user://settings.cfg"
+
+## "" (never cleared) followed by GameManager.Rank names, worst->best.
 ## Derived, not duplicated: GameManager.Rank is the single source of truth.
 var _rank_order: Array = []
 
 
 func _ready() -> void:
-	DirAccess.make_dir_recursive_absolute(SAVE_DIR)
+	DirAccess.make_dir_recursive_absolute(save_dir)
 	_rank_order = [""]
 	_rank_order.append_array(GameManager.Rank.keys())
 
 
 func slot_path(slot: int) -> String:
-	return "%s/slot_%d.json" % [SAVE_DIR, slot]
+	return "%s/slot_%d.json" % [save_dir, slot]
 
 
 ## Lightweight summaries for the slot-select UI. Never loads full state.
@@ -50,7 +64,7 @@ func get_slot_summaries() -> Array[Dictionary]:
 
 
 ## Returns {} for missing or unreadable slots. A corrupt file is preserved as
-## .bak and reported empty — never silently deleted.
+## .bak and reported empty -- never silently deleted.
 func load_slot(slot: int) -> Dictionary:
 	var path := slot_path(slot)
 	if not FileAccess.file_exists(path):
@@ -69,7 +83,7 @@ func load_slot(slot: int) -> Dictionary:
 	var data: Dictionary = json.data
 	var version := int(data.version)
 	if version > CURRENT_VERSION:
-		push_warning("Save slot %d is from a newer build (v%d) — refusing to load." % [slot, version])
+		push_warning("Save slot %d is from a newer build (v%d) -- refusing to load." % [slot, version])
 		return {}
 	while version < CURRENT_VERSION:
 		if not _migrations.has(version):
@@ -81,7 +95,7 @@ func load_slot(slot: int) -> Dictionary:
 
 
 ## True when the slot file exists but comes from a newer build. Such slots
-## must never be overwritten (docs/SAVE_STRUCTURE.md) — only explicitly
+## must never be overwritten (docs/SAVE_STRUCTURE.md) -- only explicitly
 ## deleted by the player.
 func is_slot_incompatible(slot: int) -> bool:
 	return _raw_version(slot) > CURRENT_VERSION
@@ -101,7 +115,7 @@ func write_slot(slot: int, data: Dictionary) -> Error:
 	file.store_string(JSON.stringify(data, "  "))
 	file.close()
 	# Atomic-enough on the same volume: old file is replaced in one step.
-	var dir := DirAccess.open(SAVE_DIR)
+	var dir := DirAccess.open(save_dir)
 	dir.remove(path.get_file()) # no-op if missing
 	return dir.rename(tmp.get_file(), path.get_file())
 
@@ -110,7 +124,7 @@ func delete_slot(slot: int) -> Error:
 	var path := slot_path(slot)
 	if not FileAccess.file_exists(path):
 		return OK
-	return DirAccess.open(SAVE_DIR).remove(path.get_file())
+	return DirAccess.open(save_dir).remove(path.get_file())
 
 
 func new_slot_data(character: StringName) -> Dictionary:
@@ -173,12 +187,12 @@ func save_settings(settings: Dictionary) -> void:
 	for section: String in settings:
 		for key: String in settings[section]:
 			cfg.set_value(section, key, settings[section][key])
-	cfg.save(SETTINGS_PATH)
+	cfg.save(settings_path)
 
 
 func load_settings() -> Dictionary:
 	var cfg := ConfigFile.new()
-	if cfg.load(SETTINGS_PATH) != OK:
+	if cfg.load(settings_path) != OK:
 		return {}
 	var out := {}
 	for section in cfg.get_sections():
@@ -230,8 +244,8 @@ func _raw_version(slot: int) -> int:
 
 
 func _quarantine(path: String) -> void:
-	push_warning("Corrupt save at %s — moved to .bak" % path)
-	var dir := DirAccess.open(SAVE_DIR)
+	push_warning("Corrupt save at %s -- moved to .bak" % path)
+	var dir := DirAccess.open(save_dir)
 	# Windows rename fails onto an existing target; keep the LATEST corrupt
 	# file (an older .bak from a previous corruption gives way).
 	dir.remove(path.get_file() + ".bak")

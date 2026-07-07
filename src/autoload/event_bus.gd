@@ -29,3 +29,4 @@ signal boss_phase_changed(phase: int)
 
 # -- Meta --
 signal pause_toggled(paused: bool)
+signal settings_applied(settings: Dictionary)

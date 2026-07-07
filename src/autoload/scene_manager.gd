@@ -61,7 +61,14 @@ func change_scene(path: String) -> void:
 	if _screen_root != null:
 		for child in _screen_root.get_children():
 			child.queue_free()
-		_screen_root.add_child(scene.instantiate())
+		var instance := scene.instantiate()
+		_screen_root.add_child(instance)
+		# Controls under a plain Node have no anchor host — FULL_RECT anchors
+		# collapse to zero. Size them to the logical viewport explicitly
+		# (constant under integer-scale stretch, so one-time is enough).
+		if instance is Control:
+			instance.position = Vector2.ZERO
+			instance.size = _screen_root.get_viewport().get_visible_rect().size
 	else:
 		get_tree().change_scene_to_packed(scene)
 	_current_path = path

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://slot_select_cg"]
+
+[ext_resource type="Script" path="res://src/ui/slot_select.gd" id="1_s"]
+
+[node name="SlotSelect" type="Control"]
+script = ExtResource("1_s")

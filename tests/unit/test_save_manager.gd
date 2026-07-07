@@ -5,11 +5,20 @@ extends GutTest
 const SLOT := 3
 
 
+func before_all() -> void:
+	# Sandbox: NEVER write the player's real saves/settings from tests.
+	SaveManager.redirect_for_tests("user://test_saves", "user://test_settings.cfg")
+
+
+func after_all() -> void:
+	SaveManager.restore_default_paths()
+
+
 func after_each() -> void:
 	SaveManager.delete_slot(SLOT)
 	var bak := SaveManager.slot_path(SLOT) + ".bak"
 	if FileAccess.file_exists(bak):
-		DirAccess.open(SaveManager.SAVE_DIR).remove(bak.get_file())
+		DirAccess.open(SaveManager.save_dir).remove(bak.get_file())
 
 
 func test_round_trip() -> void:
