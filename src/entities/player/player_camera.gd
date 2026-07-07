@@ -8,10 +8,19 @@ const FOLLOW_SPEED := 6.0
 const LOOKAHEAD := 24.0
 const LOOKAHEAD_SPEED := 2.5
 
+const SHAKE_DECAY := 12.0
+
 var _float_pos := Vector2.ZERO
 var _lookahead_x := 0.0
+var _shake := 0.0
 
 @onready var _player: Player = get_parent() as Player
+
+
+## Screenshake in pixels; decays automatically. Applied via `offset` so
+## camera limits are unaffected.
+func add_shake(amount_px: float) -> void:
+	_shake = maxf(_shake, amount_px)
 
 
 func _ready() -> void:
@@ -43,3 +52,9 @@ func _physics_process(delta: float) -> void:
 	var target := _player.global_position + Vector2(_lookahead_x, 0.0)
 	_float_pos = _float_pos.lerp(target, minf(1.0, FOLLOW_SPEED * delta))
 	global_position = _float_pos.round()
+	if _shake > 0.1:
+		offset = Vector2(
+			randf_range(-_shake, _shake), randf_range(-_shake, _shake)).round()
+		_shake = maxf(0.0, _shake - SHAKE_DECAY * delta)
+	elif offset != Vector2.ZERO:
+		offset = Vector2.ZERO

@@ -12,14 +12,21 @@ func on_context_ready() -> void:
 	player = body as Player
 
 
-## Jump / dash checks common to every ground state. Returns true if it
-## transitioned (caller should stop processing this frame).
+## Jump / dash / attack / shield checks common to every ground state.
+## Returns true if it transitioned (caller should stop processing this frame).
 func try_ground_transitions() -> bool:
 	if player.jump_buffered():
 		machine.transition(&"Jump")
 		return true
 	if Input.is_action_just_pressed(&"dash") and player.can_dash():
 		machine.transition(&"Dash")
+		return true
+	if Input.is_action_just_pressed(&"attack"):
+		machine.transition(&"Attack")
+		return true
+	if Input.is_action_pressed(&"ability") and stats.has_shield \
+			and player.shield_meter > 0.0:
+		machine.transition(&"Shield")
 		return true
 	if not player.is_on_floor():
 		player.start_coyote()
@@ -41,6 +48,9 @@ func try_air_transitions() -> bool:
 		return true
 	if Input.is_action_just_pressed(&"dash") and player.can_dash():
 		machine.transition(&"Dash")
+		return true
+	if Input.is_action_just_pressed(&"attack"):
+		machine.transition(&"AirAttack")
 		return true
 	return false
 

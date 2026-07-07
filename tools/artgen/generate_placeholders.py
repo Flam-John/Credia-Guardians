@@ -214,20 +214,181 @@ def gen_tileset(path: str):
     img.save(path)
 
 
+# Enemy sheet layouts: (anim name, frames) per row. MUST match
+# SpriteFramesBuilder.ENEMY_LAYOUTS in src/util/sprite_frames_builder.gd.
+ENEMY_LAYOUTS = {
+    "junior_banker": {
+        "size": 24,
+        "anims": [("walk", 4), ("panic_run", 4), ("death", 3)],
+    },
+    "angry_manager": {
+        "size": 32,
+        "anims": [("idle", 2), ("alert", 2), ("charge", 4),
+                  ("wall_stun", 3), ("death", 3)],
+    },
+}
+
+
+def draw_banker_frame(d, ox, oy, size, anim, i, tie_color):
+    """Comedic suited banker placeholder. Gray suit, red tie (corruption)."""
+    cx = ox + size // 2
+    bottom = oy + size - 2
+    bob = i % 2
+    lean = 0
+    legs = [1, -1, 2, -2][i % 4] if anim in ("walk", "panic_run", "charge") else 0
+    if anim == "charge":
+        lean = 3
+    if anim == "panic_run":
+        lean = -2
+        bob = i % 2 * 2
+    if anim == "death":
+        # tips over sideways with dizzy look
+        lean = -(i * 3)
+        bob = i * 2
+    if anim == "wall_stun":
+        bob = [0, 1, 0][i % 3]
+    body_h = size // 2
+    body_top = bottom - body_h - 6 + bob
+    # legs
+    _rect(d, cx - 3 + legs // 2, bottom - 6, cx - 1 + legs // 2, bottom, P.GRAY_DARK)
+    _rect(d, cx + 1 - legs // 2, bottom - 6, cx + 3 - legs // 2, bottom, P.GRAY_DARK)
+    # suit body
+    _outline_rect(d, cx - 4 + lean, body_top, cx + 4 + lean, bottom - 6, P.GRAY)
+    # tie
+    _rect(d, cx - 1 + lean, body_top + 1, cx + lean, bottom - 8, tie_color)
+    # briefcase (walk/panic)
+    if anim in ("walk", "panic_run"):
+        _outline_rect(d, cx + 5 + lean, body_top + 4 + bob, cx + 9 + lean,
+                      body_top + 8 + bob, P.GRAY_DARK)
+    # head
+    head_y = body_top - 7
+    _outline_rect(d, cx - 3 + lean, head_y, cx + 3 + lean, head_y + 6, P.SKIN)
+    _rect(d, cx - 3 + lean, head_y, cx + 3 + lean, head_y + 1, P.GRAY)  # hair
+    if anim == "alert":
+        # red !! telegraph
+        _rect(d, cx - 1, oy + 1, cx, oy + 4 + (i % 2), P.RED)
+    if anim in ("wall_stun", "death"):
+        # dizzy stars
+        _px(d, cx - 5, head_y - 2 + (i % 2), P.GOLD)
+        _px(d, cx + 5, head_y - 3 - (i % 2), P.GOLD)
+    else:
+        _px(d, cx + 1 + lean, head_y + 3, P.OUTLINE)
+        _px(d, cx + 3 + lean, head_y + 3, P.OUTLINE)
+
+
+def gen_enemy_sheets(out_dir):
+    for name, spec in ENEMY_LAYOUTS.items():
+        size = spec["size"]
+        cols = max(f for _, f in spec["anims"])
+        img = Image.new("RGBA", (cols * size, len(spec["anims"]) * size), P.TRANSPARENT)
+        d = ImageDraw.Draw(img)
+        for row, (anim, frames) in enumerate(spec["anims"]):
+            for i in range(frames):
+                draw_banker_frame(d, i * size, row * size, size, anim, i, P.RED)
+        img.save(f"{out_dir}/{name}.png")
+
+
+def gen_pickups(path):
+    """coffee, energy drink, firewall shield, keyboard, usb key — 16x16 x5."""
+    img = Image.new("RGBA", (80, 16), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    # coffee: white cup, brown fill, steam
+    _outline_rect(d, 4, 7, 11, 13, P.WHITE)
+    _rect(d, 5, 8, 10, 9, (122, 78, 42, 255))
+    _px(d, 7, 4, P.GRAY)
+    _px(d, 8, 2, P.GRAY)
+    # energy drink: cyan can
+    _outline_rect(d, 16 + 5, 4, 16 + 10, 13, P.CYAN)
+    _rect(d, 16 + 6, 6, 16 + 9, 7, P.BG_PANEL)
+    # firewall shield: blue bubble
+    d.ellipse([32 + 3, 3, 32 + 12, 12], outline=P.BLUE, fill=(38, 168, 255, 90))
+    _px(d, 32 + 6, 6, P.WHITE)
+    # keyboard: gray with key dots
+    _outline_rect(d, 48 + 2, 6, 48 + 13, 12, P.GRAY)
+    for kx in range(4, 12, 3):
+        _px(d, 48 + kx, 8, P.GREEN)
+    # usb key: gold
+    _outline_rect(d, 64 + 4, 6, 64 + 11, 10, P.GOLD)
+    _rect(d, 64 + 11, 7, 64 + 13, 9, P.GRAY)
+    img.save(path)
+
+
+def gen_checkpoint(path):
+    """Terminal 24x32: off, activating, on x2 (green pulse)."""
+    img = Image.new("RGBA", (96, 32), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    for i, screen in enumerate([P.GRAY_DARK, P.GREEN_DARK, P.GREEN, P.GREEN_DARK]):
+        ox = i * 24
+        _outline_rect(d, ox + 6, 8, ox + 17, 28, P.BG_PANEL)   # pillar
+        _outline_rect(d, ox + 4, 4, ox + 19, 16, P.GRAY_DARK)  # monitor
+        _rect(d, ox + 6, 6, ox + 17, 14, screen)
+        if i >= 2:
+            _px(d, ox + 8, 9, P.WHITE)  # "✓" hint
+            _px(d, ox + 9, 10, P.WHITE)
+            _px(d, ox + 10, 9, P.WHITE)
+    img.save(path)
+
+
+def gen_platforms(path):
+    """Row 0: moving platform 48x8. Row 1: crumbling 32x16 x3 (intact/shake/broken)."""
+    img = Image.new("RGBA", (96, 24), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    _rect(d, 0, 2, 47, 7, P.BLUE_DEEP)
+    _rect(d, 0, 2, 47, 2, P.CYAN)
+    for e in (2, 44):
+        _px(d, e, 5, P.CYAN)
+    for i in range(3):
+        ox = i * 32
+        oy = 8
+        if i < 2:
+            _rect(d, ox, oy + 2, ox + 31, oy + 8, P.BG_PANEL)
+            _rect(d, ox, oy + 2, ox + 31, oy + 2, P.GREEN_DARK)
+            cracks = 3 if i == 0 else 8
+            for c in range(cracks):
+                _px(d, ox + 3 + c * 3, oy + 4 + (c % 3), P.OUTLINE)
+        else:  # broken chunks
+            for c in range(4):
+                _rect(d, ox + c * 8, oy + 4 + (c % 2) * 3, ox + c * 8 + 4,
+                      oy + 7 + (c % 2) * 3, P.BG_PANEL)
+    img.save(path)
+
+
+def gen_fx(out_dir):
+    """hit spark 16x16 x4."""
+    img = Image.new("RGBA", (64, 16), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    for i in range(4):
+        cx = i * 16 + 8
+        r = [2, 4, 6, 7][i]
+        col = [P.WHITE, P.CYAN, P.CYAN, P.BLUE][i]
+        for a in range(0, 360, 45):
+            import math
+            x = cx + int(r * math.cos(math.radians(a)))
+            y = 8 + int(r * math.sin(math.radians(a)))
+            _px(d, x, y, col)
+        if i < 2:
+            _px(d, cx, 8, P.WHITE)
+    img.save(f"{out_dir}/hit_spark.png")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="assets/art")
     args = ap.parse_args()
     out = args.out
-    os.makedirs(f"{out}/characters", exist_ok=True)
-    os.makedirs(f"{out}/tiles", exist_ok=True)
-    os.makedirs(f"{out}/props", exist_ok=True)
+    for sub in ("characters", "tiles", "props", "enemies", "fx"):
+        os.makedirs(f"{out}/{sub}", exist_ok=True)
 
     gen_player_sheet(f"{out}/characters/chris_sheet.png", P.CHRIS_HAIR, False)
     gen_player_sheet(f"{out}/characters/flam_sheet.png", P.FLAM_HAIR, True)
     gen_portraits(f"{out}/characters/portraits.png")
     gen_coin(f"{out}/props/coin.png")
     gen_tileset(f"{out}/tiles/tileset_office.png")
+    gen_enemy_sheets(f"{out}/enemies")
+    gen_pickups(f"{out}/props/pickups.png")
+    gen_checkpoint(f"{out}/props/checkpoint.png")
+    gen_platforms(f"{out}/props/platforms.png")
+    gen_fx(f"{out}/fx")
     print("placeholder art generated ->", out)
 
 
