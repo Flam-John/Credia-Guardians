@@ -5,6 +5,13 @@ extends Node
 
 const STARTING_LIVES := 3
 
+## Stage id -> scene path. Stage 1 points at the combat room until M4 builds
+## the real Developer Office.
+const STAGE_SCENES := {
+	1: "res://tests/debug_scenes/combat_room.tscn",
+}
+const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
+
 ## Rank order matters: index = quality (0 worst). See docs/GDD.md §9.
 enum Rank { D, C, B, A, S }
 
@@ -18,8 +25,35 @@ var deaths_this_stage: int = 0
 var stage_time: float = 0.0
 var nodes_activated: int = 0
 var hit_zero_lives: bool = false
+## Best score on record for the active save slot (HUD display).
+var hi_score: int = 0
 
 var _stage_running := false
+
+
+func is_stage_running() -> bool:
+	return _stage_running
+
+
+func character_stats(id: StringName = character) -> CharacterStats:
+	return load("res://data/characters/%s.tres" % id)
+
+
+## Menu flow entry: set up the run and load the stage scene.
+func launch_stage(new_stage_id: int, new_character: StringName) -> void:
+	assert(STAGE_SCENES.has(new_stage_id), "No scene for stage %d" % new_stage_id)
+	start_stage(new_stage_id, new_character)
+	SceneManager.change_scene(STAGE_SCENES[new_stage_id])
+
+
+func retry_stage() -> void:
+	launch_stage(stage_id, character)
+
+
+func quit_to_menu() -> void:
+	end_stage()
+	get_tree().paused = false
+	SceneManager.change_scene(MENU_SCENE)
 
 
 func _ready() -> void:
