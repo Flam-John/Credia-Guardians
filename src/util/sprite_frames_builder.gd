@@ -29,7 +29,14 @@ const PLAYER_ANIMS: Array[Dictionary] = [
 ]
 
 
+## SpriteFrames are read-only after build, so instances share them safely.
+## Cache avoids ~58 RefCounted allocations per respawn (docs/PERFORMANCE.md).
+static var _cache: Dictionary = {}
+
+
 static func build_player_frames(sheet: Texture2D) -> SpriteFrames:
+	if _cache.has(sheet):
+		return _cache[sheet]
 	var frames := SpriteFrames.new()
 	frames.remove_animation(&"default")
 	for row in PLAYER_ANIMS.size():
@@ -43,4 +50,5 @@ static func build_player_frames(sheet: Texture2D) -> SpriteFrames:
 			atlas.atlas = sheet
 			atlas.region = Rect2(i * FRAME_SIZE, row * FRAME_SIZE, FRAME_SIZE, FRAME_SIZE)
 			frames.add_frame(anim_name, atlas)
+	_cache[sheet] = frames
 	return frames

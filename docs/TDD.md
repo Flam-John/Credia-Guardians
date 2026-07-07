@@ -37,7 +37,7 @@ Camera: `Camera2D` with `position_smoothing` **off**; custom smoothing done in c
 
 | Autoload | Responsibility (single) |
 |---|---|
-| `EventBus` | Signal declarations ONLY — no state, no logic. `coin_collected(value)`, `player_damaged(hp, max_hp)`, `player_died`, `enemy_killed(score, world_pos)`, `node_activated(id, total, count)`, `checkpoint_reached(id)`, `stage_cleared(stats)`, `boss_phase_changed(phase)`, `score_changed(score)`, `pause_toggled(paused)` |
+| `EventBus` | Signal declarations ONLY — no state, no logic. `coin_collected(value)`, `player_damaged(hp, max_hp)`, `player_died`, `enemy_killed(score, world_pos)`, `node_activated(id, count, total)`, `checkpoint_reached(id)`, `stage_cleared(stats)`, `boss_phase_changed(phase)`, `score_changed(score)`, `pause_toggled(paused)` |
 | `GameManager` | Run state: current character, stage, score, lives, coins this run, session hi-score; subscribes to EventBus, exposes read-only getters. No scene refs. |
 | `SaveManager` | Slot CRUD, JSON serialize/deserialize, version migration, settings persistence (`user://settings.cfg` via `ConfigFile`). |
 | `AudioManager` | Music crossfade (2 `AudioStreamPlayer`s), SFX pool (8 `AudioStreamPlayer`s round-robin, pitch-jitter ±5 %), bus volume API. |
@@ -111,7 +111,7 @@ Convention: hitboxes **scan**, hurtboxes **are scanned** — hitbox `collision_m
 | `attack` | J / X | X (left face) |
 | `dash` | K / C | RB / B |
 | `ability` (shield) | L / V | LB / Y |
-| `interact` | E / ↑ | Y / D-pad up |
+| `interact` | E | D-pad up (Y stays reserved for `ability`) |
 | `pause` | Esc | Start |
 | `ui_*` | Godot defaults | Godot defaults |
 

@@ -3,10 +3,13 @@ extends State
 ## Base for player states: typed accessors + transitions shared by most states
 ## (docs/PLAYER_FSM.md). Enemy states extend State directly, not this.
 
+## Plain field (not a casting getter) — states touch this many times per
+## physics frame.
+var player: Player
 
-var player: Player:
-	get:
-		return body as Player
+
+func on_context_ready() -> void:
+	player = body as Player
 
 
 ## Jump / dash checks common to every ground state. Returns true if it
@@ -26,14 +29,16 @@ func try_ground_transitions() -> bool:
 
 
 ## Jump / double-jump / dash checks common to airborne states.
+## The jump buffer only redeems on ground/coyote frames (docs/PLAYER_FSM.md);
+## a double jump requires a FRESH press — otherwise a press swallowed by a
+## non-jump state (e.g. during Dash) would burn the air jump moments later.
 func try_air_transitions() -> bool:
-	if player.jump_buffered():
-		if player.coyote_active():
-			machine.transition(&"Jump")
-			return true
-		if player.air_jumps_left > 0:
-			machine.transition(&"DoubleJump")
-			return true
+	if player.jump_buffered() and player.coyote_active():
+		machine.transition(&"Jump")
+		return true
+	if Input.is_action_just_pressed(&"jump") and player.air_jumps_left > 0:
+		machine.transition(&"DoubleJump")
+		return true
 	if Input.is_action_just_pressed(&"dash") and player.can_dash():
 		machine.transition(&"Dash")
 		return true

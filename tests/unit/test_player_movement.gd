@@ -21,8 +21,16 @@ func before_each() -> void:
 	shape.position = Vector2.ZERO
 	floor_body.add_child(shape)
 	add_child_autofree(floor_body)
+	_spawn_player(CHRIS)
+
+
+## Single fixture point — tests that need a different character respawn
+## through here so setup never drifts between copies.
+func _spawn_player(stats: CharacterStats) -> void:
+	if is_instance_valid(_player):
+		_player.queue_free()
 	_player = PLAYER_SCENE.instantiate()
-	_player.stats = CHRIS
+	_player.stats = stats
 	_player.position = Vector2(0, 90)
 	add_child_autofree(_player)
 
@@ -127,18 +135,32 @@ func test_dash_respects_cooldown() -> void:
 
 
 func test_flam_dash_has_iframes() -> void:
-	_player.queue_free()
-	_player = PLAYER_SCENE.instantiate()
-	_player.stats = FLAM
-	_player.position = Vector2(0, 90)
-	add_child_autofree(_player)
+	_spawn_player(FLAM)
 	await _settle()
 	Input.action_press("dash")
 	await wait_physics_frames(2)
 	assert_eq(_state(), &"Dash")
-	assert_true(_player.invulnerable)
+	assert_true(_player.is_invulnerable())
 	await wait_physics_frames(int(FLAM.dash_duration * 60) + 3)
-	assert_false(_player.invulnerable)
+	assert_false(_player.is_invulnerable())
+
+
+func test_press_during_dash_not_redeemed_as_double_jump() -> void:
+	# Regression: a jump press swallowed by Dash must not be spent as a
+	# DoubleJump when the dash ends airborne (double jump needs a FRESH press).
+	await _settle()
+	Input.action_press("jump")
+	await wait_physics_frames(3)
+	Input.action_release("jump")
+	Input.action_press("dash")
+	await wait_physics_frames(2)
+	assert_eq(_state(), &"Dash")
+	Input.action_press("jump")
+	await wait_physics_frames(1)
+	Input.action_release("jump")
+	await wait_physics_frames(int(CHRIS.dash_duration * 60) + 2)
+	assert_eq(_state(), &"Fall")
+	assert_eq(_player.air_jumps_left, 1, "stale buffer must not burn the air jump")
 
 
 func test_jump_buffer_fires_on_landing() -> void:

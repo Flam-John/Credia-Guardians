@@ -48,6 +48,13 @@ func test_future_version_refused() -> void:
 	assert_eq(SaveManager.load_slot(SLOT), {})
 	# refused but NOT quarantined/deleted
 	assert_true(FileAccess.file_exists(SaveManager.slot_path(SLOT)))
+	# slot must be reported incompatible (not empty) and shielded from writes
+	assert_true(SaveManager.is_slot_incompatible(SLOT))
+	assert_eq(SaveManager.write_slot(SLOT, SaveManager.new_slot_data(&"chris")),
+			ERR_UNAVAILABLE)
+	var summary: Dictionary = SaveManager.get_slot_summaries()[SLOT - 1]
+	assert_true(summary.get("incompatible", false))
+	assert_false(summary.get("empty", true))
 
 
 func test_record_stage_clear_unlocks_next_and_max_merges() -> void:

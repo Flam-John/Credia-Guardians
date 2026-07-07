@@ -31,8 +31,7 @@ var _player: Player
 func _ready() -> void:
 	_builder = AsciiRoomBuilder.new()
 	_builder.map = ROOM_MAP
-	add_child(_builder)
-	_builder.build()
+	add_child(_builder) # _ready auto-builds; room_size is valid after this
 	add_child(DebugOverlay.new())
 	_spawn(CHRIS)
 
@@ -55,7 +54,4 @@ func _spawn(stats: CharacterStats) -> void:
 	_player.stats = stats
 	_player.position = SPAWN
 	add_child(_player)
-	var camera: PlayerCamera = _player.get_node("Camera")
-	camera.setup_limits(Rect2(Vector2.ZERO, _builder.room_size))
-	camera.snap_to_target()
-	camera.make_current()
+	_player.activate_camera(Rect2(Vector2.ZERO, _builder.room_size))

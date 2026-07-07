@@ -27,10 +27,11 @@ func _ready() -> void:
 	EventBus.enemy_killed.connect(_on_enemy_killed)
 	EventBus.node_activated.connect(_on_node_activated)
 	EventBus.player_died.connect(_on_player_died)
+	set_process(false) # only ticks while a stage runs
 
 
 func _process(delta: float) -> void:
-	if _stage_running and not get_tree().paused:
+	if not get_tree().paused:
 		stage_time += delta
 
 
@@ -45,11 +46,13 @@ func start_stage(new_stage_id: int, new_character: StringName) -> void:
 	nodes_activated = 0
 	hit_zero_lives = false
 	_stage_running = true
+	set_process(true)
 	EventBus.score_changed.emit(score)
 
 
 func end_stage() -> void:
 	_stage_running = false
+	set_process(false)
 
 
 func add_score(amount: int) -> void:
@@ -62,7 +65,9 @@ func add_score(amount: int) -> void:
 ##         time: float, par_time: float, deaths: int, hit_zero_lives: bool}
 func compute_rank(stats: Dictionary) -> Rank:
 	var all_nodes: bool = stats.nodes >= stats.total_nodes
-	var coin_pct: float = float(stats.coins) / maxf(1.0, float(stats.total_coins))
+	# A coinless stage satisfies every coin criterion vacuously.
+	var coin_pct: float = 1.0 if stats.total_coins <= 0 \
+			else float(stats.coins) / float(stats.total_coins)
 	if stats.hit_zero_lives:
 		return Rank.D
 	if coin_pct >= 1.0 and all_nodes and stats.time <= stats.par_time and stats.deaths == 0:

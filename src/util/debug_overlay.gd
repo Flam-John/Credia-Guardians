@@ -12,6 +12,7 @@ var _player: Player
 func _ready() -> void:
 	layer = 90
 	visible = false
+	set_process(false) # costs nothing until toggled on (F3)
 	_label = Label.new()
 	_label.position = Vector2(4, 4)
 	_label.add_theme_font_size_override(&"font_size", 8)
@@ -27,11 +28,10 @@ func _on_player_spawned(p: Node2D) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"debug_overlay"):
 		visible = not visible
+		set_process(visible)
 
 
 func _process(delta: float) -> void:
-	if not visible:
-		return
 	_accum += delta
 	if _accum < 0.25:
 		return

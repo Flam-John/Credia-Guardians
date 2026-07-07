@@ -20,6 +20,7 @@ func setup(body: CharacterBody2D, stats: Resource) -> void:
 			child.machine = self
 			child.body = body
 			child.stats = stats
+			child.on_context_ready()
 	assert(states.has(initial_state), "StateMachine: unknown initial state '%s'" % initial_state)
 	current = states[initial_state]
 	current.enter(&"")

@@ -6,14 +6,16 @@ Ownership rule: **a scene never reaches outside itself** — it emits signals (l
 
 ```
 main.tscn
-└── Main (Node)
-    ├── ScreenRoot (Node)              # current screen or level lives here (SceneManager swaps)
-    ├── UILayer (CanvasLayer, layer 10)
-    │   ├── HUD (hud.tscn)             # hidden outside gameplay
-    │   └── PauseMenu (pause_menu.tscn)
-    └── TransitionLayer (CanvasLayer, layer 100)
-        └── FadeRect (ColorRect + AnimationPlayer)   # SceneManager fades
+└── Main (Node)                        # persistent shell — survives all transitions
+    ├── ScreenRoot (Node)              # current screen or level lives here; Main
+    │                                  #   registers it via SceneManager.register_screen_root
+    └── UILayer (CanvasLayer, layer 10)   # added in M3
+        ├── HUD (hud.tscn)             # hidden outside gameplay
+        └── PauseMenu (pause_menu.tscn)
 ```
+
+The fade overlay is owned by the SceneManager autoload itself (its own
+CanvasLayer at layer 100) — transitions need no per-scene plumbing.
 
 ## Level (base, inherited by stage_1..5)
 

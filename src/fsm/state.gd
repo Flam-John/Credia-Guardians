@@ -12,6 +12,11 @@ var body: CharacterBody2D
 var stats: Resource
 
 
+## Called once by StateMachine.setup after machine/body/stats are injected.
+func on_context_ready() -> void:
+	pass
+
+
 func enter(_prev: StringName) -> void:
 	pass
 

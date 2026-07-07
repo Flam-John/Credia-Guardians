@@ -6,16 +6,21 @@ const SAVE_DIR := "user://saves"
 const SETTINGS_PATH := "user://settings.cfg"
 const SLOT_COUNT := 3
 const CURRENT_VERSION := 1
-const RANK_ORDER := ["", "D", "C", "B", "A", "S"]
 
 ## version (int) -> Callable(Dictionary) -> Dictionary. Filled as versions grow.
 var _migrations: Dictionary = {}
 
 var active_slot: int = -1
 
+## "" (never cleared) followed by GameManager.Rank names, worst→best.
+## Derived, not duplicated: GameManager.Rank is the single source of truth.
+var _rank_order: Array = []
+
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(SAVE_DIR)
+	_rank_order = [""]
+	_rank_order.append_array(GameManager.Rank.keys())
 
 
 func slot_path(slot: int) -> String:
@@ -28,7 +33,10 @@ func get_slot_summaries() -> Array[Dictionary]:
 	for i in range(1, SLOT_COUNT + 1):
 		var data := load_slot(i)
 		if data.is_empty():
-			out.append({"slot": i, "empty": true})
+			if is_slot_incompatible(i):
+				out.append({"slot": i, "empty": false, "incompatible": true})
+			else:
+				out.append({"slot": i, "empty": true})
 		else:
 			out.append({
 				"slot": i,
@@ -72,7 +80,17 @@ func load_slot(slot: int) -> Dictionary:
 	return data
 
 
+## True when the slot file exists but comes from a newer build. Such slots
+## must never be overwritten (docs/SAVE_STRUCTURE.md) — only explicitly
+## deleted by the player.
+func is_slot_incompatible(slot: int) -> bool:
+	return _raw_version(slot) > CURRENT_VERSION
+
+
 func write_slot(slot: int, data: Dictionary) -> Error:
+	if is_slot_incompatible(slot):
+		push_warning("Refusing to overwrite newer-build save in slot %d." % slot)
+		return ERR_UNAVAILABLE
 	data["version"] = CURRENT_VERSION
 	data["updated_utc"] = Time.get_datetime_string_from_system(true)
 	var path := slot_path(slot)
@@ -194,9 +212,27 @@ func _new_stage_entry(unlocked: bool) -> Dictionary:
 
 
 func _best_rank(a: String, b: String) -> String:
-	return a if RANK_ORDER.find(a) >= RANK_ORDER.find(b) else b
+	return a if _rank_order.find(a) >= _rank_order.find(b) else b
+
+
+## Version field of the raw file, without loading/migrating. -1 if absent.
+func _raw_version(slot: int) -> int:
+	var path := slot_path(slot)
+	if not FileAccess.file_exists(path):
+		return -1
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return -1
+	var json := JSON.new()
+	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
+		return -1
+	return int(json.data.get("version", -1))
 
 
 func _quarantine(path: String) -> void:
 	push_warning("Corrupt save at %s — moved to .bak" % path)
-	DirAccess.open(SAVE_DIR).rename(path.get_file(), path.get_file() + ".bak")
+	var dir := DirAccess.open(SAVE_DIR)
+	# Windows rename fails onto an existing target; keep the LATEST corrupt
+	# file (an older .bak from a previous corruption gives way).
+	dir.remove(path.get_file() + ".bak")
+	dir.rename(path.get_file(), path.get_file() + ".bak")

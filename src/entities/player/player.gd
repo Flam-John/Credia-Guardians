@@ -8,12 +8,14 @@ extends CharacterBody2D
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var state_machine: StateMachine = $StateMachine
+@onready var camera: PlayerCamera = $Camera
 
 var facing := 1
 var air_jumps_left := 1
 var dash_charges_left := 1
-## True while dash i-frames are active (consumed by the damage pipeline in M2).
-var invulnerable := false
+## Owned exclusively by DashState. Other i-frame sources (hurt invulnerability
+## in M2) get their own flags; the damage pipeline asks is_invulnerable().
+var dash_iframes_active := false
 
 # Countdown timers, ticked here every physics frame (docs/PLAYER_FSM.md).
 var coyote_timer := 0.0
@@ -28,6 +30,14 @@ func _ready() -> void:
 	EventBus.player_spawned.emit(self)
 
 
+## Camera handshake for spawners (levels, debug rooms): limits, then snap,
+## then make current — callers never touch the camera child directly.
+func activate_camera(limits: Rect2) -> void:
+	camera.setup_limits(limits)
+	camera.snap_to_target()
+	camera.make_current()
+
+
 func _physics_process(delta: float) -> void:
 	_tick_timers(delta)
 	if Input.is_action_just_pressed(&"jump"):
@@ -36,6 +46,8 @@ func _physics_process(delta: float) -> void:
 		apply_gravity(delta)
 	state_machine.physics_update(delta)
 	move_and_slide()
+	# INVARIANT: charge reset stays AFTER move_and_slide — is_on_floor() is
+	# only fresh post-slide, so a same-frame landing refreshes air options.
 	if is_on_floor():
 		air_jumps_left = 1
 		dash_charges_left = stats.air_dash_charges
@@ -46,6 +58,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 # -- Helpers shared by states -------------------------------------------------
+
+## Single query point for the damage pipeline; each i-frame source ORs in here.
+func is_invulnerable() -> bool:
+	return dash_iframes_active
+
 
 func apply_gravity(delta: float) -> void:
 	var g := stats.gravity_rise if velocity.y < 0.0 else stats.gravity_fall

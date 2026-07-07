@@ -49,6 +49,7 @@ def draw_hero_frame(draw, ox: int, oy: int, anim: str, i: int, hair, long_hair: 
     per-animation offsets so timing/feel is testable before real art.
     """
     cx = ox + 16  # frame center x
+    is_attack = anim.startswith("attack") or anim == "air_attack"
     bob = [0, 1, 0, -1][i % 4] if anim in ("idle", "victory", "ability") else 0
     lean = 0
     leg_l, leg_r = 0, 0  # forward/back offsets
@@ -71,7 +72,7 @@ def draw_hero_frame(draw, ox: int, oy: int, anim: str, i: int, hair, long_hair: 
         lean = 3
         leg_l, leg_r = 4, -4
         arm_len = 6
-    elif anim.startswith("attack") or anim == "air_attack":
+    elif is_attack:
         arm_len = [2, 8, 8, 4, 3][min(i, 4)]  # windup, hit, hit, recover
         arm_y = 14
     elif anim == "hurt":
@@ -99,7 +100,7 @@ def draw_hero_frame(draw, ox: int, oy: int, anim: str, i: int, hair, long_hair: 
     _px(draw, cx - 2 + lean, oy + body_top + 3, P.GREEN)
     # arm
     _rect(draw, cx + 4 + lean, oy + arm_y, cx + 4 + lean + arm_len, oy + arm_y + 2, P.SUIT)
-    if anim.startswith("attack") or anim == "air_attack":
+    if is_attack:
         # melee swoosh at arm tip
         _rect(draw, cx + 5 + lean + arm_len, oy + arm_y - 2, cx + 6 + lean + arm_len,
               oy + arm_y + 4, P.CYAN)
