@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=3 uid="uid://junior_banker_cg"]
+
+[ext_resource type="Script" path="res://src/entities/enemies/junior/junior_banker.gd" id="1_jb"]
+[ext_resource type="Resource" path="res://data/enemies/junior_banker.tres" id="2_stats"]
+[ext_resource type="Script" path="res://src/fsm/state_machine.gd" id="3_sm"]
+[ext_resource type="Script" path="res://src/entities/enemies/junior/patrol_state.gd" id="4_patrol"]
+[ext_resource type="Script" path="res://src/entities/enemies/junior/panic_state.gd" id="5_panic"]
+
+[sub_resource type="RectangleShape2D" id="jb_body"]
+size = Vector2(12, 18)
+
+[node name="JuniorBanker" type="CharacterBody2D"]
+script = ExtResource("1_jb")
+stats = ExtResource("2_stats")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -12)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+position = Vector2(0, -9)
+shape = SubResource("jb_body")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3_sm")
+initial_state = &"Patrol"
+
+[node name="Patrol" type="Node" parent="StateMachine"]
+script = ExtResource("4_patrol")
+
+[node name="Panic" type="Node" parent="StateMachine"]
+script = ExtResource("5_panic")

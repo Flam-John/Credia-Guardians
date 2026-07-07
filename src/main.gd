@@ -5,7 +5,7 @@ extends Node
 ## Until the menu shell lands (M3), boots straight into the movement debug
 ## room so every build is immediately playable.
 
-const BOOT_SCENE := "res://tests/debug_scenes/movement_room.tscn"
+const BOOT_SCENE := "res://tests/debug_scenes/combat_room.tscn"
 
 
 func _ready() -> void:

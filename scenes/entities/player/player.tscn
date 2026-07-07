@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://player_scene_cg"]
+[gd_scene load_steps=17 format=3 uid="uid://player_scene_cg"]
 
 [ext_resource type="Script" path="res://src/entities/player/player.gd" id="1_player"]
 [ext_resource type="Resource" path="res://data/characters/chris.tres" id="2_stats"]
@@ -10,6 +10,11 @@
 [ext_resource type="Script" path="res://src/entities/player/states/fall_state.gd" id="8_fall"]
 [ext_resource type="Script" path="res://src/entities/player/states/dash_state.gd" id="9_dash"]
 [ext_resource type="Script" path="res://src/entities/player/player_camera.gd" id="10_cam"]
+[ext_resource type="Script" path="res://src/entities/player/states/attack_state.gd" id="11_atk"]
+[ext_resource type="Script" path="res://src/entities/player/states/air_attack_state.gd" id="12_aatk"]
+[ext_resource type="Script" path="res://src/entities/player/states/hurt_state.gd" id="13_hurt"]
+[ext_resource type="Script" path="res://src/entities/player/states/dead_state.gd" id="14_dead"]
+[ext_resource type="Script" path="res://src/entities/player/states/shield_state.gd" id="15_shield"]
 
 [sub_resource type="CapsuleShape2D" id="capsule_body"]
 radius = 5.0
@@ -49,6 +54,21 @@ script = ExtResource("8_fall")
 
 [node name="Dash" type="Node" parent="StateMachine"]
 script = ExtResource("9_dash")
+
+[node name="Attack" type="Node" parent="StateMachine"]
+script = ExtResource("11_atk")
+
+[node name="AirAttack" type="Node" parent="StateMachine"]
+script = ExtResource("12_aatk")
+
+[node name="Hurt" type="Node" parent="StateMachine"]
+script = ExtResource("13_hurt")
+
+[node name="Dead" type="Node" parent="StateMachine"]
+script = ExtResource("14_dead")
+
+[node name="Shield" type="Node" parent="StateMachine"]
+script = ExtResource("15_shield")
 
 [node name="Camera" type="Camera2D" parent="."]
 script = ExtResource("10_cam")

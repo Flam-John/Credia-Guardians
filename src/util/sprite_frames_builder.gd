@@ -29,18 +29,51 @@ const PLAYER_ANIMS: Array[Dictionary] = [
 ]
 
 
+## Enemy sheet row tables: MUST match tools/artgen ENEMY_LAYOUTS and
+## docs/ANIMATION_LIST.md. size = square frame edge in px.
+const ENEMY_LAYOUTS: Dictionary = {
+	"junior_banker": {
+		"size": 24,
+		"anims": [
+			{"name": &"walk", "frames": 4, "fps": 8.0, "loop": true},
+			{"name": &"panic_run", "frames": 4, "fps": 14.0, "loop": true},
+			{"name": &"death", "frames": 3, "fps": 10.0, "loop": false},
+		],
+	},
+	"angry_manager": {
+		"size": 32,
+		"anims": [
+			{"name": &"idle", "frames": 2, "fps": 4.0, "loop": true},
+			{"name": &"alert", "frames": 2, "fps": 10.0, "loop": false},
+			{"name": &"charge", "frames": 4, "fps": 14.0, "loop": true},
+			{"name": &"wall_stun", "frames": 3, "fps": 6.0, "loop": true},
+			{"name": &"death", "frames": 3, "fps": 10.0, "loop": false},
+		],
+	},
+}
+
 ## SpriteFrames are read-only after build, so instances share them safely.
 ## Cache avoids ~58 RefCounted allocations per respawn (docs/PERFORMANCE.md).
 static var _cache: Dictionary = {}
 
 
 static func build_player_frames(sheet: Texture2D) -> SpriteFrames:
+	return _build(sheet, PLAYER_ANIMS, FRAME_SIZE)
+
+
+static func build_enemy_frames(sheet: Texture2D, layout_key: String) -> SpriteFrames:
+	assert(ENEMY_LAYOUTS.has(layout_key), "Unknown enemy layout '%s'" % layout_key)
+	var layout: Dictionary = ENEMY_LAYOUTS[layout_key]
+	return _build(sheet, layout.anims, layout.size)
+
+
+static func _build(sheet: Texture2D, anims: Array, frame_size: int) -> SpriteFrames:
 	if _cache.has(sheet):
 		return _cache[sheet]
 	var frames := SpriteFrames.new()
 	frames.remove_animation(&"default")
-	for row in PLAYER_ANIMS.size():
-		var anim: Dictionary = PLAYER_ANIMS[row]
+	for row in anims.size():
+		var anim: Dictionary = anims[row]
 		var anim_name: StringName = anim.name
 		frames.add_animation(anim_name)
 		frames.set_animation_speed(anim_name, anim.fps)
@@ -48,7 +81,7 @@ static func build_player_frames(sheet: Texture2D) -> SpriteFrames:
 		for i in int(anim.frames):
 			var atlas := AtlasTexture.new()
 			atlas.atlas = sheet
-			atlas.region = Rect2(i * FRAME_SIZE, row * FRAME_SIZE, FRAME_SIZE, FRAME_SIZE)
+			atlas.region = Rect2(i * frame_size, row * frame_size, frame_size, frame_size)
 			frames.add_frame(anim_name, atlas)
 	_cache[sheet] = frames
 	return frames
