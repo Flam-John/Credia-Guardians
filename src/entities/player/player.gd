@@ -22,6 +22,10 @@ var shield_regen_wait := 0.0
 ## Energy Drink (docs/GDD.md §8): multiplies run speed while boosted.
 var speed_boost := 1.0
 var _boost_left := 0.0
+## Written by ConveyorBelt/Updraft areas (process_priority -1, i.e. before
+## this body ticks); consumed and zeroed here every frame.
+var conveyor_push := 0.0
+var updraft_strength := 0.0
 ## Set by HurtState so knockback direction survives the state transition.
 var last_hit_from := Vector2.ZERO
 
@@ -109,7 +113,13 @@ func _physics_process(delta: float) -> void:
 	if not state_machine.current.overrides_gravity:
 		apply_gravity(delta)
 	state_machine.physics_update(delta)
+	# Conveyor: applied for the slide only, then removed — the push must not
+	# accumulate into stored velocity (friction would fight it forever).
+	velocity.x += conveyor_push
 	move_and_slide()
+	velocity.x -= conveyor_push
+	conveyor_push = 0.0
+	updraft_strength = 0.0
 	# INVARIANT: charge reset stays AFTER move_and_slide — is_on_floor() is
 	# only fresh post-slide, so a same-frame landing refreshes air options.
 	if is_on_floor():
@@ -185,6 +195,9 @@ func _shield_blocks(from_global_pos: Vector2) -> bool:
 func apply_gravity(delta: float) -> void:
 	var g := stats.gravity_rise if velocity.y < 0.0 else stats.gravity_fall
 	velocity.y = minf(velocity.y + g * delta, stats.max_fall_speed)
+	if updraft_strength > 0.0:
+		# steam column: counteract gravity and lift toward a gentle rise
+		velocity.y = maxf(velocity.y - updraft_strength * 2.0 * delta, -140.0)
 
 
 func input_axis() -> float:

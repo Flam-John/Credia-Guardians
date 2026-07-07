@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/resources/level_data.gd" id="1_ld"]
+
+[resource]
+script = ExtResource("1_ld")
+stage_id = 1
+display_name = "Developer Office"
+par_time_sec = 300.0
+next_stage_id = 2
+music_track = "stage_1"

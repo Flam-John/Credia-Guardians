@@ -371,12 +371,71 @@ def gen_fx(out_dir):
     img.save(f"{out_dir}/hit_spark.png")
 
 
+def gen_security_node(path):
+    """32x32 x3: off (red), charging (blue), on (green)."""
+    img = Image.new("RGBA", (96, 32), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    for i, core in enumerate([P.RED, P.BLUE, P.GREEN]):
+        ox = i * 32
+        _outline_rect(d, ox + 10, 12, ox + 21, 30, P.BG_PANEL)  # pedestal
+        d.ellipse([ox + 8, 2, ox + 23, 17], outline=P.GRAY_DARK, fill=P.BG_PANEL)
+        d.ellipse([ox + 12, 6, ox + 19, 13], fill=core)
+        for ring in range(3):
+            _px(d, ox + 6 + ring, 9 + ring, core)
+            _px(d, ox + 25 - ring, 9 + ring, core)
+    img.save(path)
+
+
+def gen_exit_gate(path):
+    """48x64 x2: closed (red firewall bars), open (green frame, clear)."""
+    img = Image.new("RGBA", (96, 64), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    for i in range(2):
+        ox = i * 48
+        frame = P.GREEN_DARK if i else P.GRAY_DARK
+        _outline_rect(d, ox + 2, 0, ox + 45, 63, P.BG_PANEL, frame)
+        _rect(d, ox + 6, 4, ox + 41, 59, P.BG_VOID)
+        if i == 0:  # closed: red energy bars
+            for y in range(8, 60, 8):
+                _rect(d, ox + 6, y, ox + 41, y + 2, P.RED)
+        else:  # open: soft green shimmer edges
+            for y in range(6, 58, 10):
+                _px(d, ox + 7, y, P.GREEN)
+                _px(d, ox + 40, y + 4, P.GREEN)
+    img.save(path)
+
+
+def gen_stage1_backgrounds(out_dir):
+    """Parallax: far = office wall panels + window glow; mid = desk/monitor
+    silhouettes. 480x270 each, tileable horizontally."""
+    far = Image.new("RGBA", (480, 270), P.BG_VOID)
+    d = ImageDraw.Draw(far)
+    for x in range(0, 480, 60):  # wall panels
+        d.rectangle([x + 2, 20, x + 57, 250], outline=(10, 22, 38, 255))
+    for x in range(30, 480, 120):  # dim windows with blue glow
+        _rect(d, x, 40, x + 40, 90, (8, 18, 40, 255))
+        _rect(d, x + 4, 44, x + 36, 86, (12, 30, 66, 255))
+    far.save(f"{out_dir}/stage_1_far.png")
+
+    mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
+    d = ImageDraw.Draw(mid)
+    for x in range(0, 480, 96):  # desk silhouettes with glowing monitors
+        _rect(d, x + 8, 210, x + 80, 216, P.BG_PANEL)      # desk top
+        _rect(d, x + 12, 216, x + 16, 250, P.BG_PANEL)      # legs
+        _rect(d, x + 70, 216, x + 74, 250, P.BG_PANEL)
+        _rect(d, x + 28, 190, x + 52, 208, P.BG_PANEL)      # monitor
+        _rect(d, x + 31, 193, x + 49, 205, (16, 46, 34, 255))  # dim green screen
+        _px(d, x + 34, 196, P.GREEN_DARK)
+        _px(d, x + 40, 199, P.GREEN_DARK)
+    mid.save(f"{out_dir}/stage_1_mid.png")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="assets/art")
     args = ap.parse_args()
     out = args.out
-    for sub in ("characters", "tiles", "props", "enemies", "fx"):
+    for sub in ("characters", "tiles", "props", "enemies", "fx", "backgrounds"):
         os.makedirs(f"{out}/{sub}", exist_ok=True)
 
     gen_player_sheet(f"{out}/characters/chris_sheet.png", P.CHRIS_HAIR, False)
@@ -389,6 +448,9 @@ def main():
     gen_checkpoint(f"{out}/props/checkpoint.png")
     gen_platforms(f"{out}/props/platforms.png")
     gen_fx(f"{out}/fx")
+    gen_security_node(f"{out}/props/security_node.png")
+    gen_exit_gate(f"{out}/props/exit_gate.png")
+    gen_stage1_backgrounds(f"{out}/backgrounds")
     print("placeholder art generated ->", out)
 
 
