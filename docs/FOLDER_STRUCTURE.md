@@ -66,4 +66,4 @@ res://
 └── docs/                          # these 17 documents
 ```
 
-Naming: `snake_case` files/folders, `PascalCase` node names & class_name, one class per file, script filename = class_name in snake_case.
+Naming: `snake_case` files/folders, `PascalCase` node names & class_name, one class per file in `src/` (test files may declare inner helper classes), script filename = class_name in snake_case.

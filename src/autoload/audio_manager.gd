@@ -14,6 +14,9 @@ var _music_a: AudioStreamPlayer
 var _music_b: AudioStreamPlayer
 var _active_music: AudioStreamPlayer
 var _current_track: String = ""
+## The in-flight crossfade; killed when a new one starts so its deferred
+## stop() can't silence a track started after it.
+var _music_tween: Tween
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_next := 0
 var _sfx_cache: Dictionary = {}
@@ -36,23 +39,27 @@ func play_music(track: String, crossfade_sec: float = 1.0) -> void:
 	if stream == null:
 		return
 	_current_track = track
+	if _music_tween != null and _music_tween.is_valid():
+		_music_tween.kill()
 	var incoming := _music_b if _active_music == _music_a else _music_a
 	incoming.stream = stream
 	incoming.volume_db = -40.0
 	incoming.play()
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(incoming, "volume_db", 0.0, crossfade_sec)
-	tween.tween_property(_active_music, "volume_db", -40.0, crossfade_sec)
-	tween.chain().tween_callback(_active_music.stop)
+	_music_tween = create_tween()
+	_music_tween.set_parallel(true)
+	_music_tween.tween_property(incoming, "volume_db", 0.0, crossfade_sec)
+	_music_tween.tween_property(_active_music, "volume_db", -40.0, crossfade_sec)
+	_music_tween.chain().tween_callback(_active_music.stop)
 	_active_music = incoming
 
 
 func stop_music(fade_sec: float = 0.5) -> void:
 	_current_track = ""
-	var tween := create_tween()
-	tween.tween_property(_active_music, "volume_db", -40.0, fade_sec)
-	tween.tween_callback(_active_music.stop)
+	if _music_tween != null and _music_tween.is_valid():
+		_music_tween.kill()
+	_music_tween = create_tween()
+	_music_tween.tween_property(_active_music, "volume_db", -40.0, fade_sec)
+	_music_tween.tween_callback(_active_music.stop)
 
 
 func play_sfx(name_: String, jitter: bool = true) -> void:

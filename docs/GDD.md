@@ -60,7 +60,7 @@ All values live in `CharacterStats.tres` resources — tunable without code chan
 | Air control | 75 % of ground accel | |
 | Coyote time | 0.10 s | Jump grace after leaving ledge |
 | Jump buffer | 0.12 s | Early-press grace before landing |
-| Variable jump | Release ≤ 40 % ascent → cut velocity ×0.45 | Short hops |
+| Variable jump | Jump button up at any point during ascent → cut velocity ×0.45 (once) | Short hops; also applies to buffered jumps whose press was released pre-landing |
 
 ### Combat
 - **Melee attack**: 3-hit ground combo (chain window 0.35 s), single air slash. Hitbox active frames 2–5 of each swing. Hitstop 0.05 s on connect.

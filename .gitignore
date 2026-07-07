@@ -8,6 +8,9 @@ export_presets.cfg
 build/
 *.tmp
 
+# Python (artgen tool)
+__pycache__/
+
 # IDE
 .idea/
 

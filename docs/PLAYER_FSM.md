@@ -59,7 +59,7 @@ stateDiagram-v2
 | `Jump` | play `jump`, vy = jump_velocity, SFX, consume buffer | air control; variable-height cut on release | — |
 | `DoubleJump` | play `double_jump`, vy = double_jump_velocity, consume air jump | air control | — |
 | `Fall` | play `fall`; start coyote if from ground | fall gravity, clamp max_fall; landing check | stop coyote |
-| `Dash` | play `dash`, lock velocity = facing × dash_speed, gravity off, i-frames if stats say, ghost spawner on, SFX | fixed velocity; end on timer/wall | gravity on, start cooldown, consume air charge if airborne |
+| `Dash` | play `dash`, lock velocity = facing × dash_speed, gravity off, i-frames if stats say, ghost spawner on, SFX; consume an air charge iff the dash STARTS airborne (a ground dash that carries off a ledge is free — MMX-style) | fixed velocity; end on timer/wall | gravity on, start cooldown |
 | `Attack` (1–3) | play `attack_N`; AnimationPlayer keys hitbox frames | halt ×0.5 momentum decay; buffer next press | disable hitbox, combo window timer |
 | `AirAttack` | play `air_attack`, keep air control | normal air physics | disable hitbox |
 | `Shield` | play `shield`, enable ShieldVisual+Area, walk 30 % | drain meter; block = negate frontal hits (HurtboxComponent checks shield arc ±60°) | disable, start regen delay |
@@ -70,7 +70,7 @@ stateDiagram-v2
 
 - Gravity application (rise vs fall constant) — except Dash (off) and Dead.
 - Timer updates: coyote, jump buffer (set on press regardless of state), dash cooldown, shield regen.
-- `move_and_slide()` always last.
+- `move_and_slide()` after state update; air-jump/dash charge reset comes AFTER the slide because `is_on_floor()` is only fresh post-slide (same-frame landings must refresh air options).
 - Hazard/one-way platform checks; moving-platform velocity inheritance (Godot handles via floor snap; verified in tests).
 - Air-jump + air-dash charges reset on `is_on_floor()`.
 
@@ -78,7 +78,7 @@ stateDiagram-v2
 
 | Mechanic | Behavior |
 |---|---|
-| Jump buffer 0.12 s | Press stored; fires on next valid ground/coyote frame |
+| Jump buffer 0.12 s | Press stored; redeems ONLY on ground/coyote frames. Double jump requires a fresh press — a buffered press swallowed by another state (e.g. Dash) never burns the air jump |
 | Coyote 0.10 s | Ground-jump allowed after leaving ledge |
 | Combo buffer 0.35 s | Attack press during a swing queues next combo hit |
 | Dash buffer | Not buffered (deliberate — dash is a commitment) |

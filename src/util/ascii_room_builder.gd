@@ -19,10 +19,6 @@ const ATLAS := {
 	"-": Vector2i(4, 0),
 }
 
-const LAYER_WORLD := 1
-const LAYER_PLATFORM_ONEWAY := 1 << 8 # layer 9
-const LAYER_HAZARD := 1 << 9 # layer 10
-
 @export_multiline var map: String = ""
 
 var tile_layer: TileMapLayer
@@ -40,7 +36,13 @@ func build() -> void:
 	tile_layer = TileMapLayer.new()
 	tile_layer.tile_set = _build_tileset()
 	add_child(tile_layer)
+	# Trim blank lines only — strip_edges() would also eat leading spaces on
+	# the first row and misalign its tiles.
 	var lines := map.split("\n")
+	while not lines.is_empty() and lines[0].strip_edges().is_empty():
+		lines.remove_at(0)
+	while not lines.is_empty() and lines[-1].strip_edges().is_empty():
+		lines.remove_at(lines.size() - 1)
 	var width := 0
 	for y in lines.size():
 		var line := lines[y]
@@ -55,13 +57,16 @@ func build() -> void:
 func _build_tileset() -> TileSet:
 	var ts := TileSet.new()
 	ts.tile_size = Vector2i(TILE, TILE)
-	# physics layer 0: solid world; 1: one-way; 2: hazard (Area-like via tiles)
+	# TileSet physics layer 0: solid world; 1: one-way; 2: hazard.
+	# NOTE: '^' hazard tiles are inert until the M2 damage pipeline adds a
+	# consumer that masks PhysicsLayers.HAZARD (real stages use Area2D hazards
+	# per TDD §2.6; tile-body hazards exist only in these debug rooms).
 	ts.add_physics_layer()
-	ts.set_physics_layer_collision_layer(0, LAYER_WORLD)
+	ts.set_physics_layer_collision_layer(0, PhysicsLayers.WORLD)
 	ts.add_physics_layer()
-	ts.set_physics_layer_collision_layer(1, LAYER_PLATFORM_ONEWAY)
+	ts.set_physics_layer_collision_layer(1, PhysicsLayers.PLATFORM_ONEWAY)
 	ts.add_physics_layer()
-	ts.set_physics_layer_collision_layer(2, LAYER_HAZARD)
+	ts.set_physics_layer_collision_layer(2, PhysicsLayers.HAZARD)
 
 	var src := TileSetAtlasSource.new()
 	src.texture = load(TILESET_TEXTURE)
@@ -75,22 +80,21 @@ func _build_tileset() -> TileSet:
 		var data := src.get_tile_data(coords, 0)
 		match ch:
 			"#", "@":
-				_add_full_square(data, 0, false)
+				_add_full_square(data, 0)
 			"-":
 				_add_platform_strip(data)
 			"^":
-				_add_full_square(data, 2, false)
+				_add_full_square(data, 2)
 	return ts
 
 
-func _add_full_square(data: TileData, physics_layer: int, one_way: bool) -> void:
+func _add_full_square(data: TileData, physics_layer: int) -> void:
 	var half := TILE / 2.0
 	data.add_collision_polygon(physics_layer)
 	data.set_collision_polygon_points(physics_layer, 0, PackedVector2Array([
 		Vector2(-half, -half), Vector2(half, -half),
 		Vector2(half, half), Vector2(-half, half),
 	]))
-	data.set_collision_polygon_one_way(physics_layer, 0, one_way)
 
 
 func _add_platform_strip(data: TileData) -> void:
