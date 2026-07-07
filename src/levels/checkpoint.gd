@@ -37,7 +37,9 @@ func _on_body_entered(body: Node2D) -> void:
 	activated = true
 	_sprite.play(&"on")
 	AudioManager.play_sfx("checkpoint")
-	EventBus.checkpoint_reached.emit(id)
+	# Respawn at the terminal itself — never at the player's transient
+	# position, which could be mid-air over a hazard.
+	EventBus.checkpoint_reached.emit(id, global_position)
 
 
 static var _frames_cache: SpriteFrames

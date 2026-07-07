@@ -25,7 +25,10 @@ func activate() -> void:
 
 
 func deactivate() -> void:
-	monitoring = false
+	# deferred: deactivate() is reachable from inside physics signal flushes
+	# (take_hit -> transition -> AttackState.exit), where direct writes to
+	# monitoring are blocked by the engine
+	set_deferred("monitoring", false)
 	_hit_targets.clear()
 
 

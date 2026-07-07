@@ -28,8 +28,7 @@ func enter(_prev: StringName) -> void:
 
 func physics_update(delta: float) -> void:
 	if enemy.is_on_floor() and enemy.edge_detector.is_wall_ahead():
-		enemy.set_facing(-enemy.facing)
-		enemy.edge_detector.set_direction(enemy.facing)
+		enemy.set_facing(-enemy.facing) # detector follows via set_facing override
 	enemy.velocity.x = enemy.facing * stats.move_speed * FLEE_FACTOR
 	_drop_timer -= delta
 	if _drop_timer <= 0.0 and _coins_dropped < MAX_COINS:

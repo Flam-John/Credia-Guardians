@@ -2,7 +2,6 @@ extends Node2D
 ## Movement debug room: ledge/gap gauntlet built from ASCII (versionable).
 ## Keys: 1 = respawn as Chris, 2 = respawn as Flam, F3 = debug overlay.
 
-const PLAYER_SCENE := preload("res://scenes/entities/player/player.tscn")
 const CHRIS := preload("res://data/characters/chris.tres")
 const FLAM := preload("res://data/characters/flam.tres")
 const SPAWN := Vector2(48, 180)
@@ -24,16 +23,19 @@ const ROOM_MAP := """
 @@@@@@@@@@@@@.....@@@@@@@@....@@@@@....................@@@@@@@@@
 """
 
-var _builder: AsciiRoomBuilder
-var _player: Player
+var _respawner: RespawnController
 
 
 func _ready() -> void:
-	_builder = AsciiRoomBuilder.new()
-	_builder.map = ROOM_MAP
-	add_child(_builder) # _ready auto-builds; room_size is valid after this
+	var builder := AsciiRoomBuilder.new()
+	builder.map = ROOM_MAP
+	add_child(builder) # _ready auto-builds; room_size is valid after this
 	add_child(DebugOverlay.new())
-	_spawn(CHRIS)
+	_respawner = RespawnController.new()
+	_respawner.spawn_point = SPAWN
+	_respawner.camera_limits = Rect2(Vector2.ZERO, builder.room_size)
+	add_child(_respawner)
+	_respawner.spawn(CHRIS)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -42,16 +44,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	match key.physical_keycode:
 		KEY_1:
-			_spawn(CHRIS)
+			_respawner.spawn(CHRIS)
 		KEY_2:
-			_spawn(FLAM)
-
-
-func _spawn(stats: CharacterStats) -> void:
-	if is_instance_valid(_player):
-		_player.queue_free()
-	_player = PLAYER_SCENE.instantiate()
-	_player.stats = stats
-	_player.position = SPAWN
-	add_child(_player)
-	_player.activate_camera(Rect2(Vector2.ZERO, _builder.room_size))
+			_respawner.spawn(FLAM)

@@ -33,7 +33,8 @@ func _ready() -> void:
 func pop(velocity: Vector2) -> void:
 	_pop_velocity = velocity
 	_popping = true
-	monitoring = false
+	# deferred: pop() runs inside the killer hitbox's signal flush
+	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
 
 

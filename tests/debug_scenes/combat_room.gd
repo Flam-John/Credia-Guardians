@@ -55,7 +55,7 @@ func _ready() -> void:
 func _place_enemies() -> void:
 	_add(JUNIOR, Vector2(22 * T, 12 * T))
 	_add(JUNIOR, Vector2(28 * T, 12 * T))
-	_add(MANAGER, Vector2(50 * T, 12 * T))
+	_add(MANAGER, Vector2(55 * T, 12 * T)) # clear of the col-48..53 overhang
 
 
 func _place_collectibles() -> void:

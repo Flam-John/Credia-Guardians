@@ -10,6 +10,8 @@ const STOMP_BOUNCE := -240.0
 ## Player must be at least this far above the enemy center to count as a stomp.
 const STOMP_HEIGHT := 6.0
 const KNOCKBACK_DECAY := 600.0
+## No enemy has business existing this far below any room; freed quietly.
+const FALL_DESPAWN_Y := 1000.0
 
 @export var stats: EnemyStats
 ## Off-screen sleeping (docs/PERFORMANCE.md). Tests disable it: headless runs
@@ -29,6 +31,7 @@ var health: HealthComponent
 var hurtbox: HurtboxComponent
 var flash: FlashComponent
 var loot: LootComponent
+var _contact_area: Area2D
 
 
 func _ready() -> void:
@@ -50,6 +53,15 @@ func _physics_process(delta: float) -> void:
 	else:
 		state_machine.physics_update(delta)
 	move_and_slide()
+	# POLLED contact (not *_entered edges): a player parked inside the enemy
+	# after their i-frames expire must keep taking hits. has_overlapping is
+	# allocation-free; the array only materializes on actual overlap.
+	if _contact_area.has_overlapping_bodies():
+		for overlapping in _contact_area.get_overlapping_bodies():
+			_resolve_player_contact(overlapping)
+	# fell out of the world (panicking bankers may run off ledges by design)
+	if global_position.y > FALL_DESPAWN_Y:
+		queue_free()
 
 
 func set_facing(dir: int) -> void:
@@ -94,12 +106,13 @@ func _build_components() -> void:
 	add_child(loot)
 
 	# Contact: hurts the player on touch, unless it's a valid stomp.
-	var contact := Area2D.new()
-	contact.collision_layer = 0
-	contact.collision_mask = PhysicsLayers.PLAYER
-	contact.add_child(_body_shape_copy())
-	contact.body_entered.connect(_on_player_contact)
-	add_child(contact)
+	# Deliberately scans the player BODY layer (not the hurtbox): stomp
+	# resolution needs body velocity/position. Polled in _physics_process.
+	_contact_area = Area2D.new()
+	_contact_area.collision_layer = 0
+	_contact_area.collision_mask = PhysicsLayers.PLAYER
+	_contact_area.add_child(_body_shape_copy())
+	add_child(_contact_area)
 
 	if sleep_when_offscreen:
 		var enabler := VisibleOnScreenEnabler2D.new()
@@ -136,7 +149,7 @@ func _on_hurtbox_hurt(hitbox: HitboxComponent) -> void:
 	take_hit(hitbox.damage, hitbox.global_position)
 
 
-func _on_player_contact(body: Node2D) -> void:
+func _resolve_player_contact(body: Node2D) -> void:
 	var player := body as Player
 	if player == null or _dying:
 		return
@@ -144,6 +157,9 @@ func _on_player_contact(body: Node2D) -> void:
 			and player.global_position.y < global_position.y - STOMP_HEIGHT
 	if stats.stompable and falling_onto:
 		player.velocity.y = STOMP_BOUNCE
+		# grace: next poll still overlaps but is no longer "falling onto" —
+		# without this the bounce frame reads as contact damage
+		player.hurtbox.start_invuln(0.25)
 		AudioManager.play_sfx("stomp")
 		take_hit(1, player.global_position)
 	else:

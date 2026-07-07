@@ -45,5 +45,6 @@ func _apply(player: Player) -> void:
 			player.heal(1)
 		Kind.ENERGY_DRINK:
 			player.heal(player.stats.max_hp)
+			player.apply_speed_boost(1.15, 10.0) # docs/GDD.md §8
 		_:
 			pass # FIREWALL_SHIELD / KEYBOARD_UPGRADE / USB_KEY arrive in M5

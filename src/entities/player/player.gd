@@ -19,6 +19,9 @@ var dash_iframes_active := false
 ## Chris signature: drains while Shield state is active (docs/GDD.md §3).
 var shield_meter := 0.0
 var shield_regen_wait := 0.0
+## Energy Drink (docs/GDD.md §8): multiplies run speed while boosted.
+var speed_boost := 1.0
+var _boost_left := 0.0
 ## Set by HurtState so knockback direction survives the state transition.
 var last_hit_from := Vector2.ZERO
 
@@ -32,6 +35,7 @@ var hurtbox: HurtboxComponent
 var melee_hitbox: HitboxComponent
 var melee_shape: CollisionShape2D
 var flash: FlashComponent
+var _hazard_detector: Area2D
 
 
 func _ready() -> void:
@@ -79,15 +83,15 @@ func _build_combat_nodes() -> void:
 	flash.target = sprite
 	add_child(flash)
 
-	# Hazard tiles/areas (spikes, lasers) — 2 dmg per GDD §4.
-	var hazard_detector := Area2D.new()
-	hazard_detector.collision_layer = 0
-	hazard_detector.collision_mask = PhysicsLayers.HAZARD
+	# Hazard tiles/areas (spikes, lasers) — 2 dmg per GDD §4. POLLED in
+	# _physics_process, not edge-triggered: an *_entered-only design goes
+	# silent when the player stays overlapping after i-frames expire.
+	_hazard_detector = Area2D.new()
+	_hazard_detector.collision_layer = 0
+	_hazard_detector.collision_mask = PhysicsLayers.HAZARD
 	var hz_shape := hurt_shape.duplicate()
-	hazard_detector.add_child(hz_shape)
-	hazard_detector.body_entered.connect(_on_hazard_touched)
-	hazard_detector.area_entered.connect(_on_hazard_touched)
-	add_child(hazard_detector)
+	_hazard_detector.add_child(hz_shape)
+	add_child(_hazard_detector)
 
 
 ## Camera handshake for spawners (levels, debug rooms): limits, then snap,
@@ -111,6 +115,10 @@ func _physics_process(delta: float) -> void:
 	if is_on_floor():
 		air_jumps_left = 1
 		dash_charges_left = stats.air_dash_charges
+	# Polled hazard check (take_hit no-ops during i-frames, so this is one
+	# cheap overlap test per frame, damage at i-frame cadence while inside).
+	if _hazard_detector.has_overlapping_bodies() or _hazard_detector.has_overlapping_areas():
+		take_hit(2, global_position + Vector2(0, 8))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -149,12 +157,13 @@ func heal(amount: int) -> void:
 		AudioManager.play_sfx("heal")
 
 
+func apply_speed_boost(multiplier: float, duration: float) -> void:
+	speed_boost = multiplier
+	_boost_left = duration
+
+
 func _on_hurtbox_hurt(hitbox: HitboxComponent) -> void:
 	take_hit(hitbox.damage, hitbox.global_position)
-
-
-func _on_hazard_touched(_node: Node) -> void:
-	take_hit(2, global_position + Vector2(0, 8)) # knock upward off spikes
 
 
 ## Chris only: frontal ±60° block while Shield state is active with meter.
@@ -186,7 +195,8 @@ func input_axis() -> float:
 func ground_move(delta: float) -> void:
 	var axis := input_axis()
 	if absf(axis) > 0.0:
-		velocity.x = move_toward(velocity.x, axis * stats.run_speed, stats.ground_accel * delta)
+		velocity.x = move_toward(
+				velocity.x, axis * stats.run_speed * speed_boost, stats.ground_accel * delta)
 		set_facing(signf(axis))
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, stats.ground_friction * delta)
@@ -197,7 +207,8 @@ func air_move(delta: float) -> void:
 	var axis := input_axis()
 	if absf(axis) > 0.0:
 		velocity.x = move_toward(
-			velocity.x, axis * stats.run_speed, stats.ground_accel * stats.air_control * delta)
+			velocity.x, axis * stats.run_speed * speed_boost,
+			stats.ground_accel * stats.air_control * delta)
 		set_facing(signf(axis))
 
 
@@ -240,6 +251,10 @@ func _tick_timers(delta: float) -> void:
 	coyote_timer = maxf(0.0, coyote_timer - delta)
 	jump_buffer_timer = maxf(0.0, jump_buffer_timer - delta)
 	dash_cooldown_timer = maxf(0.0, dash_cooldown_timer - delta)
+	if _boost_left > 0.0:
+		_boost_left -= delta
+		if _boost_left <= 0.0:
+			speed_boost = 1.0
 	# Shield regen: waits shield_regen_delay after last use, then refills.
 	if stats.has_shield and state_machine.current_name() != &"Shield":
 		if shield_regen_wait > 0.0:

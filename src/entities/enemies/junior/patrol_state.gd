@@ -15,6 +15,5 @@ func enter(_prev: StringName) -> void:
 func physics_update(_delta: float) -> void:
 	if enemy.is_on_floor() \
 			and (enemy.edge_detector.is_wall_ahead() or enemy.edge_detector.is_ledge_ahead()):
-		enemy.set_facing(-enemy.facing)
-		enemy.edge_detector.set_direction(enemy.facing)
+		enemy.set_facing(-enemy.facing) # detector follows via set_facing override
 	enemy.velocity.x = enemy.facing * stats.move_speed

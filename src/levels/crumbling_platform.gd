@@ -10,9 +10,15 @@ var _sprite: Sprite2D
 var _shape: CollisionShape2D
 var _atlas: AtlasTexture
 var _state := 0 # 0 intact, 1 shaking, 2 broken
+## Child Timer (NOT SceneTreeTimer): dies with the platform, so a pending
+## break/respawn can never fire on a freed instance after a scene change.
+var _timer: Timer
 
 
 func _ready() -> void:
+	_timer = Timer.new()
+	_timer.one_shot = true
+	add_child(_timer)
 	collision_layer = PhysicsLayers.PLATFORM_ONEWAY
 	collision_mask = 0
 	_atlas = AtlasTexture.new()
@@ -52,7 +58,7 @@ func _on_stepped_on(_body: Node2D) -> void:
 	tween.set_loops(int(SHAKE_TIME / 0.06))
 	tween.tween_property(_sprite, "position:x", 1.0, 0.03)
 	tween.tween_property(_sprite, "position:x", -1.0, 0.03)
-	get_tree().create_timer(SHAKE_TIME).timeout.connect(_break)
+	_start_timer(SHAKE_TIME, _break)
 
 
 func _break() -> void:
@@ -61,7 +67,14 @@ func _break() -> void:
 	_shape.set_deferred("disabled", true)
 	var tween := create_tween()
 	tween.tween_property(_sprite, "modulate:a", 0.0, 0.2)
-	get_tree().create_timer(RESPAWN_TIME).timeout.connect(_respawn)
+	_start_timer(RESPAWN_TIME, _respawn)
+
+
+func _start_timer(seconds: float, callback: Callable) -> void:
+	for connection in _timer.timeout.get_connections():
+		_timer.timeout.disconnect(connection.callable)
+	_timer.timeout.connect(callback, CONNECT_ONE_SHOT)
+	_timer.start(seconds)
 
 
 func _respawn() -> void:

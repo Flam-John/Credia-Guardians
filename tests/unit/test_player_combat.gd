@@ -90,7 +90,21 @@ func test_shield_blocks_frontal_only() -> void:
 	assert_eq(_player.health.hp, hp_before - 1, "rear hit lands")
 
 
-func test_hazard_costs_two() -> void:
-	var hp_before := _player.health.hp
-	_player._on_hazard_touched(null)
-	assert_eq(_player.health.hp, hp_before - 2)
+func test_hazard_polling_damages_while_overlapping() -> void:
+	# real hazard body under the player: polled check must hit on the first
+	# frame AND again after i-frames expire while still overlapping
+	var spikes := StaticBody2D.new()
+	spikes.collision_layer = PhysicsLayers.HAZARD
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(60, 30)
+	shape.shape = rect
+	spikes.position = _player.position + Vector2(0, -10)
+	spikes.add_child(shape)
+	add_child_autofree(spikes)
+	var hp_start := _player.health.hp
+	await wait_physics_frames(4)
+	assert_eq(_player.health.hp, hp_start - 2, "hazard costs 2")
+	# still overlapping after the 1s invulnerability -> damaged again
+	await wait_physics_frames(70)
+	assert_lte(_player.health.hp, hp_start - 4, "re-damaged after i-frames while inside")

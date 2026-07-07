@@ -24,8 +24,11 @@ func try_ground_transitions() -> bool:
 	if Input.is_action_just_pressed(&"attack"):
 		machine.transition(&"Attack")
 		return true
+	# Minimum meter to raise the shield: without it, holding the button after
+	# depletion re-enters Shield the frame regen ticks past zero, draining it
+	# instantly and re-arming the regen delay forever (starvation loop).
 	if Input.is_action_pressed(&"ability") and stats.has_shield \
-			and player.shield_meter > 0.0:
+			and player.shield_meter >= 0.5:
 		machine.transition(&"Shield")
 		return true
 	if not player.is_on_floor():

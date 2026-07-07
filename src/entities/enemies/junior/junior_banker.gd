@@ -11,6 +11,15 @@ func _ready() -> void:
 	edge_detector.position = Vector2(0, -6)
 	add_child(edge_detector)
 	super()
+	edge_detector.set_direction(facing)
+
+
+## Keep the probes pointed the way we walk — a desynced detector never sees
+## the ledge and the banker walks straight off it.
+func set_facing(dir: int) -> void:
+	super(dir)
+	if edge_detector != null:
+		edge_detector.set_direction(facing)
 
 
 func _on_took_hit() -> void:
