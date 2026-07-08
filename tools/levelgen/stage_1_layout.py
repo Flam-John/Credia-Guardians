@@ -51,6 +51,7 @@ coins((5, 18), (6, 18), (7, 17), (9, 16), (11, 17), (8, 15), (10, 15),
 put(20, 18, "J")
 hline(23, 27, 16, "#")                           # step-up ledge
 coins((24, 15), (25, 15), (26, 15))
+put(23, 15, "K")                                 # keyboard upgrade (melee +1)
 
 # ---- section 2: conveyor desks (cols 28-59) ----
 hline(28, 59, 19, "#")
@@ -90,6 +91,7 @@ put(87, 19, ".")                                 # entrance gap (drop in)
 put(88, 19, ".")
 coins((87, 21), (88, 21), (89, 21), (90, 21), (91, 21), (88, 20), (90, 20))
 put(92, 21, "o")                                 # coffee inside
+put(89, 20, "W")                                 # firewall shield reward
 coins((85, 18),)
 
 # ---- section 5: spike pit + moving platforms (cols 94-117) ----
@@ -110,11 +112,15 @@ coins((117, 18), (118, 18))
 coins((119, 18), (130, 18), (134, 18))
 put(124, 18, "J")
 put(128, 18, "o")
-hline(120, 136, 14, "#")                         # upper walkway
-coins((121, 13), (123, 13), (125, 13), (127, 13), (129, 13), (131, 13),
+put(121, 18, "A")                                # auditor harasses from below
+put(131, 18, "L")                                # loan shark ambush by coffee
+hline(120, 138, 14, "#")                         # upper walkway
+coins((122, 13), (123, 13), (125, 13), (127, 13), (129, 13), (131, 13),
       (133, 13), (135, 13))
+put(121, 13, "U")                                # USB key, start of walkway
 put(132, 13, "J")
-put(136, 13, "N")                                # node 3 (upper)
+put(134, 13, "F")                                # firewall gate guards node 3
+put(137, 13, "N")                                # node 3 (behind the gate)
 # hidden vault 2 under the maze floor
 rect(122, 20, 127, 22, ".")
 put(123, 19, ".")
@@ -133,6 +139,10 @@ coins((153, 18), (154, 18))
 
 # ---- section 8: exit (cols 156-158) ----
 put(157, 18, "E")
+
+# ---- wall monitors (propaganda -> positive on first node) ----
+for mx in (10, 33, 47, 90, 118, 145):
+    put(mx, 16, "m")
 
 # ---- top-up to exactly 100 coins (GDD: FULL AUDIT requires all 100) ----
 coins((12, 18), (13, 18), (55, 18), (56, 18), (120, 18), (135, 18))

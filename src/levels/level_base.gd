@@ -17,6 +17,11 @@ const COIN_SCENE := preload("res://scenes/entities/collectibles/coin.tscn")
 const PICKUP_SCENE := preload("res://scenes/entities/collectibles/pickup.tscn")
 const JUNIOR_SCENE := preload("res://scenes/entities/enemies/junior_banker.tscn")
 const MANAGER_SCENE := preload("res://scenes/entities/enemies/angry_manager.tscn")
+const AUDITOR_SCENE := preload("res://scenes/entities/enemies/auditor.tscn")
+const SHARK_SCENE := preload("res://scenes/entities/enemies/loan_shark.tscn")
+const AI_BANKER_SCENE := preload("res://scenes/entities/enemies/ai_banker.tscn")
+const PROJECTILE_SCENE := preload("res://scenes/entities/props/projectile.tscn")
+const HIT_SPARK_SCENE := preload("res://scenes/fx/hit_spark.tscn")
 const FULL_AUDIT_BONUS := 5000
 
 @export var data: LevelData
@@ -35,10 +40,26 @@ var respawner: RespawnController
 var _gate: ExitGate
 var _spawn_tile := Vector2i(2, 2)
 var _cleared := false
+var _mover_count := 0
+
+
+var projectile_pool: ObjectPool
+var spark_pool: ObjectPool
+
+
+func acquire_projectile() -> Projectile:
+	return projectile_pool.acquire()
+
+
+func acquire_hit_spark() -> HitSpark:
+	return spark_pool.acquire()
 
 
 func _ready() -> void:
 	assert(data != null, "LevelBase needs a LevelData resource")
+	add_to_group(&"level_root")
+	projectile_pool = ObjectPool.new(PROJECTILE_SCENE, self, 12, 32)
+	spark_pool = ObjectPool.new(HIT_SPARK_SCENE, self, 8, 16)
 	var terrain := _extract_entities(map)
 	var builder := AsciiRoomBuilder.new()
 	builder.map = terrain
@@ -105,6 +126,26 @@ func _extract_entities(source: String) -> String:
 					_place(JUNIOR_SCENE, x, y)
 				"M":
 					_place(MANAGER_SCENE, x, y)
+				"A":
+					_place(AUDITOR_SCENE, x, y)
+				"L":
+					_place(SHARK_SCENE, x, y)
+				"B":
+					_place(AI_BANKER_SCENE, x, y)
+				"W":
+					_place_pickup(Pickup.Kind.FIREWALL_SHIELD, x, y)
+				"K":
+					_place_pickup(Pickup.Kind.KEYBOARD_UPGRADE, x, y)
+				"U":
+					_place_pickup(Pickup.Kind.USB_KEY, x, y)
+				"F":
+					var firewall := FirewallGate.new()
+					firewall.position = _tile_bottom(x, y)
+					add_child(firewall)
+				"m":
+					var monitor := MonitorProp.new()
+					monitor.position = Vector2(x * T + 16, y * T + 12)
+					add_child(monitor)
 				"k":
 					var checkpoint := Checkpoint.new()
 					checkpoint.position = _tile_bottom(x, y)
@@ -145,10 +186,16 @@ func _extract_entities(source: String) -> String:
 					curve.add_point(Vector2.ZERO)
 					curve.add_point(Vector2(maxi(0, span * T - 48), 0))
 					mover.curve = curve
+					# alternate phases so consecutive movers' ends meet
+					mover.start_at_end = _mover_count % 2 == 1
+					_mover_count += 1
 					add_child(mover)
 					consumed = span
 				"~":
-					# column: only process the TOP '~' of a run
+					# column: only process the TOP '~' of a run. Do NOT blank
+					# these cells here — the top-detection below must read the
+					# ORIGINAL grid for every row (the final replace pass
+					# clears all '~' at once).
 					if y > 0 and x < (grid[y - 1] as String).length() and grid[y - 1][x] == "~":
 						x += 1
 						continue
@@ -161,6 +208,8 @@ func _extract_entities(source: String) -> String:
 					draft.position = Vector2(x * T, y * T)
 					draft.setup(height)
 					add_child(draft)
+					x += 1
+					continue
 				_:
 					x += 1
 					continue

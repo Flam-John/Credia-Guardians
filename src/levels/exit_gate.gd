@@ -45,6 +45,17 @@ func unlock() -> void:
 	_atlas.region = Rect2(48, 0, 48, 64)
 	_blocker.queue_free()
 	AudioManager.play_sfx("gate_open")
+	_sweep_overlaps()
+
+
+## A player hugging the locked gate is already inside the area when it opens;
+## body_entered won't re-fire, so sweep current overlaps once.
+func _sweep_overlaps() -> void:
+	await get_tree().physics_frame
+	if not is_inside_tree() or not monitoring:
+		return
+	for body in get_overlapping_bodies():
+		_on_body_entered(body)
 
 
 func _on_body_entered(body: Node2D) -> void:

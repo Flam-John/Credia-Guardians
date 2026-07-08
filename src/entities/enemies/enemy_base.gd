@@ -17,6 +17,8 @@ const FALL_DESPAWN_Y := 1000.0
 ## Off-screen sleeping (docs/PERFORMANCE.md). Tests disable it: headless runs
 ## never render, so a sleeper would never wake.
 @export var sleep_when_offscreen := true
+## AI Banker floats; everyone else falls.
+@export var affected_by_gravity := true
 
 var facing := -1
 ## Angry Manager sets this in WallStun (double damage window).
@@ -46,7 +48,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _dying:
 		return
-	velocity.y = minf(velocity.y + GRAVITY * delta, MAX_FALL)
+	if affected_by_gravity:
+		velocity.y = minf(velocity.y + GRAVITY * delta, MAX_FALL)
 	if _knockback_x != 0.0:
 		_knockback_x = move_toward(_knockback_x, 0.0, KNOCKBACK_DECAY * delta)
 		velocity.x = _knockback_x
@@ -56,7 +59,8 @@ func _physics_process(delta: float) -> void:
 	# POLLED contact (not *_entered edges): a player parked inside the enemy
 	# after their i-frames expire must keep taking hits. has_overlapping is
 	# allocation-free; the array only materializes on actual overlap.
-	if _contact_area.has_overlapping_bodies():
+	# (monitoring check: Loan Shark disables contact while hidden)
+	if _contact_area.monitoring and _contact_area.has_overlapping_bodies():
 		for overlapping in _contact_area.get_overlapping_bodies():
 			_resolve_player_contact(overlapping)
 	# fell out of the world (panicking bankers may run off ledges by design)
@@ -78,6 +82,23 @@ func play(anim: StringName) -> void:
 ## The tracked player, or null. Cheap: group lookup, no scene coupling.
 func find_player() -> Player:
 	return get_tree().get_first_node_in_group(&"player") as Player
+
+
+const PROJECTILE_SCENE := preload("res://scenes/entities/props/projectile.tscn")
+
+## Fire through the level's pool when one exists (group "level_root"),
+## otherwise instantiate directly (debug rooms, tests).
+func spawn_projectile(from: Vector2, vel: Vector2, visual: Projectile.Visual,
+		dmg := 1, grav := 0.0) -> void:
+	var level := get_tree().get_first_node_in_group(&"level_root")
+	var projectile: Projectile
+	if level != null and level.has_method("acquire_projectile"):
+		projectile = level.acquire_projectile()
+	else:
+		projectile = PROJECTILE_SCENE.instantiate()
+		get_parent().add_child(projectile)
+	projectile.launch(from, vel, visual, dmg, grav)
+	AudioManager.play_sfx("projectile")
 
 
 # -- Damage --------------------------------------------------------------------
@@ -136,6 +157,7 @@ func take_hit(damage: int, from_global_pos: Vector2) -> void:
 	flash.flash()
 	AudioManager.play_sfx("enemy_hurt")
 	GameFeel.hitstop(get_tree())
+	FxService.hit_spark(get_tree(), global_position + Vector2(0, -10))
 	_knockback_x = signf(global_position.x - from_global_pos.x) * 90.0
 	_on_took_hit()
 

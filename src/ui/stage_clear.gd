@@ -81,6 +81,9 @@ func _run_tally(value_labels: Array[Label]) -> void:
 		var target: int = label.get_meta(&"target")
 		tween.tween_method(_set_tally.bind(label), 0, target, 0.6)
 		tween.tween_callback(AudioManager.play_sfx.bind("tally_tick"))
+	# pivot must be set BEFORE the scale tween (and after layout) or the
+	# medal sweeps in from a corner instead of stamping in place
+	tween.tween_callback(_prepare_rank_pivot)
 	tween.tween_property(_rank_label, "modulate:a", 1.0, 0.15)
 	tween.parallel().tween_property(_rank_label, "scale", Vector2.ONE, 0.2) \
 			.from(Vector2(2.2, 2.2))
@@ -93,8 +96,11 @@ func _set_tally(value: int, label: Label) -> void:
 	label.text = str(value)
 
 
-func _stamp_rank() -> void:
+func _prepare_rank_pivot() -> void:
 	_rank_label.pivot_offset = _rank_label.size / 2.0
+
+
+func _stamp_rank() -> void:
 	AudioManager.play_sfx("rank_stamp")
 	if _stats.rank in ["A", "S"]:
 		var confetti := CPUParticles2D.new()

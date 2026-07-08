@@ -1,8 +1,9 @@
 class_name ConveyorBelt
 extends Area2D
 ## Conveyor desk strip: pushes a grounded overlapping player horizontally.
-## process_priority -1 → runs BEFORE Player._physics_process each tick, so
-## the push lands in the same frame's move_and_slide.
+## process_physics_priority -1 → ticks BEFORE Player._physics_process, so
+## the push lands in the same frame's move_and_slide (process_priority only
+## orders _process, not physics).
 
 @export var push := 40.0 # signed px/s
 
@@ -10,7 +11,7 @@ var _tiles_wide := 1
 
 
 func _ready() -> void:
-	process_priority = -1
+	process_physics_priority = -1
 	collision_layer = 0
 	collision_mask = PhysicsLayers.PLAYER
 	monitorable = false

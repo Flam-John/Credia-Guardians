@@ -31,6 +31,8 @@ var enemy_score: int = 0
 var coin_score: int = 0
 ## Stashed by the level on clear; read by the stage-clear screen.
 var last_clear_stats: Dictionary = {}
+## USB Security Keys held this stage attempt (docs/GDD.md §8).
+var usb_keys: int = 0
 
 var _stage_running := false
 
@@ -85,6 +87,7 @@ func start_stage(new_stage_id: int, new_character: StringName) -> void:
 	hit_zero_lives = false
 	enemy_score = 0
 	coin_score = 0
+	usb_keys = 0
 	_stage_running = true
 	set_process(true)
 	EventBus.score_changed.emit(score)

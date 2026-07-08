@@ -6,6 +6,9 @@ const CHRIS := preload("res://data/characters/chris.tres")
 const FLAM := preload("res://data/characters/flam.tres")
 const JUNIOR := preload("res://scenes/entities/enemies/junior_banker.tscn")
 const MANAGER := preload("res://scenes/entities/enemies/angry_manager.tscn")
+const AUDITOR := preload("res://scenes/entities/enemies/auditor.tscn")
+const SHARK := preload("res://scenes/entities/enemies/loan_shark.tscn")
+const AI_BANKER := preload("res://scenes/entities/enemies/ai_banker.tscn")
 const COIN := preload("res://scenes/entities/collectibles/coin.tscn")
 const PICKUP := preload("res://scenes/entities/collectibles/pickup.tscn")
 
@@ -59,6 +62,9 @@ func _place_enemies() -> void:
 	_add(JUNIOR, Vector2(22 * T, 12 * T))
 	_add(JUNIOR, Vector2(28 * T, 12 * T))
 	_add(MANAGER, Vector2(55 * T, 12 * T)) # clear of the col-48..53 overhang
+	_add(AUDITOR, Vector2(45 * T, 12 * T))
+	_add(SHARK, Vector2(33 * T, 12 * T))
+	_add(AI_BANKER, Vector2(25 * T, 7 * T))
 
 
 func _place_collectibles() -> void:

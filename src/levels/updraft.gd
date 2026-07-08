@@ -9,7 +9,7 @@ var _height_tiles := 1
 
 
 func _ready() -> void:
-	process_priority = -1
+	process_physics_priority = -1 # physics ordering, not process_priority
 	collision_layer = 0
 	collision_mask = PhysicsLayers.PLAYER
 	monitorable = false
