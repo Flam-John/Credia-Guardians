@@ -7,6 +7,9 @@ const SHEET := preload("res://assets/art/props/platforms.png")
 
 @export var speed := 40.0
 @export var ping_pong := true
+## Start at the far end moving back — chains of movers alternate this so
+## adjacent platform ends meet instead of staying phase-locked apart.
+@export var start_at_end := false
 
 var _follow: PathFollow2D
 var _dir := 1.0
@@ -17,6 +20,9 @@ func _ready() -> void:
 	_follow.loop = not ping_pong
 	_follow.rotates = false
 	add_child(_follow)
+	if start_at_end:
+		_follow.progress_ratio = 1.0
+		_dir = -1.0
 	var platform := AnimatableBody2D.new()
 	platform.sync_to_physics = true
 	platform.collision_layer = PhysicsLayers.PLATFORM_ONEWAY

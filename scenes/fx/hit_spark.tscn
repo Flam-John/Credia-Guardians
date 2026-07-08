@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://hit_spark_cg"]
+
+[ext_resource type="Script" path="res://src/fx/hit_spark.gd" id="1_hs"]
+
+[node name="HitSpark" type="AnimatedSprite2D"]
+script = ExtResource("1_hs")

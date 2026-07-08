@@ -5,10 +5,9 @@ extends Node
 
 const STARTING_LIVES := 3
 
-## Stage id -> scene path. Stage 1 points at the combat room until M4 builds
-## the real Developer Office.
+## Stage id -> scene path.
 const STAGE_SCENES := {
-	1: "res://tests/debug_scenes/combat_room.tscn",
+	1: "res://scenes/levels/stage_1.tscn",
 }
 const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 
@@ -27,6 +26,13 @@ var nodes_activated: int = 0
 var hit_zero_lives: bool = false
 ## Best score on record for the active save slot (HUD display).
 var hi_score: int = 0
+## Score breakdown for the stage-clear tally (docs/GDD.md §9).
+var enemy_score: int = 0
+var coin_score: int = 0
+## Stashed by the level on clear; read by the stage-clear screen.
+var last_clear_stats: Dictionary = {}
+## USB Security Keys held this stage attempt (docs/GDD.md §8).
+var usb_keys: int = 0
 
 var _stage_running := false
 
@@ -79,6 +85,9 @@ func start_stage(new_stage_id: int, new_character: StringName) -> void:
 	stage_time = 0.0
 	nodes_activated = 0
 	hit_zero_lives = false
+	enemy_score = 0
+	coin_score = 0
+	usb_keys = 0
 	_stage_running = true
 	set_process(true)
 	EventBus.score_changed.emit(score)
@@ -119,11 +128,13 @@ func rank_name(rank: Rank) -> String:
 
 func _on_coin_collected(value: int) -> void:
 	coins += 1
+	coin_score += value
 	add_score(value)
 
 
-func _on_enemy_killed(enemy_score: int, _world_pos: Vector2) -> void:
-	add_score(enemy_score)
+func _on_enemy_killed(kill_score: int, _world_pos: Vector2) -> void:
+	enemy_score += kill_score
+	add_score(kill_score)
 
 
 func _on_node_activated(_id: StringName, count: int, _total: int) -> void:

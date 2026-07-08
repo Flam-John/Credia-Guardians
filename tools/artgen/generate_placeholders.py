@@ -226,7 +226,133 @@ ENEMY_LAYOUTS = {
         "anims": [("idle", 2), ("alert", 2), ("charge", 4),
                   ("wall_stun", 3), ("death", 3)],
     },
+    "auditor": {
+        "size": 32,
+        "anims": [("idle", 2), ("hop_back", 3), ("throw", 4), ("death", 3)],
+    },
+    "loan_shark": {
+        "size": 40,
+        "anims": [("hidden_fin", 2), ("emerge", 3), ("lunge", 3),
+                  ("recover", 2), ("death", 4)],
+    },
+    "ai_banker": {
+        "size": 48,
+        "anims": [("float", 4), ("teleport_out", 3), ("teleport_in", 3),
+                  ("cast", 4), ("stagger", 2), ("death", 5)],
+    },
 }
+
+
+def draw_special_enemy_frame(d, ox, oy, size, kind, anim, i):
+    """Auditor (glasses, ledger hat), Loan Shark (fin, pinstripes),
+    AI Banker (glitch hologram)."""
+    cx = ox + size // 2
+    bottom = oy + size - 2
+    bob = i % 2
+    if kind == "auditor":
+        # spiked ledger hat (anti-stomp tell)
+        hat_y = bottom - 22 + bob
+        for s in range(3):
+            d.polygon([(cx - 5 + s * 4, hat_y), (cx - 3 + s * 4, hat_y - 4),
+                       (cx - 1 + s * 4, hat_y)], fill=P.GRAY_DARK)
+        _outline_rect(d, cx - 3, hat_y, cx + 3, hat_y + 6, P.SKIN)
+        _px(d, cx - 2, hat_y + 2, P.CYAN)  # glasses glint
+        _px(d, cx + 1, hat_y + 2, P.CYAN)
+        _outline_rect(d, cx - 4, hat_y + 7, cx + 4, bottom - 6, P.GRAY)
+        _rect(d, cx - 1, hat_y + 8, cx, bottom - 8, P.RED)
+        legs = [1, -1][i % 2] if anim == "hop_back" else 0
+        _rect(d, cx - 3 + legs, bottom - 6, cx - 1 + legs, bottom, P.GRAY_DARK)
+        _rect(d, cx + 1 - legs, bottom - 6, cx + 3 - legs, bottom, P.GRAY_DARK)
+        if anim == "throw":
+            arm = [2, 5, 8, 4][i]
+            _rect(d, cx + 4, hat_y + 9, cx + 4 + arm, hat_y + 11, P.GRAY)
+            if i == 2:
+                _outline_rect(d, cx + 9, hat_y + 6, cx + 13, hat_y + 10, P.WHITE)
+        if anim == "death":
+            _px(d, cx - 6, hat_y - 2, P.GOLD)
+            _px(d, cx + 6, hat_y - 3, P.GOLD)
+    elif kind == "loan_shark":
+        if anim == "hidden_fin":
+            d.polygon([(cx - 3, bottom), (cx, bottom - 6 - bob), (cx + 3, bottom)],
+                      fill=P.GRAY_DARK)
+            return
+        rise = {"emerge": [12, 20, 26], "lunge": [28, 30, 28],
+                "recover": [24, 22], "death": [22, 16, 10, 4]}[anim][i]
+        body_top = bottom - rise
+        if body_top + 8 < bottom:  # sinking death frames may have no suit left
+            _outline_rect(d, cx - 7, body_top + 8, cx + 7, bottom, P.GRAY)
+            for stripe in range(cx - 5, cx + 6, 4):  # pinstripes
+                for y in range(body_top + 9, bottom - 1, 3):
+                    _px(d, stripe, y, P.GRAY_DARK)
+        # shark head
+        d.polygon([(cx - 8, body_top + 10), (cx + 2, body_top - 2),
+                   (cx + 9, body_top + 10)], fill=(96, 120, 140, 255))
+        _px(d, cx + 3, body_top + 4, P.OUTLINE)  # eye
+        if anim == "lunge":
+            for t in range(cx - 4, cx + 5, 3):  # teeth
+                d.polygon([(t, body_top + 9), (t + 1, body_top + 6),
+                           (t + 2, body_top + 9)], fill=P.WHITE)
+        if anim == "death":
+            _px(d, cx - 9, body_top, P.GOLD)
+            _px(d, cx + 9, body_top - 1, P.GOLD)
+    else:  # ai_banker: glitching hologram
+        top = oy + 6 + bob
+        glitch = [0, 2, -2][i % 3] if anim in ("teleport_out", "teleport_in") else 0
+        alpha_body = P.BLUE if anim != "stagger" else P.RED
+        _outline_rect(d, cx - 8 + glitch, top + 14, cx + 8 - glitch, bottom - 4,
+                      (20, 60, 120, 255))
+        _rect(d, cx - 1, top + 15, cx, bottom - 6, P.CYAN)  # tie line
+        _outline_rect(d, cx - 5, top, cx + 5, top + 12, (30, 80, 150, 255))
+        _px(d, cx - 2, top + 5, alpha_body)
+        _px(d, cx + 2, top + 5, alpha_body)
+        # scanline glitches
+        for g in range(3):
+            gy = top + 4 + g * 10 + (i * 3) % 7
+            _rect(d, cx - 9, gy, cx + 9, gy, (22, 224, 224, 120))
+        if anim == "cast" and i >= 2:
+            for orb in (-12, 0, 12):
+                _px(d, cx + orb, top - 3, P.RED)
+        if anim == "death":
+            for s in range(i + 1):
+                _px(d, cx - 8 + s * 4, bottom - 2 - (s * 5) % 14, P.CYAN)
+
+
+def gen_special_enemy_sheets(out_dir):
+    for name in ("auditor", "loan_shark", "ai_banker"):
+        spec = ENEMY_LAYOUTS[name]
+        size = spec["size"]
+        cols = max(f for _, f in spec["anims"])
+        img = Image.new("RGBA", (cols * size, len(spec["anims"]) * size), P.TRANSPARENT)
+        d = ImageDraw.Draw(img)
+        for row, (anim, frames) in enumerate(spec["anims"]):
+            for i in range(frames):
+                draw_special_enemy_frame(d, i * size, row * size, size, name, anim, i)
+        img.save(f"{out_dir}/{name}.png")
+
+
+def gen_projectiles(path):
+    """8x8 x2: ledger (white page), plasma orb (red)."""
+    img = Image.new("RGBA", (16, 8), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    _outline_rect(d, 1, 1, 6, 6, P.WHITE)
+    _px(d, 3, 3, P.GRAY_DARK)
+    _px(d, 3, 4, P.GRAY_DARK)
+    d.ellipse([9, 1, 14, 6], fill=P.RED, outline=(120, 10, 30, 255))
+    img.save(path)
+
+
+def gen_monitors(path):
+    """32x24 x2: propaganda (red text) / positive (green text)."""
+    img = Image.new("RGBA", (64, 24), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    for i, col in enumerate((P.RED, P.GREEN)):
+        ox = i * 32
+        _outline_rect(d, ox + 2, 2, ox + 29, 20, P.GRAY_DARK)
+        _rect(d, ox + 4, 4, ox + 27, 18, P.BG_VOID)
+        for line in range(3):
+            _rect(d, ox + 6, 6 + line * 4, ox + 6 + (14 - line * 3), 7 + line * 4, col)
+        _rect(d, ox + 13, 20, ox + 18, 22, P.GRAY_DARK)  # stand
+    img.save(path)
 
 
 def draw_banker_frame(d, ox, oy, size, anim, i, tie_color):
@@ -278,6 +404,8 @@ def draw_banker_frame(d, ox, oy, size, anim, i, tie_color):
 
 def gen_enemy_sheets(out_dir):
     for name, spec in ENEMY_LAYOUTS.items():
+        if name not in ("junior_banker", "angry_manager"):
+            continue  # specials drawn by gen_special_enemy_sheets
         size = spec["size"]
         cols = max(f for _, f in spec["anims"])
         img = Image.new("RGBA", (cols * size, len(spec["anims"]) * size), P.TRANSPARENT)
@@ -371,12 +499,71 @@ def gen_fx(out_dir):
     img.save(f"{out_dir}/hit_spark.png")
 
 
+def gen_security_node(path):
+    """32x32 x3: off (red), charging (blue), on (green)."""
+    img = Image.new("RGBA", (96, 32), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    for i, core in enumerate([P.RED, P.BLUE, P.GREEN]):
+        ox = i * 32
+        _outline_rect(d, ox + 10, 12, ox + 21, 30, P.BG_PANEL)  # pedestal
+        d.ellipse([ox + 8, 2, ox + 23, 17], outline=P.GRAY_DARK, fill=P.BG_PANEL)
+        d.ellipse([ox + 12, 6, ox + 19, 13], fill=core)
+        for ring in range(3):
+            _px(d, ox + 6 + ring, 9 + ring, core)
+            _px(d, ox + 25 - ring, 9 + ring, core)
+    img.save(path)
+
+
+def gen_exit_gate(path):
+    """48x64 x2: closed (red firewall bars), open (green frame, clear)."""
+    img = Image.new("RGBA", (96, 64), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    for i in range(2):
+        ox = i * 48
+        frame = P.GREEN_DARK if i else P.GRAY_DARK
+        _outline_rect(d, ox + 2, 0, ox + 45, 63, P.BG_PANEL, frame)
+        _rect(d, ox + 6, 4, ox + 41, 59, P.BG_VOID)
+        if i == 0:  # closed: red energy bars
+            for y in range(8, 60, 8):
+                _rect(d, ox + 6, y, ox + 41, y + 2, P.RED)
+        else:  # open: soft green shimmer edges
+            for y in range(6, 58, 10):
+                _px(d, ox + 7, y, P.GREEN)
+                _px(d, ox + 40, y + 4, P.GREEN)
+    img.save(path)
+
+
+def gen_stage1_backgrounds(out_dir):
+    """Parallax: far = office wall panels + window glow; mid = desk/monitor
+    silhouettes. 480x270 each, tileable horizontally."""
+    far = Image.new("RGBA", (480, 270), P.BG_VOID)
+    d = ImageDraw.Draw(far)
+    for x in range(0, 480, 60):  # wall panels
+        d.rectangle([x + 2, 20, x + 57, 250], outline=(10, 22, 38, 255))
+    for x in range(30, 480, 120):  # dim windows with blue glow
+        _rect(d, x, 40, x + 40, 90, (8, 18, 40, 255))
+        _rect(d, x + 4, 44, x + 36, 86, (12, 30, 66, 255))
+    far.save(f"{out_dir}/stage_1_far.png")
+
+    mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
+    d = ImageDraw.Draw(mid)
+    for x in range(0, 480, 96):  # desk silhouettes with glowing monitors
+        _rect(d, x + 8, 210, x + 80, 216, P.BG_PANEL)      # desk top
+        _rect(d, x + 12, 216, x + 16, 250, P.BG_PANEL)      # legs
+        _rect(d, x + 70, 216, x + 74, 250, P.BG_PANEL)
+        _rect(d, x + 28, 190, x + 52, 208, P.BG_PANEL)      # monitor
+        _rect(d, x + 31, 193, x + 49, 205, (16, 46, 34, 255))  # dim green screen
+        _px(d, x + 34, 196, P.GREEN_DARK)
+        _px(d, x + 40, 199, P.GREEN_DARK)
+    mid.save(f"{out_dir}/stage_1_mid.png")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="assets/art")
     args = ap.parse_args()
     out = args.out
-    for sub in ("characters", "tiles", "props", "enemies", "fx"):
+    for sub in ("characters", "tiles", "props", "enemies", "fx", "backgrounds"):
         os.makedirs(f"{out}/{sub}", exist_ok=True)
 
     gen_player_sheet(f"{out}/characters/chris_sheet.png", P.CHRIS_HAIR, False)
@@ -389,6 +576,12 @@ def main():
     gen_checkpoint(f"{out}/props/checkpoint.png")
     gen_platforms(f"{out}/props/platforms.png")
     gen_fx(f"{out}/fx")
+    gen_security_node(f"{out}/props/security_node.png")
+    gen_exit_gate(f"{out}/props/exit_gate.png")
+    gen_stage1_backgrounds(f"{out}/backgrounds")
+    gen_special_enemy_sheets(f"{out}/enemies")
+    gen_projectiles(f"{out}/props/projectiles.png")
+    gen_monitors(f"{out}/props/monitors.png")
     print("placeholder art generated ->", out)
 
 

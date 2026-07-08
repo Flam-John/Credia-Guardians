@@ -46,5 +46,11 @@ func _apply(player: Player) -> void:
 		Kind.ENERGY_DRINK:
 			player.heal(player.stats.max_hp)
 			player.apply_speed_boost(1.15, 10.0) # docs/GDD.md §8
-		_:
-			pass # FIREWALL_SHIELD / KEYBOARD_UPGRADE / USB_KEY arrive in M5
+		Kind.FIREWALL_SHIELD:
+			player.grant_firewall_shield()
+		Kind.KEYBOARD_UPGRADE:
+			# +1 melee for the rest of the stage; lost on death because each
+			# respawn builds a fresh player (docs/GDD.md §8)
+			player.melee_hitbox.damage += 1
+		Kind.USB_KEY:
+			GameManager.usb_keys += 1

@@ -4,7 +4,10 @@ extends PlayerState
 ## ends early on wall impact.
 
 
+const GHOST_INTERVAL := 0.04
+
 var _time_left := 0.0
+var _ghost_timer := 0.0
 
 
 func _init() -> void:
@@ -23,6 +26,10 @@ func enter(_prev: StringName) -> void:
 
 func physics_update(delta: float) -> void:
 	_time_left -= delta
+	_ghost_timer -= delta
+	if _ghost_timer <= 0.0:
+		_ghost_timer = GHOST_INTERVAL
+		player.spawn_dash_ghost()
 	player.velocity = Vector2(player.facing * stats.dash_speed, 0.0)
 	if _time_left <= 0.0 or player.is_on_wall():
 		if not try_land():

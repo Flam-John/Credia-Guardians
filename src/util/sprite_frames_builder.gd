@@ -50,6 +50,36 @@ const ENEMY_LAYOUTS: Dictionary = {
 			{"name": &"death", "frames": 3, "fps": 10.0, "loop": false},
 		],
 	},
+	"auditor": {
+		"size": 32,
+		"anims": [
+			{"name": &"idle", "frames": 2, "fps": 4.0, "loop": true},
+			{"name": &"hop_back", "frames": 3, "fps": 12.0, "loop": false},
+			{"name": &"throw", "frames": 4, "fps": 12.0, "loop": false},
+			{"name": &"death", "frames": 3, "fps": 10.0, "loop": false},
+		],
+	},
+	"loan_shark": {
+		"size": 40,
+		"anims": [
+			{"name": &"hidden_fin", "frames": 2, "fps": 4.0, "loop": true},
+			{"name": &"emerge", "frames": 3, "fps": 14.0, "loop": false},
+			{"name": &"lunge", "frames": 3, "fps": 16.0, "loop": false},
+			{"name": &"recover", "frames": 2, "fps": 6.0, "loop": true},
+			{"name": &"death", "frames": 4, "fps": 10.0, "loop": false},
+		],
+	},
+	"ai_banker": {
+		"size": 48,
+		"anims": [
+			{"name": &"float", "frames": 4, "fps": 6.0, "loop": true},
+			{"name": &"teleport_out", "frames": 3, "fps": 14.0, "loop": false},
+			{"name": &"teleport_in", "frames": 3, "fps": 14.0, "loop": false},
+			{"name": &"cast", "frames": 4, "fps": 10.0, "loop": false},
+			{"name": &"stagger", "frames": 2, "fps": 6.0, "loop": true},
+			{"name": &"death", "frames": 5, "fps": 10.0, "loop": false},
+		],
+	},
 }
 
 ## SpriteFrames are read-only after build, so instances share them safely.

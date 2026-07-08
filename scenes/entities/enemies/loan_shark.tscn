@@ -1,0 +1,43 @@
+[gd_scene load_steps=9 format=3 uid="uid://loan_shark_cg"]
+
+[ext_resource type="Script" path="res://src/entities/enemies/shark/loan_shark.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/enemies/loan_shark.tres" id="2_stats"]
+[ext_resource type="Script" path="res://src/fsm/state_machine.gd" id="3_sm"]
+[ext_resource type="Script" path="res://src/entities/enemies/shark/s_hidden_state.gd" id="4_hidden"]
+[ext_resource type="Script" path="res://src/entities/enemies/shark/s_emerge_state.gd" id="5_emerge"]
+[ext_resource type="Script" path="res://src/entities/enemies/shark/s_lunge_state.gd" id="6_lunge"]
+[ext_resource type="Script" path="res://src/entities/enemies/shark/s_recover_state.gd" id="7_recover"]
+[ext_resource type="Script" path="res://src/entities/enemies/shark/s_return_state.gd" id="8_return"]
+
+[sub_resource type="RectangleShape2D" id="s_body"]
+size = Vector2(20, 26)
+
+[node name="LoanShark" type="CharacterBody2D"]
+script = ExtResource("1_s")
+stats = ExtResource("2_stats")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -20)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+position = Vector2(0, -13)
+shape = SubResource("s_body")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3_sm")
+initial_state = &"Hidden"
+
+[node name="Hidden" type="Node" parent="StateMachine"]
+script = ExtResource("4_hidden")
+
+[node name="Emerge" type="Node" parent="StateMachine"]
+script = ExtResource("5_emerge")
+
+[node name="Lunge" type="Node" parent="StateMachine"]
+script = ExtResource("6_lunge")
+
+[node name="Recover" type="Node" parent="StateMachine"]
+script = ExtResource("7_recover")
+
+[node name="Return" type="Node" parent="StateMachine"]
+script = ExtResource("8_return")

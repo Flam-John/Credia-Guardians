@@ -1,0 +1,47 @@
+[gd_scene load_steps=10 format=3 uid="uid://ai_banker_cg"]
+
+[ext_resource type="Script" path="res://src/entities/enemies/ai_banker/ai_banker.gd" id="1_b"]
+[ext_resource type="Resource" path="res://data/enemies/ai_banker.tres" id="2_stats"]
+[ext_resource type="Script" path="res://src/fsm/state_machine.gd" id="3_sm"]
+[ext_resource type="Script" path="res://src/entities/enemies/ai_banker/b_float_state.gd" id="4_float"]
+[ext_resource type="Script" path="res://src/entities/enemies/ai_banker/b_cast_state.gd" id="5_cast"]
+[ext_resource type="Script" path="res://src/entities/enemies/ai_banker/b_stagger_state.gd" id="6_stagger"]
+[ext_resource type="Script" path="res://src/entities/enemies/ai_banker/b_teleport_out_state.gd" id="7_out"]
+[ext_resource type="Script" path="res://src/entities/enemies/ai_banker/b_teleport_in_state.gd" id="8_in"]
+[ext_resource type="Script" path="res://src/entities/enemies/ai_banker/b_summon_state.gd" id="9_summon"]
+
+[sub_resource type="RectangleShape2D" id="b_body"]
+size = Vector2(18, 34)
+
+[node name="AIBanker" type="CharacterBody2D"]
+script = ExtResource("1_b")
+stats = ExtResource("2_stats")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -24)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+position = Vector2(0, -17)
+shape = SubResource("b_body")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3_sm")
+initial_state = &"Float"
+
+[node name="Float" type="Node" parent="StateMachine"]
+script = ExtResource("4_float")
+
+[node name="Cast" type="Node" parent="StateMachine"]
+script = ExtResource("5_cast")
+
+[node name="Stagger" type="Node" parent="StateMachine"]
+script = ExtResource("6_stagger")
+
+[node name="TeleportOut" type="Node" parent="StateMachine"]
+script = ExtResource("7_out")
+
+[node name="TeleportIn" type="Node" parent="StateMachine"]
+script = ExtResource("8_in")
+
+[node name="Summon" type="Node" parent="StateMachine"]
+script = ExtResource("9_summon")

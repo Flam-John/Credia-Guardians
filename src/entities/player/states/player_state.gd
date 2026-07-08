@@ -61,6 +61,8 @@ func try_air_transitions() -> bool:
 ## Landing check for airborne states.
 func try_land() -> bool:
 	if player.is_on_floor():
+		player.emit_land_dust()
+		AudioManager.play_sfx("land")
 		machine.transition(&"Run" if absf(player.input_axis()) > 0.0 else &"Idle")
 		return true
 	return false

@@ -22,6 +22,13 @@ var shield_regen_wait := 0.0
 ## Energy Drink (docs/GDD.md §8): multiplies run speed while boosted.
 var speed_boost := 1.0
 var _boost_left := 0.0
+## Written by ConveyorBelt/Updraft areas (process_priority -1, i.e. before
+## this body ticks); consumed and zeroed here every frame.
+var conveyor_push := 0.0
+var updraft_strength := 0.0
+## Firewall Shield pickup: absorbs exactly one hit (docs/GDD.md §8).
+var firewall_shield := false
+var _bubble: Sprite2D
 ## Set by HurtState so knockback direction survives the state transition.
 var last_hit_from := Vector2.ZERO
 
@@ -36,6 +43,10 @@ var melee_hitbox: HitboxComponent
 var melee_shape: CollisionShape2D
 var flash: FlashComponent
 var _hazard_detector: Area2D
+var _dust: CPUParticles2D
+## Ring of reusable dash afterimage sprites (docs/PERFORMANCE.md: pooled).
+var _ghosts: Array[Sprite2D] = []
+var _ghost_index := 0
 
 
 func _ready() -> void:
@@ -83,6 +94,27 @@ func _build_combat_nodes() -> void:
 	flash.target = sprite
 	add_child(flash)
 
+	_dust = CPUParticles2D.new()
+	_dust.emitting = false
+	_dust.one_shot = true
+	_dust.amount = 6
+	_dust.lifetime = 0.35
+	_dust.direction = Vector2.UP
+	_dust.spread = 70.0
+	_dust.gravity = Vector2(0, 200)
+	_dust.initial_velocity_min = 20.0
+	_dust.initial_velocity_max = 45.0
+	_dust.color = Color(0.6, 0.7, 0.8, 0.5)
+	add_child(_dust)
+
+	for i in 6: # dash afterimages, reused round-robin
+		var ghost := Sprite2D.new()
+		ghost.top_level = true # stays put in world space while we move on
+		ghost.visible = false
+		ghost.modulate = Color(0.3, 0.9, 1.0, 0.45)
+		add_child(ghost)
+		_ghosts.append(ghost)
+
 	# Hazard tiles/areas (spikes, lasers) — 2 dmg per GDD §4. POLLED in
 	# _physics_process, not edge-triggered: an *_entered-only design goes
 	# silent when the player stays overlapping after i-frames expire.
@@ -109,7 +141,15 @@ func _physics_process(delta: float) -> void:
 	if not state_machine.current.overrides_gravity:
 		apply_gravity(delta)
 	state_machine.physics_update(delta)
+	# Conveyor: applied for the slide only — the push must not accumulate
+	# into stored velocity. RESTORE (not subtract): if a wall zeroed the
+	# pushed velocity, subtracting would manufacture reverse velocity.
+	var pre_push_vx := velocity.x
+	velocity.x += conveyor_push
 	move_and_slide()
+	velocity.x = 0.0 if (is_on_wall() and conveyor_push != 0.0) else pre_push_vx
+	conveyor_push = 0.0
+	updraft_strength = 0.0
 	# INVARIANT: charge reset stays AFTER move_and_slide — is_on_floor() is
 	# only fresh post-slide, so a same-frame landing refreshes air options.
 	if is_on_floor():
@@ -140,11 +180,18 @@ func take_hit(damage: int, from_global_pos: Vector2) -> void:
 		shield_meter = maxf(0.0, shield_meter - 1.0)
 		AudioManager.play_sfx("shield_break" if shield_meter <= 0.0 else "shield_on")
 		return
+	if firewall_shield:
+		firewall_shield = false
+		_bubble.visible = false
+		hurtbox.start_invuln(0.5) # breathing room after the bubble pops
+		AudioManager.play_sfx("shield_break")
+		return
 	health.damage(damage)
 	EventBus.player_damaged.emit(health.hp, health.max_hp)
 	last_hit_from = from_global_pos
 	flash.flash()
 	GameFeel.shake(get_tree(), 3.0)
+	FxService.hit_spark(get_tree(), global_position + Vector2(0, -12))
 	if health.is_dead():
 		state_machine.transition(&"Dead")
 	else:
@@ -160,6 +207,40 @@ func heal(amount: int) -> void:
 func apply_speed_boost(multiplier: float, duration: float) -> void:
 	speed_boost = multiplier
 	_boost_left = duration
+
+
+func emit_land_dust() -> void:
+	_dust.global_position = global_position
+	_dust.restart()
+
+
+func spawn_dash_ghost() -> void:
+	var ghost := _ghosts[_ghost_index]
+	_ghost_index = (_ghost_index + 1) % _ghosts.size()
+	ghost.texture = sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)
+	ghost.flip_h = sprite.flip_h
+	ghost.global_position = sprite.global_position
+	ghost.visible = true
+	ghost.modulate.a = 0.45
+	var tween := ghost.create_tween()
+	tween.tween_property(ghost, "modulate:a", 0.0, 0.25)
+	tween.tween_callback(func() -> void: ghost.visible = false)
+
+
+func grant_firewall_shield() -> void:
+	firewall_shield = true
+	if _bubble == null:
+		_bubble = Sprite2D.new()
+		var atlas := AtlasTexture.new()
+		atlas.atlas = preload("res://assets/art/props/pickups.png")
+		atlas.region = Rect2(2 * 16, 0, 16, 16) # shield icon
+		_bubble.texture = atlas
+		_bubble.scale = Vector2(2.2, 2.2)
+		_bubble.position = Vector2(0, -14)
+		_bubble.modulate = Color(1, 1, 1, 0.4)
+		add_child(_bubble)
+	_bubble.visible = true
+	AudioManager.play_sfx("powerup")
 
 
 func _on_hurtbox_hurt(hitbox: HitboxComponent) -> void:
@@ -183,6 +264,15 @@ func _shield_blocks(from_global_pos: Vector2) -> bool:
 
 
 func apply_gravity(delta: float) -> void:
+	if updraft_strength > 0.0:
+		# Steam column REPLACES gravity: accelerate toward a sustained rise
+		# (playtest audit: adding lift on top of gravity could never win —
+		# net accel stayed downward and the clamp murdered jump velocity).
+		# DESIGN: lift lives in apply_gravity, so Dash (overrides_gravity)
+		# ignores updrafts — a dash keeps its flat trajectory, MMX-style.
+		velocity.y = move_toward(
+				velocity.y, -0.7 * updraft_strength, updraft_strength * 3.0 * delta)
+		return
 	var g := stats.gravity_rise if velocity.y < 0.0 else stats.gravity_fall
 	velocity.y = minf(velocity.y + g * delta, stats.max_fall_speed)
 
