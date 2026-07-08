@@ -156,7 +156,7 @@ func _on_score_changed(score: int) -> void:
 	_score_label.text = "%08d" % score
 	if score > GameManager.hi_score:
 		GameManager.hi_score = score
-	_hi_label.text = "HI-SCORE %d" % GameManager.hi_score
+	_hi_label.text = tr("HI-SCORE %d") % GameManager.hi_score
 
 
 func _on_coin(_value: int) -> void:
@@ -167,7 +167,7 @@ func _refresh_meta() -> void:
 	_lives_label.text = "♥×%d" % maxi(0, GameManager.lives)
 	_score_label.text = "%08d" % GameManager.score
 	_coin_label.text = "×%d" % GameManager.coins
-	_hi_label.text = "HI-SCORE %d" % GameManager.hi_score
+	_hi_label.text = tr("HI-SCORE %d") % GameManager.hi_score
 
 
 func _on_boss_spawned(display_name: String, hp: int, max_hp: int) -> void:

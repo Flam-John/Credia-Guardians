@@ -10,6 +10,7 @@ static func defaults() -> Dictionary:
 		"audio": {"master": 1.0, "music": 0.8, "sfx": 1.0},
 		"video": {"fullscreen": false, "window_scale": 3, "scanlines": false,
 				"show_timer": false, "rumble": true},
+		"general": {"locale": "en"},
 		"input": {},
 	}
 
@@ -37,6 +38,7 @@ static func apply(settings: Dictionary, window: Window) -> void:
 		var scale := int(video.window_scale)
 		window.size = Vector2i(480, 270) * scale
 	GameFeel.rumble_enabled = video.get("rumble", true)
+	TranslationServer.set_locale(settings.get("general", {}).get("locale", "en"))
 	for action: String in settings.input:
 		apply_key_binding(StringName(action), int(settings.input[action]))
 	EventBus.settings_applied.emit(settings)

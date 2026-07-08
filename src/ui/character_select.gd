@@ -14,16 +14,16 @@ func _ready() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override(&"separation", 24)
 	row.add_child(_character_panel(&"chris", 0,
-			"THE TANK\n6 HP · Firewall Shield\nsteady and unshakeable"))
+			tr("CHRIS_BLURB")))
 	row.add_child(_character_panel(&"flam", 1,
-			"THE SPEEDSTER\n4 HP · Overclock Dash\ni-frames, 2 air dashes"))
+			tr("FLAM_BLURB")))
 	_title = UIKit.title(_title_text(), 20)
 	var column := UIKit.menu_column([
 		_title,
 		_spacer(8),
 		row,
 		_spacer(8),
-		UIKit.button("BACK", _back),
+		UIKit.button(tr("BACK"), _back),
 	])
 	add_child(UIKit.center(column))
 	UIKit.grab_first_focus(self)
@@ -51,10 +51,10 @@ func _character_panel(id: StringName, portrait_index: int, blurb: String) -> Con
 
 func _title_text() -> String:
 	if SlotSelectFlow.mode == SlotSelectFlow.Mode.BOSS_RUSH:
-		return "BOSS RUSH — SELECT GUARDIAN"
+		return tr("BOSS RUSH — SELECT GUARDIAN")
 	if SlotSelectFlow.coop:
-		return "P2: SELECT GUARDIAN" if _picking_p2 else "P1: SELECT GUARDIAN"
-	return "SELECT GUARDIAN"
+		return tr("P2: SELECT GUARDIAN") if _picking_p2 else tr("P1: SELECT GUARDIAN")
+	return tr("SELECT GUARDIAN")
 
 
 func _on_pick(id: StringName) -> void:

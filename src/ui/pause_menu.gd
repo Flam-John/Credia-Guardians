@@ -20,12 +20,12 @@ func _ready() -> void:
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
 	var column := UIKit.menu_column([
-		UIKit.title("PAUSED", 20),
-		UIKit.caption("SYSTEM SUSPENDED", 8, UIKit.CYAN),
-		UIKit.button("RESUME", _toggle),
-		UIKit.button("RESTART STAGE", _restart),
-		UIKit.button("OPTIONS", _open_options),
-		UIKit.button("QUIT TO MENU", _quit),
+		UIKit.title(tr("PAUSED"), 20),
+		UIKit.caption(tr("SYSTEM SUSPENDED"), 8, UIKit.CYAN),
+		UIKit.button(tr("RESUME"), _toggle),
+		UIKit.button(tr("RESTART STAGE"), _restart),
+		UIKit.button(tr("OPTIONS"), _open_options),
+		UIKit.button(tr("QUIT TO MENU"), _quit),
 	])
 	_root.add_child(UIKit.center(column))
 	add_child(_root)
