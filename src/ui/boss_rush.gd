@@ -78,7 +78,7 @@ func acquire_hit_spark() -> HitSpark:
 func _process(delta: float) -> void:
 	if _running and not get_tree().paused:
 		_clock += delta
-	_label.text = "WAVE %d/3   %d:%02d.%d" % [
+	_label.text = tr("WAVE %d/3   %d:%02d.%d") % [
 		mini(_wave, 3), int(_clock) / 60, int(_clock) % 60, int(_clock * 10) % 10]
 
 
@@ -108,7 +108,7 @@ func _finish() -> void:
 	_running = false
 	GameManager.end_stage()
 	AudioManager.play_music("victory")
-	_label.text = "RUSH COMPLETE!   %d:%02d.%d   PRESS START" % [
+	_label.text = tr("RUSH COMPLETE!   %d:%02d.%d   PRESS START") % [
 		int(_clock) / 60, int(_clock) % 60, int(_clock * 10) % 10]
 
 

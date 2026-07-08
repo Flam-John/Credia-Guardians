@@ -25,17 +25,17 @@ func _ready() -> void:
 	var column := VBoxContainer.new()
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.add_theme_constant_override(&"separation", 5)
-	column.add_child(UIKit.title("STAGE CLEAR!", 24))
-	column.add_child(UIKit.caption("ZONE SECURED. YOU PROTECTED THE FUTURE.", 8, UIKit.CYAN))
+	column.add_child(UIKit.title(tr("STAGE CLEAR!"), 24))
+	column.add_child(UIKit.caption(tr("ZONE SECURED. YOU PROTECTED THE FUTURE."), 8, UIKit.CYAN))
 	column.add_child(_spacer(8))
 
 	var rows := [
-		["EXP GAINED", int(_stats.exp_score)],
-		["CREDITS EARNED", int(_stats.coin_score)],
-		["LEVEL BONUS", int(_stats.level_bonus)],
+		[tr("EXP GAINED"), int(_stats.exp_score)],
+		[tr("CREDITS EARNED"), int(_stats.coin_score)],
+		[tr("LEVEL BONUS"), int(_stats.level_bonus)],
 	]
 	if int(_stats.get("full_audit", 0)) > 0:
-		rows.append(["FULL AUDIT!", int(_stats.full_audit)])
+		rows.append([tr("FULL AUDIT!"), int(_stats.full_audit)])
 	var value_labels: Array[Label] = []
 	for row in rows:
 		var line := HBoxContainer.new()
@@ -53,20 +53,20 @@ func _ready() -> void:
 		value_labels.append(value_label)
 
 	column.add_child(_spacer(6))
-	var total := UIKit.caption("COINS %d/%d   TIME %d:%02d" % [
+	var total := UIKit.caption(tr("COINS %d/%d   TIME %d:%02d") % [
 		int(_stats.coins), int(_stats.total_coins),
 		int(_stats.time) / 60, int(_stats.time) % 60], 8, UIKit.GRAY)
 	column.add_child(total)
 	column.add_child(_spacer(6))
 
-	_rank_label = UIKit.title("RANK %s" % _stats.rank, 36,
+	_rank_label = UIKit.title(tr("RANK %s") % _stats.rank, 36,
 			RANK_COLORS.get(_stats.rank, UIKit.WHITE))
 	_rank_label.modulate.a = 0.0
 	column.add_child(_rank_label)
 	if _stats.rank == "S":
-		column.add_child(UIKit.caption("PERFECT!", 10, UIKit.GOLD))
+		column.add_child(UIKit.caption(tr("PERFECT!"), 10, UIKit.GOLD))
 
-	_continue_label = UIKit.caption("PRESS START TO CONTINUE", 9, UIKit.WHITE)
+	_continue_label = UIKit.caption(tr("PRESS START TO CONTINUE"), 9, UIKit.WHITE)
 	_continue_label.modulate.a = 0.0
 	column.add_child(_spacer(8))
 	column.add_child(_continue_label)

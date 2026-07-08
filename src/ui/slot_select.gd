@@ -16,12 +16,12 @@ func _rebuild() -> void:
 		if child is CenterContainer:
 			child.queue_free()
 	var items: Array[Control] = [
-		UIKit.title("SELECT SLOT", 20),
-		UIKit.caption("X: delete slot   ESC: back"),
+		UIKit.title(tr("SELECT SLOT"), 20),
+		UIKit.caption(tr("X: delete slot   ESC: back")),
 	]
 	for summary in SaveManager.get_slot_summaries():
 		items.append(_slot_button(summary))
-	items.append(UIKit.button("BACK", _back))
+	items.append(UIKit.button(tr("BACK"), _back))
 	_column = UIKit.menu_column(items)
 	add_child(UIKit.center(_column))
 	UIKit.grab_first_focus.call_deferred(self)
@@ -31,15 +31,15 @@ func _slot_button(summary: Dictionary) -> Button:
 	var slot: int = summary.slot
 	var text: String
 	if summary.get("incompatible", false):
-		text = "SLOT %d — NEWER VERSION (locked)" % slot
+		text = tr("SLOT %d — NEWER VERSION (locked)") % slot
 	elif summary.get("empty", true):
-		text = "SLOT %d — EMPTY" % slot
+		text = tr("SLOT %d — EMPTY") % slot
 	else:
-		text = "SLOT %d — %s · %d/5 stages · HI %d" % [
+		text = "SLOT %d — %s · %d/5 · HI %d" % [
 			slot, str(summary.last_character).to_upper(),
 			summary.stages_cleared, summary.global_hi_score]
 	if _confirm_delete_slot == slot:
-		text = "SLOT %d — PRESS X AGAIN TO DELETE" % slot
+		text = tr("SLOT %d — PRESS X AGAIN TO DELETE") % slot
 	var btn := UIKit.button(text, _on_slot.bind(summary))
 	btn.custom_minimum_size = Vector2(280, 20)
 	if summary.get("incompatible", false) \

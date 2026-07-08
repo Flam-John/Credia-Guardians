@@ -1,0 +1,110 @@
+keys,en,el
+BANK SYSTEM UNDER ATTACK,BANK SYSTEM UNDER ATTACK,ΤΟ ΤΡΑΠΕΖΙΚΟ ΣΥΣΤΗΜΑ ΔΕΧΕΤΑΙ ΕΠΙΘΕΣΗ
+NEW GAME,NEW GAME,ΝΕΟ ΠΑΙΧΝΙΔΙ
+CO-OP GAME,CO-OP GAME,ΣΥΝΕΡΓΑΤΙΚΟ ΠΑΙΧΝΙΔΙ
+CONTINUE,CONTINUE,ΣΥΝΕΧΕΙΑ
+BOSS RUSH,BOSS RUSH,ΜΑΧΗ ΑΡΧΗΓΩΝ
+OPTIONS,OPTIONS,ΡΥΘΜΙΣΕΙΣ
+QUIT,QUIT,ΕΞΟΔΟΣ
+BACK,BACK,ΠΙΣΩ
+SELECT SLOT,SELECT SLOT,ΕΠΙΛΟΓΗ ΘΕΣΗΣ
+X: delete slot   ESC: back,X: delete slot   ESC: back,X: διαγραφή θέσης   ESC: πίσω
+SLOT %d — EMPTY,SLOT %d — EMPTY,ΘΕΣΗ %d — ΚΕΝΗ
+SLOT %d — NEWER VERSION (locked),SLOT %d — NEWER VERSION (locked),ΘΕΣΗ %d — ΝΕΟΤΕΡΗ ΕΚΔΟΣΗ (κλειδωμένη)
+SLOT %d — PRESS X AGAIN TO DELETE,SLOT %d — PRESS X AGAIN TO DELETE,ΘΕΣΗ %d — ΞΑΝΑ X ΓΙΑ ΔΙΑΓΡΑΦΗ
+SELECT GUARDIAN,SELECT GUARDIAN,ΕΠΙΛΟΓΗ ΦΥΛΑΚΑ
+P1: SELECT GUARDIAN,P1: SELECT GUARDIAN,P1: ΕΠΙΛΟΓΗ ΦΥΛΑΚΑ
+P2: SELECT GUARDIAN,P2: SELECT GUARDIAN,P2: ΕΠΙΛΟΓΗ ΦΥΛΑΚΑ
+BOSS RUSH — SELECT GUARDIAN,BOSS RUSH — SELECT GUARDIAN,ΜΑΧΗ ΑΡΧΗΓΩΝ — ΕΠΙΛΟΓΗ ΦΥΛΑΚΑ
+CHRIS_BLURB,"THE TANK
+6 HP · Firewall Shield
+steady and unshakeable","ΤΟ ΤΑΝΚ
+6 HP · Ασπίδα Firewall
+σταθερός και ακλόνητος"
+FLAM_BLURB,"THE SPEEDSTER
+4 HP · Overclock Dash
+i-frames, 2 air dashes","Ο ΤΑΧΥΤΑΤΟΣ
+4 HP · Overclock Dash
+i-frames, 2 εναέρια dash"
+SELECT STAGE,SELECT STAGE,ΕΠΙΛΟΓΗ ΠΙΣΤΑΣ
+C: switch guardian   ESC: back,C: switch guardian   ESC: back,C: αλλαγή φύλακα   ESC: πίσω
+LOCKED,LOCKED,ΚΛΕΙΔΩΜΕΝΗ
+GUARDIAN: %s,GUARDIAN: %s,ΦΥΛΑΚΑΣ: %s
+DEVELOPER OFFICE,DEVELOPER OFFICE,ΓΡΑΦΕΙΟ ΠΡΟΓΡΑΜΜΑΤΙΣΤΩΝ
+DATA CENTER,DATA CENTER,ΚΕΝΤΡΟ ΔΕΔΟΜΕΝΩΝ
+CORPORATE HQ,CORPORATE HQ,ΕΤΑΙΡΙΚΑ ΚΕΝΤΡΙΚΑ
+DIGITAL VAULT,DIGITAL VAULT,ΨΗΦΙΑΚΟ ΘΗΣΑΥΡΟΦΥΛΑΚΙΟ
+CORE BANKING SYSTEM,CORE BANKING SYSTEM,ΠΥΡΗΝΑΣ ΤΡΑΠΕΖΙΚΟΥ ΣΥΣΤΗΜΑΤΟΣ
+MASTER,MASTER,ΓΕΝΙΚΗ ΕΝΤΑΣΗ
+MUSIC,MUSIC,ΜΟΥΣΙΚΗ
+SFX,SFX,ΕΦΕ ΗΧΟΥ
+FULLSCREEN,FULLSCREEN,ΠΛΗΡΗΣ ΟΘΟΝΗ
+WINDOW SCALE,WINDOW SCALE,ΚΛΙΜΑΚΑ ΠΑΡΑΘΥΡΟΥ
+SCANLINES,SCANLINES,ΓΡΑΜΜΕΣ CRT
+SPEEDRUN TIMER,SPEEDRUN TIMER,ΧΡΟΝΟΜΕΤΡΟ SPEEDRUN
+GAMEPAD RUMBLE,GAMEPAD RUMBLE,ΔΟΝΗΣΗ ΧΕΙΡΙΣΤΗΡΙΟΥ
+LANGUAGE,LANGUAGE,ΓΛΩΣΣΑ
+— KEYS —,— KEYS —,— ΠΛΗΚΤΡΑ —
+JUMP,JUMP,ΑΛΜΑ
+ATTACK,ATTACK,ΕΠΙΘΕΣΗ
+DASH,DASH,DASH
+ABILITY,ABILITY,ΙΚΑΝΟΤΗΤΑ
+INTERACT,INTERACT,ΑΛΛΗΛΕΠΙΔΡΑΣΗ
+PRESS A KEY...,PRESS A KEY...,ΠΑΤΗΣΤΕ ΠΛΗΚΤΡΟ...
+RESET DEFAULTS,RESET DEFAULTS,ΕΠΑΝΑΦΟΡΑ ΠΡΟΕΠΙΛΟΓΩΝ
+PAUSED,PAUSED,ΠΑΥΣΗ
+SYSTEM SUSPENDED,SYSTEM SUSPENDED,ΣΥΣΤΗΜΑ ΣΕ ΑΝΑΣΤΟΛΗ
+RESUME,RESUME,ΣΥΝΕΧΙΣΗ
+RESTART STAGE,RESTART STAGE,ΕΠΑΝΕΚΚΙΝΗΣΗ ΠΙΣΤΑΣ
+QUIT TO MENU,QUIT TO MENU,ΕΞΟΔΟΣ ΣΤΟ ΜΕΝΟΥ
+GAME OVER,GAME OVER,ΤΕΛΟΣ ΠΑΙΧΝΙΔΙΟΥ
+ACCOUNT OVERDRAWN,ACCOUNT OVERDRAWN,ΑΚΑΛΥΠΤΟΣ ΛΟΓΑΡΙΑΣΜΟΣ
+SCORE %d,SCORE %d,ΣΚΟΡ %d
+RETRY STAGE,RETRY STAGE,ΝΕΑ ΠΡΟΣΠΑΘΕΙΑ
+STAGE CLEAR!,STAGE CLEAR!,Η ΠΙΣΤΑ ΟΛΟΚΛΗΡΩΘΗΚΕ!
+ZONE SECURED. YOU PROTECTED THE FUTURE.,ZONE SECURED. YOU PROTECTED THE FUTURE.,Η ΖΩΝΗ ΑΣΦΑΛΙΣΤΗΚΕ. ΠΡΟΣΤΑΤΕΨΑΤΕ ΤΟ ΜΕΛΛΟΝ.
+EXP GAINED,EXP GAINED,ΕΜΠΕΙΡΙΑ
+CREDITS EARNED,CREDITS EARNED,ΚΕΡΔΗ
+LEVEL BONUS,LEVEL BONUS,ΜΠΟΝΟΥΣ ΠΙΣΤΑΣ
+FULL AUDIT!,FULL AUDIT!,ΠΛΗΡΗΣ ΕΛΕΓΧΟΣ!
+COINS %d/%d   TIME %d:%02d,COINS %d/%d   TIME %d:%02d,ΝΟΜΙΣΜΑΤΑ %d/%d   ΧΡΟΝΟΣ %d:%02d
+RANK %s,RANK %s,ΒΑΘΜΟΣ %s
+PERFECT!,PERFECT!,ΤΕΛΕΙΑ!
+PRESS START TO CONTINUE,PRESS START TO CONTINUE,ΠΑΤΗΣΤΕ START ΓΙΑ ΣΥΝΕΧΕΙΑ
+BANK SYSTEM SECURED!,BANK SYSTEM SECURED!,ΤΟ ΤΡΑΠΕΖΙΚΟ ΣΥΣΤΗΜΑ ΑΣΦΑΛΙΣΤΗΚΕ!
+YOU PROTECTED THE FUTURE.,YOU PROTECTED THE FUTURE.,ΠΡΟΣΤΑΤΕΨΑΤΕ ΤΟ ΜΕΛΛΟΝ.
+SYSTEM STATUS: SECURE      FINANCIAL FREEDOM: ACTIVE,SYSTEM STATUS: SECURE      FINANCIAL FREEDOM: ACTIVE,ΚΑΤΑΣΤΑΣΗ: ΑΣΦΑΛΕΣ      ΟΙΚΟΝΟΜΙΚΗ ΕΛΕΥΘΕΡΙΑ: ΕΝΕΡΓΗ
+FINAL SCORE %d    HI-SCORE %d,FINAL SCORE %d    HI-SCORE %d,ΤΕΛΙΚΟ ΣΚΟΡ %d    ΡΕΚΟΡ %d
+PRESS START FOR CREDITS,PRESS START FOR CREDITS,ΠΑΤΗΣΤΕ START ΓΙΑ ΤΙΤΛΟΥΣ
+A FLAMUPIA PRODUCTION,A FLAMUPIA PRODUCTION,ΜΙΑ ΠΑΡΑΓΩΓΗ FLAMUPIA
+STARRING,STARRING,ΠΡΩΤΑΓΩΝΙΣΤΟΥΝ
+CHRIS — THE CREDIA WARRIOR,CHRIS — THE CREDIA WARRIOR,CHRIS — Ο ΠΟΛΕΜΙΣΤΗΣ ΤΗΣ CREDIA
+FLAM — THE CREDIA GUARDIAN,FLAM — THE CREDIA GUARDIAN,FLAM — Ο ΦΥΛΑΚΑΣ ΤΗΣ CREDIA
+VILLAINS,VILLAINS,ΚΑΚΟΙ
+THE CORRUPTED BANKERS OF CREDIABANK,THE CORRUPTED BANKERS OF CREDIABANK,ΟΙ ΔΙΕΦΘΑΡΜΕΝΟΙ ΤΡΑΠΕΖΙΤΕΣ ΤΗΣ CREDIABANK
+THANK YOU FOR SECURING THE FUTURE,THANK YOU FOR SECURING THE FUTURE,ΕΥΧΑΡΙΣΤΟΥΜΕ ΠΟΥ ΑΣΦΑΛΙΣΑΤΕ ΤΟ ΜΕΛΛΟΝ
+PRESS START,PRESS START,ΠΑΤΗΣΤΕ START
+PRESS ANY KEY,PRESS ANY KEY,ΠΑΤΗΣΤΕ ΟΠΟΙΟΔΗΠΟΤΕ ΠΛΗΚΤΡΟ
+INTRO_1,"CREDIABANK RUNS ON A FORTRESS OF CODE
+BUILT BY TWO DEVELOPERS.","Η CREDIABANK ΛΕΙΤΟΥΡΓΕΙ ΣΕ ΕΝΑ ΦΡΟΥΡΙΟ ΚΩΔΙΚΑ
+ΧΤΙΣΜΕΝΟ ΑΠΟ ΔΥΟ ΠΡΟΓΡΑΜΜΑΤΙΣΤΕΣ."
+INTRO_2,"TONIGHT, THE CEO UPLOADED HIMSELF
+AND HIS LOYAL BANKERS INTO THE SYSTEM.
+
+INTEREST RATES SPIKED. ACCOUNTS FROZE.","ΑΠΟΨΕ, Ο CEO ΑΝΕΒΑΣΕ ΤΟΝ ΕΑΥΤΟ ΤΟΥ
+ΚΑΙ ΤΟΥΣ ΠΙΣΤΟΥΣ ΤΡΑΠΕΖΙΤΕΣ ΤΟΥ ΣΤΟ ΣΥΣΤΗΜΑ.
+
+ΤΑ ΕΠΙΤΟΚΙΑ ΕΚΤΟΞΕΥΤΗΚΑΝ. ΟΙ ΛΟΓΑΡΙΑΣΜΟΙ ΠΑΓΩΣΑΝ."
+INTRO_3,"EVERY CREDIA COIN SCATTERED
+THROUGH THE INFRASTRUCTURE AS RAW DATA.","ΚΑΘΕ ΝΟΜΙΣΜΑ CREDIA ΣΚΟΡΠΙΣΤΗΚΕ
+ΣΤΗΝ ΥΠΟΔΟΜΗ ΩΣ ΑΚΑΤΕΡΓΑΣΤΑ ΔΕΔΟΜΕΝΑ."
+INTRO_4,"CHRIS AND FLAM JACK IN.
+
+FIVE LAYERS BETWEEN THEM AND THE CORE.
+SECURE EVERY NODE. DELETE THE CORRUPTION.","ΟΙ CHRIS ΚΑΙ FLAM ΣΥΝΔΕΟΝΤΑΙ.
+
+ΠΕΝΤΕ ΕΠΙΠΕΔΑ ΑΝΑΜΕΣΑ ΣΕ ΑΥΤΟΥΣ ΚΑΙ ΤΟΝ ΠΥΡΗΝΑ.
+ΑΣΦΑΛΙΣΤΕ ΚΑΘΕ ΚΟΜΒΟ. ΔΙΑΓΡΑΨΤΕ ΤΗ ΔΙΑΦΘΟΡΑ."
+HI-SCORE %d,HI-SCORE %d,ΡΕΚΟΡ %d
+WAVE %d/3   %d:%02d.%d,WAVE %d/3   %d:%02d.%d,ΚΥΜΑ %d/3   %d:%02d.%d
+RUSH COMPLETE!   %d:%02d.%d   PRESS START,RUSH COMPLETE!   %d:%02d.%d   PRESS START,ΟΛΟΚΛΗΡΩΘΗΚΕ!   %d:%02d.%d   ΠΑΤΗΣΤΕ START

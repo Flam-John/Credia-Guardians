@@ -16,13 +16,13 @@ func _ready() -> void:
 	var data := SaveManager.load_slot(SaveManager.active_slot)
 	_character = StringName(data.get("last_character", "chris"))
 	var items: Array[Control] = [
-		UIKit.title("SELECT STAGE", 20),
-		UIKit.caption("C: switch guardian   ESC: back"),
+		UIKit.title(tr("SELECT STAGE"), 20),
+		UIKit.caption(tr("C: switch guardian   ESC: back")),
 	]
 	var stages: Dictionary = data.get("stages", {})
 	for stage_id in range(1, 6):
 		items.append(_stage_button(stage_id, stages.get(str(stage_id), {})))
-	items.append(UIKit.button("BACK", _back))
+	items.append(UIKit.button(tr("BACK"), _back))
 	_footer = UIKit.caption("", 10, UIKit.GREEN)
 	items.append(_footer)
 	_update_footer()
@@ -34,7 +34,7 @@ func _stage_button(stage_id: int, entry: Dictionary) -> Button:
 	var unlocked: bool = entry.get("unlocked", false)
 	var text: String
 	if not unlocked:
-		text = "%d ▒▒▒▒ LOCKED ▒▒▒▒" % stage_id
+		text = "%d ▒▒▒▒ %s ▒▒▒▒" % [stage_id, tr("LOCKED")]
 	else:
 		var rank: String = entry.get("best_rank", "")
 		var badge := ("  [%s]" % rank) if rank != "" else ""
@@ -43,7 +43,7 @@ func _stage_button(stage_id: int, entry: Dictionary) -> Button:
 		var best := float(entry.get("best_time_sec", 0.0))
 		var time_text := ("  %d:%02d" % [int(best) / 60, int(best) % 60]) \
 				if best > 0.0 else ""
-		text = "%d  %s%s%s%s" % [stage_id, STAGE_NAMES[stage_id], badge, hi_text, time_text]
+		text = "%d  %s%s%s%s" % [stage_id, tr(STAGE_NAMES[stage_id]), badge, hi_text, time_text]
 	var btn := UIKit.button(text, _on_stage.bind(stage_id))
 	btn.custom_minimum_size = Vector2(260, 20)
 	btn.disabled = not unlocked or not GameManager.STAGE_SCENES.has(stage_id)
@@ -58,7 +58,7 @@ func _on_stage(stage_id: int) -> void:
 
 
 func _update_footer() -> void:
-	_footer.text = "GUARDIAN: %s" % String(_character).to_upper()
+	_footer.text = tr("GUARDIAN: %s") % String(_character).to_upper()
 
 
 func _unhandled_input(event: InputEvent) -> void:

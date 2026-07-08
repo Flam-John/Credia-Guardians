@@ -27,18 +27,18 @@ func _ready() -> void:
 		heroes.add_child(portrait)
 
 	var column := UIKit.menu_column([
-		UIKit.title("STAGE CLEAR!", 14, UIKit.WHITE),
-		UIKit.title("BANK SYSTEM SECURED!", 26),
-		UIKit.caption("YOU PROTECTED THE FUTURE.", 9, UIKit.CYAN),
+		UIKit.title(tr("STAGE CLEAR!"), 14, UIKit.WHITE),
+		UIKit.title(tr("BANK SYSTEM SECURED!"), 26),
+		UIKit.caption(tr("YOU PROTECTED THE FUTURE."), 9, UIKit.CYAN),
 		_spacer(6),
 		heroes,
 		_spacer(4),
-		UIKit.caption("SYSTEM STATUS: SECURE      FINANCIAL FREEDOM: ACTIVE",
+		UIKit.caption(tr("SYSTEM STATUS: SECURE      FINANCIAL FREEDOM: ACTIVE"),
 				8, UIKit.GREEN),
-		UIKit.caption("FINAL SCORE %d    HI-SCORE %d" % [
+		UIKit.caption(tr("FINAL SCORE %d    HI-SCORE %d") % [
 				GameManager.score, GameManager.hi_score], 10, UIKit.GOLD),
 		_spacer(8),
-		UIKit.caption("PRESS START FOR CREDITS", 8, UIKit.WHITE),
+		UIKit.caption(tr("PRESS START FOR CREDITS"), 8, UIKit.WHITE),
 	])
 	add_child(UIKit.center(column))
 
@@ -80,21 +80,21 @@ func _roll_credits() -> void:
 	_credits = UIKit.menu_column([
 		UIKit.title("CREDIA GUARDIANS", 20),
 		_spacer(10),
-		UIKit.caption("A FLAMUPIA PRODUCTION", 9, UIKit.WHITE),
+		UIKit.caption(tr("A FLAMUPIA PRODUCTION"), 9, UIKit.WHITE),
 		_spacer(8),
-		UIKit.caption("STARRING", 8, UIKit.GRAY),
-		UIKit.caption("CHRIS — THE CREDIA WARRIOR", 9, UIKit.GREEN),
-		UIKit.caption("FLAM — THE CREDIA GUARDIAN", 9, UIKit.CYAN),
+		UIKit.caption(tr("STARRING"), 8, UIKit.GRAY),
+		UIKit.caption(tr("CHRIS — THE CREDIA WARRIOR"), 9, UIKit.GREEN),
+		UIKit.caption(tr("FLAM — THE CREDIA GUARDIAN"), 9, UIKit.CYAN),
 		_spacer(8),
-		UIKit.caption("VILLAINS", 8, UIKit.GRAY),
-		UIKit.caption("THE CORRUPTED BANKERS OF CREDIABANK", 9, UIKit.RED),
+		UIKit.caption(tr("VILLAINS"), 8, UIKit.GRAY),
+		UIKit.caption(tr("THE CORRUPTED BANKERS OF CREDIABANK"), 9, UIKit.RED),
 		_spacer(8),
 		UIKit.caption("MADE WITH GODOT %s" % Engine.get_version_info().string,
 				8, UIKit.GRAY),
 		_spacer(12),
-		UIKit.caption("THANK YOU FOR SECURING THE FUTURE", 10, UIKit.GOLD),
+		UIKit.caption(tr("THANK YOU FOR SECURING THE FUTURE"), 10, UIKit.GOLD),
 		_spacer(8),
-		UIKit.caption("PRESS START", 8, UIKit.WHITE),
+		UIKit.caption(tr("PRESS START"), 8, UIKit.WHITE),
 	])
 	add_child(UIKit.center(_credits))
 
