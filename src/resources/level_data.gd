@@ -8,3 +8,4 @@ extends Resource
 @export var par_time_sec := 300.0
 @export var next_stage_id := 0
 @export var music_track := ""
+@export var tileset_texture := "res://assets/art/tiles/tileset_office.png"

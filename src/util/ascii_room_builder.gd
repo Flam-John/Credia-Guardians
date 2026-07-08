@@ -8,7 +8,10 @@ extends Node2D
 ##          '^' spikes (hazard) '-' one-way platform  ' ' empty
 
 const TILE := 16
-const TILESET_TEXTURE := "res://assets/art/tiles/tileset_office.png"
+const DEFAULT_TILESET := "res://assets/art/tiles/tileset_office.png"
+
+## Per-stage tileset texture (same atlas layout, different theme colors).
+@export var tileset_texture := DEFAULT_TILESET
 
 ## Atlas coords in tileset_office.png row 0 (see tools/artgen).
 const ATLAS := {
@@ -69,7 +72,7 @@ func _build_tileset() -> TileSet:
 	ts.set_physics_layer_collision_layer(2, PhysicsLayers.HAZARD)
 
 	var src := TileSetAtlasSource.new()
-	src.texture = load(TILESET_TEXTURE)
+	src.texture = load(tileset_texture)
 	src.texture_region_size = Vector2i(TILE, TILE)
 	# Source must belong to the TileSet BEFORE tiles get collision, otherwise
 	# TileData sees zero physics layers.

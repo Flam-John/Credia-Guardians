@@ -1,0 +1,71 @@
+[gd_scene load_steps=16 format=3 uid="uid://ceo_boss_cg"]
+
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/ceo_boss.gd" id="1"]
+[ext_resource type="Resource" path="res://data/enemies/ceo.tres" id="2"]
+[ext_resource type="Script" path="res://src/fsm/state_machine.gd" id="3"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_choose_state.gd" id="4"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_slam_state.gd" id="5"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_volley_state.gd" id="6"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_charge_state.gd" id="7"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_stagger_state.gd" id="8"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_phase_change_state.gd" id="9"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_summon_state.gd" id="10"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_crash_state.gd" id="11"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_laser_state.gd" id="12"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_tslam_state.gd" id="13"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_spiral_state.gd" id="14"]
+[ext_resource type="Script" path="res://src/entities/bosses/ceo/c_core_state.gd" id="15"]
+
+[sub_resource type="RectangleShape2D" id="ceo_body"]
+size = Vector2(30, 60)
+
+[node name="CeoBoss" type="CharacterBody2D"]
+script = ExtResource("1")
+stats = ExtResource("2")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -48)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+position = Vector2(0, -30)
+shape = SubResource("ceo_body")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3")
+initial_state = &"Choose"
+
+[node name="Choose" type="Node" parent="StateMachine"]
+script = ExtResource("4")
+
+[node name="Slam" type="Node" parent="StateMachine"]
+script = ExtResource("5")
+
+[node name="CoinVolley" type="Node" parent="StateMachine"]
+script = ExtResource("6")
+
+[node name="DeskCharge" type="Node" parent="StateMachine"]
+script = ExtResource("7")
+
+[node name="Stagger" type="Node" parent="StateMachine"]
+script = ExtResource("8")
+
+[node name="PhaseChange" type="Node" parent="StateMachine"]
+script = ExtResource("9")
+
+[node name="Summon" type="Node" parent="StateMachine"]
+script = ExtResource("10")
+
+[node name="MarketCrash" type="Node" parent="StateMachine"]
+script = ExtResource("11")
+
+[node name="LaserSweep" type="Node" parent="StateMachine"]
+script = ExtResource("12")
+
+[node name="TeleportSlam" type="Node" parent="StateMachine"]
+script = ExtResource("13")
+
+[node name="CoinSpiral" type="Node" parent="StateMachine"]
+script = ExtResource("14")
+
+[node name="CoreExposed" type="Node" parent="StateMachine"]
+script = ExtResource("15")

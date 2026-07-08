@@ -9,6 +9,7 @@ Usage:  python tools/artgen/generate_placeholders.py [--out assets/art]
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import sys
 
@@ -168,11 +169,14 @@ def gen_coin(path: str):
     img.save(path)
 
 
-def gen_tileset(path: str):
+def gen_tileset(path: str, top_light=None, top_glow=None):
     """256x256 tileset. Row 0 holds the core gameplay tiles at fixed coords
     used by AsciiRoomBuilder: 0 solid-top, 1 solid-interior, 2 bg panel,
     3 spike hazard, 4 one-way platform, 5 solid-left-edge, 6 solid-right-edge.
+    top_light/top_glow recolor the walkable edge per stage theme.
     """
+    top_light = top_light or P.GREEN_DARK
+    top_glow = top_glow or P.GREEN
     img = Image.new("RGBA", (256, 256), P.TRANSPARENT)
     d = ImageDraw.Draw(img)
     t = 16
@@ -180,11 +184,11 @@ def gen_tileset(path: str):
     def tile(ix, iy):
         return ix * t, iy * t
 
-    # 0: solid with green light strip on top
+    # 0: solid with themed light strip on top
     x, y = tile(0, 0)
     _rect(d, x, y, x + 15, y + 15, P.BG_PANEL)
-    _rect(d, x, y, x + 15, y + 1, P.GREEN_DARK)
-    _rect(d, x, y, x + 15, y, P.GREEN)
+    _rect(d, x, y, x + 15, y + 1, top_light)
+    _rect(d, x, y, x + 15, y, top_glow)
     for i in range(0, 16, 4):
         _px(d, x + i, y + 8, P.GRAY_DARK)
     # 1: solid interior
@@ -210,8 +214,71 @@ def gen_tileset(path: str):
     for ix, edge_x in ((5, 0), (6, 15)):
         x, y = tile(ix, 0)
         _rect(d, x, y, x + 15, y + 15, P.BG_PANEL)
-        _rect(d, x + edge_x, y, x + edge_x, y + 15, P.GREEN_DARK)
+        _rect(d, x + edge_x, y, x + edge_x, y + 15, top_light)
     img.save(path)
+
+
+def gen_stage_backgrounds(out_dir):
+    """Far/mid parallax for stages 2-4, matching each theme accent."""
+    # Stage 2: Data Center — server racks + digital rain
+    far = Image.new("RGBA", (480, 270), P.BG_VOID)
+    d = ImageDraw.Draw(far)
+    for x in range(8, 480, 48):  # server racks
+        _rect(d, x, 30, x + 32, 250, (8, 16, 28, 255))
+        for row in range(38, 245, 14):
+            _px(d, x + 5, row, P.GREEN_DARK if (x + row) % 3 else P.CYAN)
+            _px(d, x + 12, row, (12, 60, 60, 255))
+    for col in range(20, 480, 90):  # digital rain streaks
+        for y in range((col * 7) % 40, 260, 26):
+            _rect(d, col, y, col, y + 8, (14, 90, 90, 255))
+    far.save(f"{out_dir}/stage_2_far.png")
+
+    mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
+    d = ImageDraw.Draw(mid)
+    for x in range(0, 480, 120):  # cable trays
+        _rect(d, x, 60, x + 100, 63, (16, 30, 48, 255))
+        for cx in range(x + 10, x + 90, 20):
+            d.arc([cx, 63, cx + 18, 80], 0, 180, fill=(16, 30, 48, 255))
+    mid.save(f"{out_dir}/stage_2_mid.png")
+
+    # Stage 3: Corporate HQ — marble columns + tall windows, gold accent
+    far = Image.new("RGBA", (480, 270), (8, 10, 16, 255))
+    d = ImageDraw.Draw(far)
+    for x in range(15, 480, 80):  # columns
+        _rect(d, x, 20, x + 14, 250, (22, 24, 34, 255))
+        _rect(d, x - 3, 16, x + 17, 22, (30, 32, 44, 255))
+        _rect(d, x - 3, 248, x + 17, 254, (30, 32, 44, 255))
+    for x in range(45, 480, 160):  # gold-lit windows
+        _rect(d, x, 50, x + 50, 160, (26, 22, 12, 255))
+        _rect(d, x + 4, 54, x + 46, 156, (48, 38, 16, 255))
+    far.save(f"{out_dir}/stage_3_far.png")
+
+    mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
+    d = ImageDraw.Draw(mid)
+    for x in range(0, 480, 96):  # velvet rope posts
+        _rect(d, x + 20, 200, x + 23, 230, (40, 34, 18, 255))
+        d.arc([x + 23, 195, x + 93, 225], 20, 160, fill=(60, 50, 22, 255))
+    mid.save(f"{out_dir}/stage_3_mid.png")
+
+    # Stage 4: Digital Vault — vault doors + gold on black
+    far = Image.new("RGBA", (480, 270), (4, 6, 10, 255))
+    d = ImageDraw.Draw(far)
+    for x in range(30, 480, 140):  # giant vault wheels
+        d.ellipse([x, 60, x + 90, 150], outline=(40, 34, 14, 255), width=4)
+        d.ellipse([x + 30, 90, x + 60, 120], outline=(60, 50, 20, 255), width=2)
+        for ang in range(0, 360, 60):
+            lx = x + 45 + int(55 * math.cos(math.radians(ang)))
+            ly = 105 + int(55 * math.sin(math.radians(ang)))
+            _px(d, lx, ly, P.GOLD)
+    far.save(f"{out_dir}/stage_4_far.png")
+
+    mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
+    d = ImageDraw.Draw(mid)
+    for x in range(0, 480, 60):  # deposit box walls
+        for y in range(170, 250, 20):
+            _rect(d, x + 4, y, x + 52, y + 16, (14, 14, 20, 255))
+            _px(d, x + 28, y + 8, (60, 50, 20, 255))
+    mid.save(f"{out_dir}/stage_4_mid.png")
 
 
 # Enemy sheet layouts: (anim name, frames) per row. MUST match
@@ -331,14 +398,93 @@ def gen_special_enemy_sheets(out_dir):
 
 
 def gen_projectiles(path):
-    """8x8 x2: ledger (white page), plasma orb (red)."""
-    img = Image.new("RGBA", (16, 8), P.TRANSPARENT)
+    """8x8 x3: ledger (white page), plasma orb (red), gold coin (CEO)."""
+    img = Image.new("RGBA", (24, 8), P.TRANSPARENT)
     d = ImageDraw.Draw(img)
     _outline_rect(d, 1, 1, 6, 6, P.WHITE)
     _px(d, 3, 3, P.GRAY_DARK)
     _px(d, 3, 4, P.GRAY_DARK)
     d.ellipse([9, 1, 14, 6], fill=P.RED, outline=(120, 10, 30, 255))
+    d.ellipse([17, 1, 22, 6], fill=P.GOLD, outline=(140, 100, 20, 255))
     img.save(path)
+
+
+CEO_LAYOUTS = {
+    "ceo_suit": {
+        "w": 64, "h": 96,
+        "anims": [("idle", 4), ("slam", 6), ("coin_volley", 4),
+                  ("charge", 4), ("stagger", 3), ("phase_change", 4)],
+    },
+    "ceo_demon": {
+        "w": 96, "h": 96,
+        "anims": [("float", 4), ("laser_sweep", 6), ("teleport", 4),
+                  ("spiral_cast", 4), ("core_exposed", 3), ("death", 8)],
+    },
+}
+
+
+def draw_ceo_frame(d, ox, oy, w, h, demon, anim, i):
+    cx = ox + w // 2
+    bottom = oy + h - 4
+    bob = i % 2
+    if not demon:
+        # giant suited chairman
+        lean = {"slam": [0, 2, 4, 6, 2, -4], "charge": [4, 6, 4, 6],
+                "stagger": [-6, -8, -6], "coin_volley": [0, 2, 2, 0],
+                "phase_change": [0, 0, 2, 4], "idle": [0, 1, 0, -1]}[anim][i]
+        crouch = 12 if anim == "slam" and i >= 3 else 0
+        body_top = oy + 30 + bob + crouch
+        _outline_rect(d, cx - 16 + lean, body_top, cx + 16 + lean, bottom, P.GRAY_DARK)
+        _rect(d, cx - 2 + lean, body_top + 4, cx + 2 + lean, bottom - 20,
+              P.GOLD if anim != "phase_change" else P.RED)  # tie
+        # arms
+        arm = 10 if anim in ("slam", "coin_volley") and 1 <= i <= 3 else 4
+        _rect(d, cx + 15 + lean, body_top + 10, cx + 15 + lean + arm, body_top + 16, P.GRAY_DARK)
+        # head
+        _outline_rect(d, cx - 9 + lean, body_top - 20, cx + 9 + lean, body_top - 2, P.SKIN)
+        _rect(d, cx - 9 + lean, body_top - 20, cx + 9 + lean, body_top - 15, P.GRAY)
+        eye = P.RED if anim in ("charge", "phase_change") else P.OUTLINE
+        _px(d, cx - 3 + lean, body_top - 10, eye)
+        _px(d, cx + 4 + lean, body_top - 10, eye)
+        if anim == "stagger":
+            _px(d, cx - 12, body_top - 26 + (i % 2), P.GOLD)
+            _px(d, cx + 12, body_top - 28 - (i % 2), P.GOLD)
+    else:
+        # digital demon form: red/black with cyan glitches
+        top = oy + 10 + bob * 2
+        _outline_rect(d, cx - 20, top + 20, cx + 20, bottom, (30, 6, 12, 255))
+        d.polygon([(cx - 24, top + 30), (cx - 34, top + 10), (cx - 16, top + 22)],
+                  fill=(60, 8, 16, 255))  # wing L
+        d.polygon([(cx + 24, top + 30), (cx + 34, top + 10), (cx + 16, top + 22)],
+                  fill=(60, 8, 16, 255))  # wing R
+        _outline_rect(d, cx - 12, top, cx + 12, top + 22, (40, 8, 14, 255))
+        _px(d, cx - 5, top + 8, P.RED)
+        _px(d, cx + 5, top + 8, P.RED)
+        for hrn in (-10, 10):  # horns
+            d.polygon([(cx + hrn - 2, top), (cx + hrn, top - 8), (cx + hrn + 2, top)],
+                      fill=P.RED)
+        # core
+        core_col = P.GREEN if anim == "core_exposed" else (80, 20, 30, 255)
+        d.ellipse([cx - 5, top + 34, cx + 5, top + 44], fill=core_col, outline=P.OUTLINE)
+        for g in range(4):  # glitch scanlines
+            gy = top + 6 + g * 18 + (i * 5) % 11
+            _rect(d, cx - 22, gy, cx + 22, gy, (22, 224, 224, 100))
+        if anim == "death":
+            for s in range(i + 1):
+                _px(d, cx - 20 + s * 5, bottom - (s * 9) % 60, P.CYAN)
+
+
+def gen_ceo_sheets(out_dir):
+    os.makedirs(f"{out_dir}/bosses", exist_ok=True)
+    for name, spec in CEO_LAYOUTS.items():
+        w, h = spec["w"], spec["h"]
+        cols = max(f for _, f in spec["anims"])
+        img = Image.new("RGBA", (cols * w, len(spec["anims"]) * h), P.TRANSPARENT)
+        d = ImageDraw.Draw(img)
+        for row, (anim, frames) in enumerate(spec["anims"]):
+            for i in range(frames):
+                draw_ceo_frame(d, i * w, row * h, w, h, name == "ceo_demon", anim, i)
+        img.save(f"{out_dir}/bosses/{name}.png")
 
 
 def gen_monitors(path):
@@ -558,6 +704,27 @@ def gen_stage1_backgrounds(out_dir):
     mid.save(f"{out_dir}/stage_1_mid.png")
 
 
+def gen_core_backgrounds(out_dir):
+    """Stage 5: blue circuitry invaded by red corruption veins."""
+    far = Image.new("RGBA", (480, 270), (3, 4, 10, 255))
+    d = ImageDraw.Draw(far)
+    for x in range(0, 480, 40):  # circuit traces
+        col = P.RED if (x // 40) % 3 == 0 else P.BLUE_DEEP
+        d.line([(x, 0), (x, 130), (x + 20, 150), (x + 20, 270)], fill=col)
+        _px(d, x, 130, P.CYAN)
+    for y in range(30, 270, 60):
+        d.line([(0, y), (480, y)], fill=(14, 22, 50, 255))
+    far.save(f"{out_dir}/stage_5_far.png")
+
+    mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
+    d = ImageDraw.Draw(mid)
+    for x in range(20, 480, 110):  # corruption veins
+        d.line([(x, 270), (x + 12, 200), (x - 6, 150), (x + 8, 90)],
+               fill=(120, 16, 28, 255), width=2)
+        _px(d, x + 8, 90, P.RED)
+    mid.save(f"{out_dir}/stage_5_mid.png")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="assets/art")
@@ -571,6 +738,13 @@ def main():
     gen_portraits(f"{out}/characters/portraits.png")
     gen_coin(f"{out}/props/coin.png")
     gen_tileset(f"{out}/tiles/tileset_office.png")
+    gen_tileset(f"{out}/tiles/tileset_datacenter.png", (18, 140, 140, 255), P.CYAN)
+    gen_tileset(f"{out}/tiles/tileset_hq.png", (150, 120, 30, 255), P.GOLD)
+    gen_tileset(f"{out}/tiles/tileset_vault.png", (120, 100, 24, 255), (255, 220, 120, 255))
+    gen_tileset(f"{out}/tiles/tileset_core.png", (140, 30, 40, 255), P.RED)
+    gen_stage_backgrounds(f"{out}/backgrounds")
+    gen_core_backgrounds(f"{out}/backgrounds")
+    gen_ceo_sheets(f"{out}/enemies")
     gen_enemy_sheets(f"{out}/enemies")
     gen_pickups(f"{out}/props/pickups.png")
     gen_checkpoint(f"{out}/props/checkpoint.png")

@@ -9,6 +9,8 @@ const COIN_SHEET := preload("res://assets/art/props/coin.png")
 
 var _portrait: TextureRect
 var _hp_box: HBoxContainer
+var _boss_bar: HBoxContainer
+var _boss_name: Label
 var _score_label: Label
 var _coin_label: Label
 var _hi_label: Label
@@ -57,11 +59,28 @@ func _ready() -> void:
 	_hi_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_hi_label)
 
+	_boss_bar = HBoxContainer.new()
+	_boss_bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_boss_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	_boss_bar.position.y = -18
+	_boss_bar.add_theme_constant_override(&"separation", 1)
+	_boss_bar.visible = false
+	add_child(_boss_bar)
+	_boss_name = _make_label(Vector2.ZERO, 7, UIKit.RED)
+	_boss_name.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_boss_name.position.y = -28
+	_boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_name.visible = false
+	add_child(_boss_name)
+
 	EventBus.player_spawned.connect(_on_player_spawned)
 	EventBus.player_damaged.connect(_set_hp)
 	EventBus.player_healed.connect(_set_hp)
 	EventBus.score_changed.connect(_on_score_changed)
 	EventBus.coin_collected.connect(_on_coin)
+	EventBus.boss_spawned.connect(_on_boss_spawned)
+	EventBus.boss_hp_changed.connect(_set_boss_hp)
+	EventBus.boss_died.connect(_on_boss_died)
 
 
 func _on_player_spawned(player: Node2D) -> void:
@@ -105,6 +124,30 @@ func _refresh_meta() -> void:
 	_score_label.text = "%08d" % GameManager.score
 	_coin_label.text = "×%d" % GameManager.coins
 	_hi_label.text = "HI-SCORE %d" % GameManager.hi_score
+
+
+func _on_boss_spawned(display_name: String, hp: int, max_hp: int) -> void:
+	_boss_name.text = display_name
+	_boss_name.visible = true
+	_boss_bar.visible = true
+	_set_boss_hp(hp, max_hp)
+
+
+func _set_boss_hp(hp: int, max_hp: int) -> void:
+	while _boss_bar.get_child_count() < max_hp:
+		var seg := ColorRect.new()
+		seg.custom_minimum_size = Vector2(6, 6)
+		_boss_bar.add_child(seg)
+	while _boss_bar.get_child_count() > max_hp:
+		_boss_bar.get_child(_boss_bar.get_child_count() - 1).free()
+	for i in _boss_bar.get_child_count():
+		(_boss_bar.get_child(i) as ColorRect).color = \
+				UIKit.RED if i < hp else UIKit.BG_PANEL
+
+
+func _on_boss_died() -> void:
+	_boss_bar.visible = false
+	_boss_name.visible = false
 
 
 func _make_label(pos: Vector2, size: int, color: Color) -> Label:

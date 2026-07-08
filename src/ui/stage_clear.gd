@@ -132,7 +132,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not _done:
 		return # let the tally finish (prevents skipping past the rank)
-	SceneManager.change_scene("res://scenes/ui/stage_select.tscn")
+	if int(_stats.get("next_stage_id", 1)) == 0:
+		# final stage cleared -> the big finale
+		SceneManager.change_scene("res://scenes/ui/victory.tscn")
+	else:
+		SceneManager.change_scene("res://scenes/ui/stage_select.tscn")
 
 
 func _spacer(height: int) -> Control:

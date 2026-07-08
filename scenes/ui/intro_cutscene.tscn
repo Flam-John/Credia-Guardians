@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://intro_cutscene_cg"]
+
+[ext_resource type="Script" path="res://src/ui/intro_cutscene.gd" id="1_s"]
+
+[node name="IntroCutscene" type="Control"]
+script = ExtResource("1_s")

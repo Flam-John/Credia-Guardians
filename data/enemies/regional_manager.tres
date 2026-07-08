@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/art/enemies/angry_manager.png" id="2_sheet"]
+[ext_resource type="PackedScene" path="res://scenes/entities/collectibles/coin.tscn" id="3_coin"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "Regional Manager"
+sheet = ExtResource("2_sheet")
+layout_key = "angry_manager"
+max_hp = 12
+contact_damage = 1
+score_value = 1500
+stompable = true
+move_speed = 220.0
+detection_range = 140.0
+attack_cooldown = 0.6
+loot_scene = ExtResource("3_coin")
+loot_count = 6

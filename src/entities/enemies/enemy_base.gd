@@ -40,7 +40,8 @@ func _ready() -> void:
 	assert(stats != null, "%s needs an EnemyStats resource" % name)
 	collision_layer = PhysicsLayers.ENEMY
 	collision_mask = PhysicsLayers.WORLD | PhysicsLayers.PLATFORM_ONEWAY
-	sprite.sprite_frames = SpriteFramesBuilder.build_enemy_frames(stats.sheet, stats.layout_key)
+	if stats.layout_key != "": # bosses build their own non-square frames
+		sprite.sprite_frames = SpriteFramesBuilder.build_enemy_frames(stats.sheet, stats.layout_key)
 	_build_components()
 	state_machine.setup(self, stats)
 
@@ -135,7 +136,7 @@ func _build_components() -> void:
 	_contact_area.add_child(_body_shape_copy())
 	add_child(_contact_area)
 
-	if sleep_when_offscreen:
+	if sleep_when_offscreen and stats.layout_key != "":
 		var enabler := VisibleOnScreenEnabler2D.new()
 		enabler.enable_mode = VisibleOnScreenEnabler2D.ENABLE_MODE_ALWAYS
 		var frame_px: float = SpriteFramesBuilder.ENEMY_LAYOUTS[stats.layout_key].size

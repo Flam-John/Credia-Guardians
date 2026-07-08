@@ -33,10 +33,18 @@ func _ready() -> void:
 	_blocker.collision_layer = PhysicsLayers.WORLD
 	var solid := CollisionShape2D.new()
 	var solid_rect := RectangleShape2D.new()
-	solid_rect.size = Vector2(16, 60)
+	# 96px tall: max double jump is 89px, so the gate CANNOT be hopped
+	# (playability audit: a 60px blocker made the USB key skippable)
+	solid_rect.size = Vector2(16, 96)
 	solid.shape = solid_rect
-	solid.position = Vector2(0, -32)
+	solid.position = Vector2(0, -48)
 	_blocker.add_child(solid)
+	# faint energy column so the extended barrier reads on screen
+	var column := ColorRect.new()
+	column.color = Color(1.0, 0.6, 0.3, 0.3)
+	column.size = Vector2(6, 40)
+	column.position = Vector2(-3, -100)
+	_blocker.add_child(column)
 	add_child(_blocker)
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)

@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3 uid="uid://stage_5_cg"]
+
+[ext_resource type="Script" path="res://src/levels/stages/stage_5.gd" id="1_s"]
+[ext_resource type="Resource" path="res://data/levels/stage_5.tres" id="2_data"]
+
+[node name="Stage5" type="Node2D"]
+script = ExtResource("1_s")
+data = ExtResource("2_data")

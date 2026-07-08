@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/resources/enemy_stats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/art/enemies/ai_banker.png" id="2_sheet"]
+[ext_resource type="PackedScene" path="res://scenes/entities/collectibles/coin.tscn" id="3_coin"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "Corrupted AI Banker MK-II"
+sheet = ExtResource("2_sheet")
+layout_key = "ai_banker"
+max_hp = 16
+contact_damage = 2
+score_value = 2000
+stompable = false
+move_speed = 0.0
+detection_range = 220.0
+attack_cooldown = 1.8
+loot_scene = ExtResource("3_coin")
+loot_count = 8

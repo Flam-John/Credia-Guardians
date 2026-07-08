@@ -48,7 +48,8 @@ func _on_pick(id: StringName) -> void:
 	if SaveManager.load_slot(SaveManager.active_slot).is_empty():
 		SaveManager.write_slot(SaveManager.active_slot, SaveManager.new_slot_data(id))
 		GameManager.hi_score = 0
-	GameManager.launch_stage(1, id)
+	GameManager.character = id
+	SceneManager.change_scene("res://scenes/ui/intro_cutscene.tscn")
 
 
 func _back() -> void:

@@ -20,6 +20,9 @@ const MANAGER_SCENE := preload("res://scenes/entities/enemies/angry_manager.tscn
 const AUDITOR_SCENE := preload("res://scenes/entities/enemies/auditor.tscn")
 const SHARK_SCENE := preload("res://scenes/entities/enemies/loan_shark.tscn")
 const AI_BANKER_SCENE := preload("res://scenes/entities/enemies/ai_banker.tscn")
+const AI_ELITE_SCENE := preload("res://scenes/entities/enemies/ai_banker_elite.tscn")
+const REGIONAL_SCENE := preload("res://scenes/entities/enemies/regional_manager.tscn")
+const CEO_SCENE := preload("res://scenes/entities/bosses/ceo_boss.tscn")
 const PROJECTILE_SCENE := preload("res://scenes/entities/props/projectile.tscn")
 const HIT_SPARK_SCENE := preload("res://scenes/fx/hit_spark.tscn")
 const FULL_AUDIT_BONUS := 5000
@@ -41,6 +44,8 @@ var _gate: ExitGate
 var _spawn_tile := Vector2i(2, 2)
 var _cleared := false
 var _mover_count := 0
+## When a 'C' marker spawns the CEO, the exit gate also requires his defeat.
+var _boss_alive := false
 
 
 var projectile_pool: ObjectPool
@@ -63,6 +68,7 @@ func _ready() -> void:
 	var terrain := _extract_entities(map)
 	var builder := AsciiRoomBuilder.new()
 	builder.map = terrain
+	builder.tileset_texture = data.tileset_texture
 	add_child(builder)
 	# entities were spawned during extraction (earlier siblings) — terrain
 	# must draw BEHIND them, so it goes to the front of the child list
@@ -146,6 +152,89 @@ func _extract_entities(source: String) -> String:
 					var monitor := MonitorProp.new()
 					monitor.position = Vector2(x * T + 16, y * T + 12)
 					add_child(monitor)
+				"Q":
+					_place(AI_ELITE_SCENE, x, y)
+				"R":
+					_place(REGIONAL_SCENE, x, y)
+				"C":
+					_place(CEO_SCENE, x, y)
+					_boss_alive = true
+					EventBus.boss_died.connect(_on_boss_died)
+				"S":
+					var camera := SecurityCamera.new()
+					camera.position = Vector2(x * T + 8, y * T + 8)
+					add_child(camera)
+				"f", "g":
+					var fan_run := 1
+					while x + fan_run < line.length() and line[x + fan_run] == ch:
+						fan_run += 1
+					var fan := FanZone.new()
+					fan.position = Vector2(x * T, (y + 1) * T)
+					fan.setup(fan_run, 1 if ch == "g" else -1)
+					add_child(fan)
+					consumed = fan_run
+				"l":
+					var laser_run := 1
+					while x + laser_run < line.length() and line[x + laser_run] == "l":
+						laser_run += 1
+					var laser := TimedHazard.new()
+					laser.position = Vector2(x * T, y * T + 6)
+					laser.phase_offset = fmod(x * 0.35, 2.8)
+					laser.setup(Vector2(laser_run * T, 4))
+					add_child(laser)
+					consumed = laser_run
+				"b":
+					var bridge_run := 1
+					while x + bridge_run < line.length() and line[x + bridge_run] == "b":
+						bridge_run += 1
+					var bridge := FadingBridge.new()
+					bridge.position = Vector2(x * T, y * T + 5)
+					bridge.phase_offset = fmod(x * 0.4, 2.8)
+					bridge.setup(bridge_run)
+					add_child(bridge)
+					consumed = bridge_run
+				"V":
+					# vent column: same top-of-run rule as '~'
+					if y > 0 and x < (grid[y - 1] as String).length() and grid[y - 1][x] == "V":
+						x += 1
+						continue
+					var vent_height := 1
+					while y + vent_height < grid.size() \
+							and x < (grid[y + vent_height] as String).length() \
+							and grid[y + vent_height][x] == "V":
+						vent_height += 1
+					var vent := TimedHazard.new()
+					vent.position = Vector2(x * T + 2, y * T)
+					vent.beam_color = Color("ff7030") # heat, not laser
+					vent.on_time = 1.0
+					vent.off_time = 2.0
+					vent.phase_offset = fmod(x * 0.5, 3.0)
+					vent.setup(Vector2(12, vent_height * T))
+					add_child(vent)
+					x += 1
+					continue
+				"|":
+					# elevator column: vertical mover between run ends
+					if y > 0 and x < (grid[y - 1] as String).length() and grid[y - 1][x] == "|":
+						x += 1
+						continue
+					var lift_height := 1
+					while y + lift_height < grid.size() \
+							and x < (grid[y + lift_height] as String).length() \
+							and grid[y + lift_height][x] == "|":
+						lift_height += 1
+					var lift := MovingPlatform.new()
+					lift.position = Vector2(x * T + 8, y * T + 8)
+					var lift_curve := Curve2D.new()
+					lift_curve.add_point(Vector2.ZERO)
+					lift_curve.add_point(Vector2(0, maxi(16, lift_height * T - 16)))
+					lift.curve = lift_curve
+					lift.speed = 30.0
+					lift.start_at_end = _mover_count % 2 == 1
+					_mover_count += 1
+					add_child(lift)
+					x += 1
+					continue
 				"k":
 					var checkpoint := Checkpoint.new()
 					checkpoint.position = _tile_bottom(x, y)
@@ -218,9 +307,10 @@ func _extract_entities(source: String) -> String:
 			line = line.substr(0, x) + ".".repeat(end - x) + line.substr(end)
 			grid[y] = line
 			x += consumed
-	# '~' columns blanked separately (vertical)
+	# vertical-run markers blanked separately (their top-detection must read
+	# the original grid during the pass above)
 	for y in grid.size():
-		grid[y] = (grid[y] as String).replace("~", ".")
+		grid[y] = (grid[y] as String).replace("~", " ").replace("V", " ").replace("|", " ")
 	var out := ""
 	for line: String in grid:
 		out += line + "\n"
@@ -248,8 +338,10 @@ func _tile_bottom(x: int, y: int) -> Vector2:
 func _build_parallax() -> void:
 	var parallax := ParallaxBackground.new()
 	add_child(parallax)
-	_parallax_layer(parallax, "res://assets/art/backgrounds/stage_1_far.png", 0.2)
-	_parallax_layer(parallax, "res://assets/art/backgrounds/stage_1_mid.png", 0.5)
+	_parallax_layer(parallax,
+			"res://assets/art/backgrounds/stage_%d_far.png" % data.stage_id, 0.2)
+	_parallax_layer(parallax,
+			"res://assets/art/backgrounds/stage_%d_mid.png" % data.stage_id, 0.5)
 
 
 func _parallax_layer(parent: ParallaxBackground, texture_path: String, motion: float) -> void:
@@ -274,7 +366,16 @@ static func compute_level_bonus(time_sec: float, par_sec: float) -> int:
 func _on_node_activated(_node: SecurityNode) -> void:
 	nodes_active += 1
 	EventBus.node_activated.emit(_node.id, nodes_active, total_nodes)
-	if nodes_active >= total_nodes and _gate != null:
+	_check_gate()
+
+
+func _on_boss_died() -> void:
+	_boss_alive = false
+	_check_gate()
+
+
+func _check_gate() -> void:
+	if nodes_active >= total_nodes and not _boss_alive and _gate != null:
 		_gate.unlock()
 
 

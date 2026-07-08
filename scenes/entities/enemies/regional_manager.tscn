@@ -1,0 +1,43 @@
+[gd_scene load_steps=9 format=3 uid="uid://regional_manager_cg"]
+
+[ext_resource type="Script" path="res://src/entities/enemies/manager/angry_manager.gd" id="1_am"]
+[ext_resource type="Resource" path="res://data/enemies/regional_manager.tres" id="2_stats"]
+[ext_resource type="Script" path="res://src/fsm/state_machine.gd" id="3_sm"]
+[ext_resource type="Script" path="res://src/entities/enemies/manager/m_idle_state.gd" id="4_idle"]
+[ext_resource type="Script" path="res://src/entities/enemies/manager/m_alert_state.gd" id="5_alert"]
+[ext_resource type="Script" path="res://src/entities/enemies/manager/m_charge_state.gd" id="6_charge"]
+[ext_resource type="Script" path="res://src/entities/enemies/manager/m_wall_stun_state.gd" id="7_stun"]
+[ext_resource type="Script" path="res://src/entities/enemies/manager/m_cooldown_state.gd" id="8_cd"]
+
+[sub_resource type="RectangleShape2D" id="am_body"]
+size = Vector2(16, 24)
+
+[node name="RegionalManager" type="CharacterBody2D"]
+script = ExtResource("1_am")
+stats = ExtResource("2_stats")
+
+[node name="Sprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, -16)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+position = Vector2(0, -12)
+shape = SubResource("am_body")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("3_sm")
+initial_state = &"Idle"
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("4_idle")
+
+[node name="Alert" type="Node" parent="StateMachine"]
+script = ExtResource("5_alert")
+
+[node name="Charge" type="Node" parent="StateMachine"]
+script = ExtResource("6_charge")
+
+[node name="WallStun" type="Node" parent="StateMachine"]
+script = ExtResource("7_stun")
+
+[node name="Cooldown" type="Node" parent="StateMachine"]
+script = ExtResource("8_cd")
