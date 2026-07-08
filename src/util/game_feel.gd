@@ -23,3 +23,18 @@ static func shake(tree: SceneTree, amount_px := 3.0) -> void:
 	var camera := tree.root.get_camera_2d() as PlayerCamera
 	if camera != null:
 		camera.add_shake(amount_px)
+
+
+## Toggled by SettingsApplier from the options menu.
+static var rumble_enabled := true
+
+
+## device -1 = both pads (boss slams); otherwise a specific player's pad.
+static func rumble(device: int, weak := 0.5, strong := 0.3, duration := 0.2) -> void:
+	if not rumble_enabled:
+		return
+	if device < 0:
+		Input.start_joy_vibration(0, weak, strong, duration)
+		Input.start_joy_vibration(1, weak, strong, duration)
+	else:
+		Input.start_joy_vibration(device, weak, strong, duration)

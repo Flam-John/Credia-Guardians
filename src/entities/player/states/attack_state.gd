@@ -30,7 +30,7 @@ func enter(prev: StringName) -> void:
 
 func physics_update(delta: float) -> void:
 	player.velocity.x = move_toward(player.velocity.x, 0.0, stats.ground_friction * delta)
-	if Input.is_action_just_pressed(&"attack"):
+	if player.just_pressed(&"attack"):
 		_next_queued = true
 	_drive_hitbox()
 	if not player.sprite.is_playing():

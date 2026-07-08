@@ -19,7 +19,13 @@ const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 enum Rank { D, C, B, A, S }
 
 var character: StringName = &"chris"
+## Co-op: second guardian; empty StringName = single-player.
+var character2: StringName = &""
 var stage_id: int = 1
+
+
+func is_coop() -> bool:
+	return character2 != &""
 
 var score: int = 0
 var coins: int = 0
@@ -50,14 +56,17 @@ func character_stats(id: StringName = character) -> CharacterStats:
 
 
 ## Menu flow entry: set up the run and load the stage scene.
-func launch_stage(new_stage_id: int, new_character: StringName) -> void:
+## second_character non-empty = local co-op.
+func launch_stage(new_stage_id: int, new_character: StringName,
+		second_character: StringName = &"") -> void:
 	assert(STAGE_SCENES.has(new_stage_id), "No scene for stage %d" % new_stage_id)
+	character2 = second_character
 	start_stage(new_stage_id, new_character)
 	SceneManager.change_scene(STAGE_SCENES[new_stage_id])
 
 
 func retry_stage() -> void:
-	launch_stage(stage_id, character)
+	launch_stage(stage_id, character, character2)
 
 
 func quit_to_menu() -> void:
@@ -146,7 +155,7 @@ func _on_node_activated(_id: StringName, count: int, _total: int) -> void:
 	add_score(500)
 
 
-func _on_player_died() -> void:
+func _on_player_died(_player: Node2D) -> void:
 	deaths_this_stage += 1
 	lives -= 1
 	if lives <= 0:

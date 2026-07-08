@@ -22,7 +22,7 @@ func physics_update(delta: float) -> void:
 		player.start_coyote()
 		machine.transition(&"Fall")
 		return
-	if not Input.is_action_pressed(&"ability") or player.shield_meter <= 0.0:
+	if not player.pressed(&"ability") or player.shield_meter <= 0.0:
 		machine.transition(&"Run" if absf(axis) > 0.0 else &"Idle")
 
 

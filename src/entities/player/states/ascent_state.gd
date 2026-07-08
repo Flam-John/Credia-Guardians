@@ -21,7 +21,7 @@ func physics_update(delta: float) -> void:
 	player.air_move(delta)
 	# Level-based (not edge-based) cut: a jump that entered via the buffer may
 	# have had its button released before the state began — it still short-hops.
-	if not _cut_done and player.velocity.y < 0.0 and not Input.is_action_pressed(&"jump"):
+	if not _cut_done and player.velocity.y < 0.0 and not player.pressed(&"jump"):
 		player.velocity.y *= stats.jump_cut_multiplier
 		_cut_done = true
 	if try_air_transitions():

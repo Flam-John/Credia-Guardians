@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://boss_rush_cg"]
+
+[ext_resource type="Script" path="res://src/ui/boss_rush.gd" id="1_s"]
+
+[node name="BossRush" type="Node2D"]
+script = ExtResource("1_s")

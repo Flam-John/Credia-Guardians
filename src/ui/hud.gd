@@ -9,8 +9,12 @@ const COIN_SHEET := preload("res://assets/art/props/coin.png")
 
 var _portrait: TextureRect
 var _hp_box: HBoxContainer
+var _portrait2: TextureRect
+var _hp_box2: HBoxContainer
 var _boss_bar: HBoxContainer
 var _boss_name: Label
+var _timer_label: Label
+var _timer_enabled := false
 var _score_label: Label
 var _coin_label: Label
 var _hi_label: Label
@@ -35,8 +39,27 @@ func _ready() -> void:
 	_hp_box.add_theme_constant_override(&"separation", 1)
 	add_child(_hp_box)
 
+	# P2 panel (top-right, mirrored) — hidden outside co-op
+	_portrait2 = _portrait.duplicate()
+	_portrait2.position = Vector2(454, 6)
+	_portrait2.visible = false
+	add_child(_portrait2)
+	_hp_box2 = HBoxContainer.new()
+	_hp_box2.position = Vector2(400, 8)
+	_hp_box2.add_theme_constant_override(&"separation", 1)
+	_hp_box2.visible = false
+	add_child(_hp_box2)
+
 	_lives_label = _make_label(Vector2(30, 18), 7, UIKit.GRAY)
 	add_child(_lives_label)
+
+	_timer_label = _make_label(Vector2(-70, 18), 8, UIKit.CYAN)
+	_timer_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_timer_label.position = Vector2(-70, 30)
+	_timer_label.visible = false
+	add_child(_timer_label)
+	EventBus.settings_applied.connect(func(s: Dictionary) -> void:
+		_timer_enabled = s.get("video", {}).get("show_timer", false))
 
 	_score_label = _make_label(Vector2(6, 30), 8, UIKit.WHITE)
 	add_child(_score_label)
@@ -74,8 +97,8 @@ func _ready() -> void:
 	add_child(_boss_name)
 
 	EventBus.player_spawned.connect(_on_player_spawned)
-	EventBus.player_damaged.connect(_set_hp)
-	EventBus.player_healed.connect(_set_hp)
+	# hp comes from direct HealthComponent wiring in _on_player_spawned —
+	# bus-level player_damaged/healed can't distinguish P1 from P2
 	EventBus.score_changed.connect(_on_score_changed)
 	EventBus.coin_collected.connect(_on_coin)
 	EventBus.boss_spawned.connect(_on_boss_spawned)
@@ -83,27 +106,48 @@ func _ready() -> void:
 	EventBus.boss_died.connect(_on_boss_died)
 
 
+func _process(_delta: float) -> void:
+	var show := _timer_enabled and GameManager.is_stage_running()
+	_timer_label.visible = show
+	if show:
+		var t := GameManager.stage_time
+		_timer_label.text = "%d:%02d.%d" % [int(t) / 60, int(t) % 60,
+				int(t * 10) % 10]
+
+
 func _on_player_spawned(player: Node2D) -> void:
 	var typed := player as Player
-	_max_hp = typed.stats.max_hp
+	var is_p2 := typed.player_index == 2
 	var atlas := AtlasTexture.new()
 	atlas.atlas = PORTRAITS
 	atlas.region = Rect2((0 if typed.stats.display_name == "Chris" else 1) * 32, 0, 32, 32)
-	_portrait.texture = atlas
-	_set_hp(typed.health.hp, _max_hp)
+	(_portrait2 if is_p2 else _portrait).texture = atlas
+	if is_p2:
+		_portrait2.visible = true
+		_hp_box2.visible = true
+	# direct health wiring: with two players, bus-level hp signals are ambiguous
+	typed.health.damaged.connect(_on_health_event.bind(is_p2))
+	typed.health.healed.connect(_on_health_event.bind(is_p2))
+	_set_hp(typed.health.hp, typed.stats.max_hp, is_p2)
+	if not is_p2:
+		_max_hp = typed.stats.max_hp
 	_refresh_meta()
 
 
-func _set_hp(hp: int, max_hp: int) -> void:
-	_max_hp = max_hp
-	while _hp_box.get_child_count() < max_hp:
+func _on_health_event(_amount: int, hp: int, max_hp: int, is_p2: bool) -> void:
+	_set_hp(hp, max_hp, is_p2)
+
+
+func _set_hp(hp: int, max_hp: int, is_p2 := false) -> void:
+	var box := _hp_box2 if is_p2 else _hp_box
+	while box.get_child_count() < max_hp:
 		var seg := ColorRect.new()
 		seg.custom_minimum_size = Vector2(7, 8)
-		_hp_box.add_child(seg)
-	while _hp_box.get_child_count() > max_hp:
-		_hp_box.get_child(_hp_box.get_child_count() - 1).free()
-	for i in _hp_box.get_child_count():
-		(_hp_box.get_child(i) as ColorRect).color = \
+		box.add_child(seg)
+	while box.get_child_count() > max_hp:
+		box.get_child(box.get_child_count() - 1).free()
+	for i in box.get_child_count():
+		(box.get_child(i) as ColorRect).color = \
 				UIKit.GREEN if i < hp else UIKit.BG_PANEL
 	_refresh_meta()
 

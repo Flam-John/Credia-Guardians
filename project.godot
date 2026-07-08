@@ -1,5 +1,5 @@
 ; Engine configuration file.
-; Credia Guardians — retro 16-bit platformer. See docs/TDD.md for the meaning
+; Credia Guardians ??? retro 16-bit platformer. See docs/TDD.md for the meaning
 ; of every setting in this file.
 
 config_version=5
@@ -8,7 +8,7 @@ config_version=5
 
 config/name="Credia Guardians"
 config/description="Two developers defend the Credia banking system from corrupted bankers."
-config/version="1.0.0"
+config/version="1.1.0"
 run/main_scene="res://scenes/main/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 run/max_fps=60

@@ -5,6 +5,8 @@ extends CharacterBody2D
 ## Chris vs Flam differences come entirely from the injected CharacterStats.
 
 @export var stats: CharacterStats
+## 0 = single-player (base actions, any device). 1/2 = co-op action sets.
+@export var player_index := 0
 
 @onready var sprite: AnimatedSprite2D = $Sprite
 @onready var state_machine: StateMachine = $StateMachine
@@ -49,8 +51,36 @@ var _ghosts: Array[Sprite2D] = []
 var _ghost_index := 0
 
 
+## base action name -> player-scoped StringName, cached (no per-frame allocs)
+var _action_cache: Dictionary = {}
+
+
+func action(base: StringName) -> StringName:
+	if player_index == 0:
+		return base
+	var scoped: StringName = _action_cache.get(base, StringName())
+	if scoped == StringName():
+		scoped = StringName("p%d_%s" % [player_index, base])
+		_action_cache[base] = scoped
+	return scoped
+
+
+func pressed(base: StringName) -> bool:
+	return Input.is_action_pressed(action(base))
+
+
+func just_pressed(base: StringName) -> bool:
+	return Input.is_action_just_pressed(action(base))
+
+
+func just_released(base: StringName) -> bool:
+	return Input.is_action_just_released(action(base))
+
+
 func _ready() -> void:
 	assert(stats != null, "Player needs a CharacterStats resource")
+	if player_index > 0:
+		CoopInput.ensure_actions()
 	add_to_group(&"player")
 	sprite.sprite_frames = SpriteFramesBuilder.build_player_frames(stats.sheet)
 	shield_meter = stats.shield_capacity
@@ -136,7 +166,7 @@ func activate_camera(limits: Rect2) -> void:
 
 func _physics_process(delta: float) -> void:
 	_tick_timers(delta)
-	if Input.is_action_just_pressed(&"jump"):
+	if just_pressed(&"jump"):
 		jump_buffer_timer = stats.jump_buffer
 	if not state_machine.current.overrides_gravity:
 		apply_gravity(delta)
@@ -191,6 +221,7 @@ func take_hit(damage: int, from_global_pos: Vector2) -> void:
 	last_hit_from = from_global_pos
 	flash.flash()
 	GameFeel.shake(get_tree(), 3.0)
+	GameFeel.rumble(maxi(0, player_index - 1), 0.6, 0.4, 0.25)
 	FxService.hit_spark(get_tree(), global_position + Vector2(0, -12))
 	if health.is_dead():
 		state_machine.transition(&"Dead")
@@ -278,7 +309,7 @@ func apply_gravity(delta: float) -> void:
 
 
 func input_axis() -> float:
-	return Input.get_axis(&"move_left", &"move_right")
+	return Input.get_axis(action(&"move_left"), action(&"move_right"))
 
 
 ## Ground movement: accelerate toward input, brake with friction.

@@ -8,7 +8,7 @@ extends Node
 signal player_spawned(player: Node2D)
 signal player_damaged(hp: int, max_hp: int)
 signal player_healed(hp: int, max_hp: int)
-signal player_died
+signal player_died(player: Node2D)
 
 # -- Collection & score --
 signal coin_collected(value: int)

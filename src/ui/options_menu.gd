@@ -22,6 +22,8 @@ func _ready() -> void:
 	items.append(_check_row("FULLSCREEN", "video", "fullscreen"))
 	items.append(_scale_row())
 	items.append(_check_row("SCANLINES", "video", "scanlines"))
+	items.append(_check_row("SPEEDRUN TIMER", "video", "show_timer"))
+	items.append(_check_row("GAMEPAD RUMBLE", "video", "rumble"))
 	items.append(UIKit.caption("— KEYS —", 8, UIKit.GRAY))
 	for action in SettingsApplier.REBINDABLE:
 		items.append(_bind_row(action))

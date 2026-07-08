@@ -22,4 +22,4 @@ func physics_update(_delta: float) -> void:
 	player.velocity.x = 0.0
 	if not _announced and not player.sprite.is_playing():
 		_announced = true
-		EventBus.player_died.emit()
+		EventBus.player_died.emit(player)
