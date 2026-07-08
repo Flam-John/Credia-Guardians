@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/resources/level_data.gd" id="1_ld"]
+
+[resource]
+script = ExtResource("1_ld")
+stage_id = 4
+display_name = "Digital Vault"
+par_time_sec = 360
+next_stage_id = 5
+music_track = "stage_4"
+tileset_texture = "res://assets/art/tiles/tileset_vault.png"

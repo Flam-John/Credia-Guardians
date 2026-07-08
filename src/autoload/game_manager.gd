@@ -8,6 +8,10 @@ const STARTING_LIVES := 3
 ## Stage id -> scene path.
 const STAGE_SCENES := {
 	1: "res://scenes/levels/stage_1.tscn",
+	2: "res://scenes/levels/stage_2.tscn",
+	3: "res://scenes/levels/stage_3.tscn",
+	4: "res://scenes/levels/stage_4.tscn",
+	5: "res://scenes/levels/stage_5.tscn",
 }
 const MENU_SCENE := "res://scenes/ui/main_menu.tscn"
 

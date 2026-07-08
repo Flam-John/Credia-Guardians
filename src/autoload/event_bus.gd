@@ -25,7 +25,10 @@ signal hidden_room_found(id: StringName)
 signal stage_cleared(stats: Dictionary)
 
 # -- Bosses --
+signal boss_spawned(display_name: String, hp: int, max_hp: int)
+signal boss_hp_changed(hp: int, max_hp: int)
 signal boss_phase_changed(phase: int)
+signal boss_died
 
 # -- Meta --
 signal pause_toggled(paused: bool)

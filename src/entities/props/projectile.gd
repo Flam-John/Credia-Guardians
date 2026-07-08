@@ -3,7 +3,7 @@ extends Area2D
 ## Pooled enemy projectile. Two visuals (ledger page / plasma orb), optional
 ## gravity arc. Damages the player hurtbox; dies on walls and after lifetime.
 
-enum Visual { LEDGER, PLASMA }
+enum Visual { LEDGER, PLASMA, GOLD }
 
 const SHEET := preload("res://assets/art/props/projectiles.png")
 const LIFETIME := 2.5

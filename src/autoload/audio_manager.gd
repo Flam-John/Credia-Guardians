@@ -35,7 +35,7 @@ func _ready() -> void:
 func play_music(track: String, crossfade_sec: float = 1.0) -> void:
 	if track == _current_track:
 		return
-	var stream := _load_stream("%s/%s.ogg" % [MUSIC_DIR, track])
+	var stream := _load_music(track)
 	if stream == null:
 		return
 	_current_track = track
@@ -100,3 +100,20 @@ func _load_stream(path: String) -> AudioStream:
 	if not ResourceLoader.exists(path):
 		return null
 	return load(path)
+
+
+## Music may ship as .ogg (final) or .wav (audiogen placeholder); wav loops
+## are forced on since import defaults have them off.
+func _load_music(track: String) -> AudioStream:
+	for ext in ["ogg", "wav"]:
+		var stream := _load_stream("%s/%s.%s" % [MUSIC_DIR, track, ext])
+		if stream == null:
+			continue
+		if stream is AudioStreamWAV:
+			stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			stream.loop_begin = 0
+			stream.loop_end = stream.data.size() / 2 # 16-bit mono frames
+		elif stream is AudioStreamOggVorbis:
+			stream.loop = true
+		return stream
+	return null

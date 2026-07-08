@@ -82,6 +82,32 @@ const ENEMY_LAYOUTS: Dictionary = {
 	},
 }
 
+## Boss sheets use non-square frames. MUST match tools/artgen CEO_LAYOUTS.
+const BOSS_LAYOUTS: Dictionary = {
+	"ceo_suit": {
+		"w": 64, "h": 96,
+		"anims": [
+			{"name": &"idle", "frames": 4, "fps": 5.0, "loop": true},
+			{"name": &"slam", "frames": 6, "fps": 12.0, "loop": false},
+			{"name": &"coin_volley", "frames": 4, "fps": 10.0, "loop": false},
+			{"name": &"charge", "frames": 4, "fps": 12.0, "loop": true},
+			{"name": &"stagger", "frames": 3, "fps": 6.0, "loop": true},
+			{"name": &"phase_change", "frames": 4, "fps": 8.0, "loop": false},
+		],
+	},
+	"ceo_demon": {
+		"w": 96, "h": 96,
+		"anims": [
+			{"name": &"float", "frames": 4, "fps": 6.0, "loop": true},
+			{"name": &"laser_sweep", "frames": 6, "fps": 10.0, "loop": false},
+			{"name": &"teleport", "frames": 4, "fps": 14.0, "loop": false},
+			{"name": &"spiral_cast", "frames": 4, "fps": 10.0, "loop": true},
+			{"name": &"core_exposed", "frames": 3, "fps": 6.0, "loop": true},
+			{"name": &"death", "frames": 8, "fps": 6.0, "loop": false},
+		],
+	},
+}
+
 ## SpriteFrames are read-only after build, so instances share them safely.
 ## Cache avoids ~58 RefCounted allocations per respawn (docs/PERFORMANCE.md).
 static var _cache: Dictionary = {}
@@ -97,7 +123,17 @@ static func build_enemy_frames(sheet: Texture2D, layout_key: String) -> SpriteFr
 	return _build(sheet, layout.anims, layout.size)
 
 
+static func build_boss_frames(sheet: Texture2D, layout_key: String) -> SpriteFrames:
+	assert(BOSS_LAYOUTS.has(layout_key), "Unknown boss layout '%s'" % layout_key)
+	var layout: Dictionary = BOSS_LAYOUTS[layout_key]
+	return _build_rect(sheet, layout.anims, layout.w, layout.h)
+
+
 static func _build(sheet: Texture2D, anims: Array, frame_size: int) -> SpriteFrames:
+	return _build_rect(sheet, anims, frame_size, frame_size)
+
+
+static func _build_rect(sheet: Texture2D, anims: Array, w: int, h: int) -> SpriteFrames:
 	if _cache.has(sheet):
 		return _cache[sheet]
 	var frames := SpriteFrames.new()
@@ -111,7 +147,7 @@ static func _build(sheet: Texture2D, anims: Array, frame_size: int) -> SpriteFra
 		for i in int(anim.frames):
 			var atlas := AtlasTexture.new()
 			atlas.atlas = sheet
-			atlas.region = Rect2(i * frame_size, row * frame_size, frame_size, frame_size)
+			atlas.region = Rect2(i * w, row * h, w, h)
 			frames.add_frame(anim_name, atlas)
 	_cache[sheet] = frames
 	return frames

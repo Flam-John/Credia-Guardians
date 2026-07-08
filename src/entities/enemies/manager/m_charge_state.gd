@@ -16,7 +16,8 @@ func enter(_prev: StringName) -> void:
 
 
 func physics_update(_delta: float) -> void:
-	enemy.velocity.x = enemy.facing * AngryManager.CHARGE_SPEED
+	# stats-driven so the Regional Manager elite charges faster (docs/ENEMY_AI.md)
+	enemy.velocity.x = enemy.facing * stats.move_speed
 	if enemy.is_on_wall():
 		machine.transition(&"WallStun")
 	elif absf(enemy.global_position.x - _start_x) >= AngryManager.CHARGE_MAX_DISTANCE:
