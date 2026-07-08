@@ -40,7 +40,10 @@ func _stage_button(stage_id: int, entry: Dictionary) -> Button:
 		var badge := ("  [%s]" % rank) if rank != "" else ""
 		var hi := int(entry.get("hi_score", 0))
 		var hi_text := ("  HI %d" % hi) if hi > 0 else ""
-		text = "%d  %s%s%s" % [stage_id, STAGE_NAMES[stage_id], badge, hi_text]
+		var best := float(entry.get("best_time_sec", 0.0))
+		var time_text := ("  %d:%02d" % [int(best) / 60, int(best) % 60]) \
+				if best > 0.0 else ""
+		text = "%d  %s%s%s%s" % [stage_id, STAGE_NAMES[stage_id], badge, hi_text, time_text]
 	var btn := UIKit.button(text, _on_stage.bind(stage_id))
 	btn.custom_minimum_size = Vector2(260, 20)
 	btn.disabled = not unlocked or not GameManager.STAGE_SCENES.has(stage_id)
@@ -50,7 +53,8 @@ func _stage_button(stage_id: int, entry: Dictionary) -> Button:
 
 
 func _on_stage(stage_id: int) -> void:
-	GameManager.launch_stage(stage_id, _character)
+	# co-op persists for the session once chosen at character select
+	GameManager.launch_stage(stage_id, _character, GameManager.character2)
 
 
 func _update_footer() -> void:

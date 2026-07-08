@@ -1,7 +1,8 @@
 class_name SlotSelectFlow
-## Tiny cross-screen state for the menu flow (which mode slot-select is in).
-## Static-only — no autoload needed for two fields.
+## Tiny cross-screen state for the menu flow. Static-only — no autoload
+## needed for three fields.
 
-enum Mode { NEW_GAME, CONTINUE }
+enum Mode { NEW_GAME, CONTINUE, BOSS_RUSH }
 
 static var mode := Mode.NEW_GAME
+static var coop := false

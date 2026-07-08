@@ -12,7 +12,9 @@ func _ready() -> void:
 		UIKit.caption("BANK SYSTEM UNDER ATTACK", 8, UIKit.RED),
 		_spacer(10),
 		UIKit.button("NEW GAME", _on_new_game),
+		UIKit.button("CO-OP GAME", _on_coop),
 		continue_btn,
+		UIKit.button("BOSS RUSH", _on_boss_rush),
 		UIKit.button("OPTIONS", _on_options),
 		UIKit.button("QUIT", _on_quit),
 		_spacer(8),
@@ -25,7 +27,20 @@ func _ready() -> void:
 
 func _on_new_game() -> void:
 	SlotSelectFlow.mode = SlotSelectFlow.Mode.NEW_GAME
+	SlotSelectFlow.coop = false
 	SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
+
+
+func _on_coop() -> void:
+	SlotSelectFlow.mode = SlotSelectFlow.Mode.NEW_GAME
+	SlotSelectFlow.coop = true
+	SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
+
+
+func _on_boss_rush() -> void:
+	SlotSelectFlow.mode = SlotSelectFlow.Mode.BOSS_RUSH
+	SlotSelectFlow.coop = false
+	SceneManager.change_scene("res://scenes/ui/character_select.tscn")
 
 
 func _on_continue() -> void:

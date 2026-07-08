@@ -8,7 +8,8 @@ const REBINDABLE: Array[StringName] = [&"jump", &"attack", &"dash", &"ability", 
 static func defaults() -> Dictionary:
 	return {
 		"audio": {"master": 1.0, "music": 0.8, "sfx": 1.0},
-		"video": {"fullscreen": false, "window_scale": 3, "scanlines": false},
+		"video": {"fullscreen": false, "window_scale": 3, "scanlines": false,
+				"show_timer": false, "rumble": true},
 		"input": {},
 	}
 
@@ -35,6 +36,7 @@ static func apply(settings: Dictionary, window: Window) -> void:
 		window.mode = Window.MODE_WINDOWED
 		var scale := int(video.window_scale)
 		window.size = Vector2i(480, 270) * scale
+	GameFeel.rumble_enabled = video.get("rumble", true)
 	for action: String in settings.input:
 		apply_key_binding(StringName(action), int(settings.input[action]))
 	EventBus.settings_applied.emit(settings)

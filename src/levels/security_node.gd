@@ -49,7 +49,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if active or _player_inside == null:
 		return
-	if Input.is_action_pressed(&"interact"):
+	if _player_inside.pressed(&"interact"):
 		if _hold == 0.0:
 			_atlas.region = Rect2(32, 0, 32, 32) # charging (blue)
 			AudioManager.play_sfx("node_hold_loop")

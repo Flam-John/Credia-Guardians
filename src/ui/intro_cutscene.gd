@@ -30,7 +30,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	_index += 1
 	if _index >= PANELS.size():
 		set_process_unhandled_input(false) # no double-launch
-		GameManager.launch_stage(1, GameManager.character)
+		GameManager.launch_stage(1, GameManager.character, GameManager.character2)
 	else:
 		_label.text = PANELS[_index]
 		_label.modulate.a = 0.0
