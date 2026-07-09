@@ -5,9 +5,13 @@ extends Node
 ## Never connect gameplay objects directly to each other across systems.
 
 # -- Player --
+## Carries the node (documented exception to values-only: spawners and the
+## HUD need identity at spawn). Never STORE this reference across frames.
 signal player_spawned(player: Node2D)
-signal player_damaged(hp: int, max_hp: int)
-signal player_healed(hp: int, max_hp: int)
+## player_index: 0 = single-player, 1/2 = co-op — lets the HUD (and any
+## future consumer) distinguish P1 from P2 without holding node refs.
+signal player_damaged(player_index: int, hp: int, max_hp: int)
+signal player_healed(player_index: int, hp: int, max_hp: int)
 signal player_died(player: Node2D)
 
 # -- Collection & score --

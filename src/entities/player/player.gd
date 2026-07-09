@@ -232,7 +232,7 @@ func take_hit(damage: int, from_global_pos: Vector2) -> void:
 		AudioManager.play_sfx("shield_break")
 		return
 	health.damage(damage)
-	EventBus.player_damaged.emit(health.hp, health.max_hp)
+	EventBus.player_damaged.emit(player_index, health.hp, health.max_hp)
 	last_hit_from = from_global_pos
 	flash.flash()
 	GameFeel.shake(get_tree(), 3.0)
@@ -246,7 +246,7 @@ func take_hit(damage: int, from_global_pos: Vector2) -> void:
 
 func heal(amount: int) -> void:
 	if health.heal(amount) > 0:
-		EventBus.player_healed.emit(health.hp, health.max_hp)
+		EventBus.player_healed.emit(player_index, health.hp, health.max_hp)
 		AudioManager.play_sfx("heal")
 
 
@@ -260,7 +260,7 @@ func kill() -> void:
 		_bubble.visible = false
 	dash_iframes_active = false
 	health.damage(health.hp)
-	EventBus.player_damaged.emit(health.hp, health.max_hp)
+	EventBus.player_damaged.emit(player_index, health.hp, health.max_hp)
 	state_machine.transition(&"Dead")
 
 

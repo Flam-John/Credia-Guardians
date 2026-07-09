@@ -38,6 +38,7 @@ func _ready() -> void:
 	add_child(builder)
 	add_child(DebugOverlay.new())
 	add_to_group(&"level_root")
+	add_child(LevelServices.new()) # shared pools/FX — no more drifted copy
 
 	# Direct F6 boot support: the menu flow arrives via launch_custom (which
 	# already ran start_stage and registered this scene for retry).
@@ -60,24 +61,6 @@ func _ready() -> void:
 	layer.add_child(_label)
 
 	_next_wave()
-
-
-var projectile_pool: ObjectPool
-var spark_pool: ObjectPool
-
-
-func acquire_projectile() -> Projectile:
-	if projectile_pool == null:
-		projectile_pool = ObjectPool.new(
-				preload("res://scenes/entities/props/projectile.tscn"), self, 8, 32)
-	return projectile_pool.acquire()
-
-
-func acquire_hit_spark() -> HitSpark:
-	if spark_pool == null:
-		spark_pool = ObjectPool.new(
-				preload("res://scenes/fx/hit_spark.tscn"), self, 6, 16)
-	return spark_pool.acquire()
 
 
 func _process(delta: float) -> void:

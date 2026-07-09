@@ -52,10 +52,10 @@ func _ready() -> void:
 	add_child(_respawner)
 	_respawner.spawn(GameManager.character_stats())
 
+	add_child(LevelServices.new()) # pooled FX + score popups
 	_place_enemies()
 	_place_collectibles()
 	_place_props()
-	EventBus.enemy_killed.connect(_on_enemy_killed)
 
 
 func _place_enemies() -> void:
@@ -95,10 +95,6 @@ func _place_props() -> void:
 	var crumbler := CrumblingPlatform.new()
 	crumbler.position = Vector2(12 * T, 10 * T)
 	add_child(crumbler)
-
-
-func _on_enemy_killed(score: int, world_pos: Vector2) -> void:
-	ScorePopup.spawn(self, world_pos, score)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

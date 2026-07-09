@@ -136,7 +136,58 @@ func end_stage() -> void:
 
 func add_score(amount: int) -> void:
 	score += amount
+	hi_score = maxi(hi_score, score) # promotion lives HERE, not in the HUD
 	EventBus.score_changed.emit(score)
+
+
+const FULL_AUDIT_BONUS := 5000
+
+
+## Par-time bonus (docs/GDD.md §9): 10000 under/at par, -100 per second over.
+static func compute_level_bonus(time_sec: float, par_sec: float) -> int:
+	return maxi(0, 10000 - int(maxf(0.0, time_sec - par_sec)) * 100)
+
+
+## The full stage-clear pipeline (docs/DATA_FLOW.md §5): bonuses, rank,
+## persistence, stage_cleared broadcast. Levels supply only their static
+## facts; the run aggregator owns the math — review P3-16.
+## level_info: {stage_id, next_stage_id, par_time, total_coins, nodes,
+##              total_nodes, hidden_rooms}
+func complete_stage(level_info: Dictionary) -> Dictionary:
+	end_stage()
+	var level_bonus := compute_level_bonus(stage_time, level_info.par_time)
+	var full_audit := FULL_AUDIT_BONUS if coins >= int(level_info.total_coins) else 0
+	add_score(level_bonus + full_audit)
+	var stats := {
+		"stage_id": level_info.stage_id,
+		"next_stage_id": level_info.next_stage_id,
+		"character": character,
+		"score": score,
+		"time": stage_time,
+		"par_time": level_info.par_time,
+		"coins": coins,
+		"total_coins": level_info.total_coins,
+		"nodes": level_info.nodes,
+		"total_nodes": level_info.total_nodes,
+		"deaths": deaths_this_stage,
+		"hit_zero_lives": hit_zero_lives,
+		"hidden_rooms": level_info.hidden_rooms,
+		"exp_score": enemy_score,
+		"coin_score": coin_score,
+		"level_bonus": level_bonus,
+		"full_audit": full_audit,
+	}
+	stats["rank"] = rank_name(compute_rank(stats))
+	last_clear_stats = stats
+	if SaveManager.active_slot > 0:
+		var save := SaveManager.load_slot(SaveManager.active_slot)
+		if not save.is_empty():
+			save = SaveManager.record_stage_clear(save, stats)
+			save.last_character = String(character)
+			save.play_time_sec = int(save.get("play_time_sec", 0)) + int(stage_time)
+			SaveManager.write_slot(SaveManager.active_slot, save)
+	EventBus.stage_cleared.emit(stats)
+	return stats
 
 
 ## Computes the stage rank from clear stats (docs/GDD.md §9).

@@ -97,8 +97,8 @@ func _ready() -> void:
 	add_child(_boss_name)
 
 	EventBus.player_spawned.connect(_on_player_spawned)
-	# hp comes from direct HealthComponent wiring in _on_player_spawned —
-	# bus-level player_damaged/healed can't distinguish P1 from P2
+	EventBus.player_damaged.connect(_on_hp_signal)
+	EventBus.player_healed.connect(_on_hp_signal)
 	EventBus.score_changed.connect(_on_score_changed)
 	EventBus.coin_collected.connect(_on_coin)
 	EventBus.boss_spawned.connect(_on_boss_spawned)
@@ -130,6 +130,8 @@ func _process(delta: float) -> void:
 
 
 func _on_player_spawned(player: Node2D) -> void:
+	# node ref used ONLY within this call (portrait + initial fill) — live
+	# updates ride the bus hp signals, which carry player_index (review P3-17)
 	var typed := player as Player
 	var is_p2 := typed.player_index == 2
 	var atlas := AtlasTexture.new()
@@ -139,17 +141,14 @@ func _on_player_spawned(player: Node2D) -> void:
 	if is_p2:
 		_portrait2.visible = true
 		_hp_box2.visible = true
-	# direct health wiring: with two players, bus-level hp signals are ambiguous
-	typed.health.damaged.connect(_on_health_event.bind(is_p2))
-	typed.health.healed.connect(_on_health_event.bind(is_p2))
 	_set_hp(typed.health.hp, typed.stats.max_hp, is_p2)
 	if not is_p2:
 		_max_hp = typed.stats.max_hp
 	_refresh_meta()
 
 
-func _on_health_event(_amount: int, hp: int, max_hp: int, is_p2: bool) -> void:
-	_set_hp(hp, max_hp, is_p2)
+func _on_hp_signal(player_index: int, hp: int, max_hp: int) -> void:
+	_set_hp(hp, max_hp, player_index == 2)
 
 
 func _set_hp(hp: int, max_hp: int, is_p2 := false) -> void:
@@ -167,9 +166,9 @@ func _set_hp(hp: int, max_hp: int, is_p2 := false) -> void:
 
 
 func _on_score_changed(score: int) -> void:
+	# read-only: hi-score promotion lives in GameManager.add_score, not in a
+	# UI label callback (review P3-18)
 	_score_label.text = "%08d" % score
-	if score > GameManager.hi_score:
-		GameManager.hi_score = score
 	_hi_label.text = tr("HI-SCORE %d") % GameManager.hi_score
 
 
