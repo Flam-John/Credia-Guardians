@@ -42,10 +42,10 @@ func test_stage_1_content_counts() -> void:
 
 
 func test_level_bonus_formula() -> void:
-	assert_eq(LevelBase.compute_level_bonus(200.0, 300.0), 10000, "under par = max")
-	assert_eq(LevelBase.compute_level_bonus(300.0, 300.0), 10000, "at par = max")
-	assert_eq(LevelBase.compute_level_bonus(310.0, 300.0), 9000, "-100/s over")
-	assert_eq(LevelBase.compute_level_bonus(500.0, 300.0), 0, "floors at 0")
+	assert_eq(GameManager.compute_level_bonus(200.0, 300.0), 10000, "under par = max")
+	assert_eq(GameManager.compute_level_bonus(300.0, 300.0), 10000, "at par = max")
+	assert_eq(GameManager.compute_level_bonus(310.0, 300.0), 9000, "-100/s over")
+	assert_eq(GameManager.compute_level_bonus(500.0, 300.0), 0, "floors at 0")
 
 
 func test_security_node_hold_to_activate() -> void:

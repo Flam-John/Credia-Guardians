@@ -99,14 +99,14 @@ func find_player() -> Player:
 
 const PROJECTILE_SCENE := preload("res://scenes/entities/props/projectile.tscn")
 
-## Fire through the level's pool when one exists (group "level_root"),
-## otherwise instantiate directly (debug rooms, tests).
+## Fire through the scene's LevelServices pool when one exists, otherwise
+## instantiate directly (debug rooms, tests).
 func spawn_projectile(from: Vector2, vel: Vector2, visual: Projectile.Visual,
 		dmg := 1, grav := 0.0) -> void:
-	var level := get_tree().get_first_node_in_group(&"level_root")
+	var services := LevelServices.find(get_tree())
 	var projectile: Projectile
-	if level != null and level.has_method("acquire_projectile"):
-		projectile = level.acquire_projectile()
+	if services != null:
+		projectile = services.acquire_projectile()
 	else:
 		projectile = PROJECTILE_SCENE.instantiate()
 		get_parent().add_child(projectile)

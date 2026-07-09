@@ -37,7 +37,7 @@ Camera: `Camera2D` with `position_smoothing` **off**; custom smoothing done in c
 
 | Autoload | Responsibility (single) |
 |---|---|
-| `EventBus` | Signal declarations ONLY — no state, no logic. `coin_collected(value)`, `player_damaged(hp, max_hp)`, `player_died`, `enemy_killed(score, world_pos)`, `node_activated(id, count, total)`, `checkpoint_reached(id)`, `stage_cleared(stats)`, `boss_phase_changed(phase)`, `score_changed(score)`, `pause_toggled(paused)` |
+| `EventBus` | Signal declarations ONLY — no state, no logic. As-built catalog: `player_spawned(player)`†, `player_damaged(player_index, hp, max_hp)`, `player_healed(player_index, hp, max_hp)`, `player_died(player)`†, `coin_collected(value)`, `pickup_collected(kind)`, `score_changed(score)`, `enemy_killed(score, world_pos)`, `checkpoint_reached(id, respawn_pos)`, `node_activated(id, count, total)`, `hidden_room_found(id)`, `stage_cleared(stats)`, `boss_spawned(name, hp, max_hp)`, `boss_hp_changed(hp, max_hp)`, `boss_phase_changed(phase)`, `boss_died`, `pause_toggled(paused)`, `settings_applied(settings)`. († = carries a live node by documented exception — consume within the handler, never store across frames.) |
 | `GameManager` | Run state: current character, stage, score, lives, coins this run, session hi-score; subscribes to EventBus, exposes read-only getters. No scene refs. |
 | `SaveManager` | Slot CRUD, JSON serialize/deserialize, version migration, settings persistence (`user://settings.cfg` via `ConfigFile`). |
 | `AudioManager` | Music crossfade (2 `AudioStreamPlayer`s), SFX pool (8 `AudioStreamPlayer`s round-robin, pitch-jitter ±5 %), bus volume API. |
