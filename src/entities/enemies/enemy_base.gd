@@ -51,11 +51,13 @@ func _physics_process(delta: float) -> void:
 		return
 	if affected_by_gravity:
 		velocity.y = minf(velocity.y + GRAVITY * delta, MAX_FALL)
+	# FSM ALWAYS ticks — skipping it during knockback froze punish-window
+	# timers, letting rapid hits hold bosses in Stagger forever (review P2-12).
+	# Knockback just overrides horizontal control for its ~0.15s.
+	state_machine.physics_update(delta)
 	if _knockback_x != 0.0:
 		_knockback_x = move_toward(_knockback_x, 0.0, KNOCKBACK_DECAY * delta)
 		velocity.x = _knockback_x
-	else:
-		state_machine.physics_update(delta)
 	move_and_slide()
 	# POLLED contact (not *_entered edges): a player parked inside the enemy
 	# after their i-frames expire must keep taking hits. has_overlapping is
@@ -80,9 +82,19 @@ func play(anim: StringName) -> void:
 	sprite.play(anim)
 
 
-## The tracked player, or null. Cheap: group lookup, no scene coupling.
+## Nearest LIVING player, or null. Iterates the static registry — no group
+## array allocation, no targeting of corpses (review P1-6).
 func find_player() -> Player:
-	return get_tree().get_first_node_in_group(&"player") as Player
+	var best: Player = null
+	var best_distance := INF
+	for p in Player.alive:
+		if not is_instance_valid(p):
+			continue
+		var d := p.global_position.distance_squared_to(global_position)
+		if d < best_distance:
+			best_distance = d
+			best = p
+	return best
 
 
 const PROJECTILE_SCENE := preload("res://scenes/entities/props/projectile.tscn")

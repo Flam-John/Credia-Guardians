@@ -59,9 +59,7 @@ func _title_text() -> String:
 
 func _on_pick(id: StringName) -> void:
 	if SlotSelectFlow.mode == SlotSelectFlow.Mode.BOSS_RUSH:
-		GameManager.character = id
-		GameManager.character2 = &""
-		SceneManager.change_scene("res://scenes/ui/boss_rush.tscn")
+		GameManager.launch_custom("res://scenes/ui/boss_rush.tscn", id)
 		return
 	if SlotSelectFlow.coop and not _picking_p2:
 		_p1_pick = id
@@ -80,7 +78,12 @@ func _on_pick(id: StringName) -> void:
 
 
 func _back() -> void:
-	SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
+	# boss rush enters straight from the main menu — return there, not to a
+	# slot screen the player never visited (review P3-21)
+	if SlotSelectFlow.mode == SlotSelectFlow.Mode.BOSS_RUSH:
+		SceneManager.change_scene("res://scenes/ui/main_menu.tscn")
+	else:
+		SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -19,7 +19,9 @@ func enter(_prev: StringName) -> void:
 	var laser := TimedHazard.new()
 	laser.on_time = 0.9
 	laser.off_time = 99.0 # one-shot: freed before it recycles
-	laser.phase_offset = 99.0 - TimedHazard.TELEGRAPH # start in telegraph
+	# clock runs ON first, then OFF — to start inside the telegraph the
+	# offset must include on_time (review P2-13: beam fired 0.9s late)
+	laser.phase_offset = laser.on_time + laser.off_time - TimedHazard.TELEGRAPH
 	laser.position = boss.global_position + Vector2(-ARENA_HALF, 30.0)
 	boss.get_parent().add_child(laser)
 	laser.setup(Vector2(ARENA_HALF * 2.0, 6))

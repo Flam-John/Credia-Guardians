@@ -106,13 +106,27 @@ func _ready() -> void:
 	EventBus.boss_died.connect(_on_boss_died)
 
 
-func _process(_delta: float) -> void:
+var _timer_accum := 0.0
+var _last_timer_text := ""
+
+
+func _process(delta: float) -> void:
 	var show := _timer_enabled and GameManager.is_stage_running()
-	_timer_label.visible = show
-	if show:
-		var t := GameManager.stage_time
-		_timer_label.text = "%d:%02d.%d" % [int(t) / 60, int(t) % 60,
-				int(t * 10) % 10]
+	if _timer_label.visible != show:
+		_timer_label.visible = show
+	if not show:
+		return
+	# 10 Hz refresh: displayed precision is a tenth — formatting at 60 Hz
+	# was 60 string allocations/sec for identical text (review P4-27)
+	_timer_accum += delta
+	if _timer_accum < 0.1:
+		return
+	_timer_accum = 0.0
+	var t := GameManager.stage_time
+	var text := "%d:%02d.%d" % [int(t) / 60, int(t) % 60, int(t * 10) % 10]
+	if text != _last_timer_text:
+		_last_timer_text = text
+		_timer_label.text = text
 
 
 func _on_player_spawned(player: Node2D) -> void:

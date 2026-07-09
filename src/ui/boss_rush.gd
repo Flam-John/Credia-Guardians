@@ -39,7 +39,12 @@ func _ready() -> void:
 	add_child(DebugOverlay.new())
 	add_to_group(&"level_root")
 
-	GameManager.start_stage(0, GameManager.character)
+	# Direct F6 boot support: the menu flow arrives via launch_custom (which
+	# already ran start_stage and registered this scene for retry).
+	if not GameManager.is_stage_running():
+		GameManager.character2 = &""
+		GameManager.current_scene_path = "res://scenes/ui/boss_rush.tscn"
+		GameManager.start_stage(0, GameManager.character)
 	_respawner = RespawnController.new()
 	_respawner.spawn_point = Vector2(4 * 16, 10 * 16)
 	_respawner.camera_limits = Rect2(Vector2.ZERO, builder.room_size)

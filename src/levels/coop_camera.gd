@@ -35,14 +35,28 @@ func _physics_process(delta: float) -> void:
 		return
 	_float_pos = _float_pos.lerp(target, minf(1.0, FOLLOW_SPEED * delta))
 	global_position = _float_pos.round()
+	if _shake > 0.1:
+		offset = Vector2(
+			randf_range(-_shake, _shake), randf_range(-_shake, _shake)).round()
+		_shake = maxf(0.0, _shake - SHAKE_DECAY * delta)
+	elif offset != Vector2.ZERO:
+		offset = Vector2.ZERO
 
 
 func _target() -> Vector2:
 	var sum := Vector2.ZERO
 	var count := 0
-	for node in get_tree().get_nodes_in_group(&"player"):
-		var player := node as Player
-		if player != null and not player.health.is_dead():
+	for player in Player.alive: # static registry — no group array allocs
+		if is_instance_valid(player):
 			sum += player.global_position
 			count += 1
 	return sum / count if count > 0 else Vector2.INF
+
+
+## Screenshake parity with PlayerCamera (review P1-8).
+const SHAKE_DECAY := 12.0
+var _shake := 0.0
+
+
+func add_shake(amount_px: float) -> void:
+	_shake = maxf(_shake, amount_px)

@@ -38,6 +38,8 @@ func setup(height_tiles: int) -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	if not has_overlapping_bodies():
+		return # allocation-free guard (review P4-23)
 	for body in get_overlapping_bodies():
 		var player := body as Player
 		if player != null:

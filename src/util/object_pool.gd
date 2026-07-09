@@ -40,6 +40,9 @@ func acquire() -> Node:
 
 
 func release(node: Node) -> void:
+	if _free.has(node):
+		return # double-release guard: same-frame co-op double hits could
+		       # hand one projectile to two owners (review P4-30)
 	if _free.size() >= _max_size:
 		node.queue_free()
 		return

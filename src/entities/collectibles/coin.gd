@@ -26,6 +26,9 @@ func _ready() -> void:
 	shape.shape = circle
 	add_child(shape)
 	body_entered.connect(_on_body_entered)
+	# placed coins never tick physics — only loot pops need it (review P4-24:
+	# 100 idle coins per stage were burning 6000 empty callbacks/sec)
+	set_physics_process(false)
 
 
 ## Loot arc: brief ballistic pop, uncollectable until it slows (prevents
@@ -33,6 +36,7 @@ func _ready() -> void:
 func pop(velocity: Vector2) -> void:
 	_pop_velocity = velocity
 	_popping = true
+	set_physics_process(true)
 	# deferred: pop() runs inside the killer hitbox's signal flush
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
@@ -45,13 +49,18 @@ func _physics_process(delta: float) -> void:
 	position += _pop_velocity * delta
 	if _pop_velocity.y > 60.0:
 		_popping = false
+		set_physics_process(false)
 		monitoring = true
 		set_deferred("monitorable", true)
 
 
+var _collected := false
+
+
 func _on_body_entered(body: Node2D) -> void:
-	if body is not Player:
+	if body is not Player or _collected:
 		return
+	_collected = true # same-flush co-op double-collect guard (review P1-9)
 	set_deferred("monitoring", false)
 	EventBus.coin_collected.emit(value)
 	AudioManager.play_sfx("coin")

@@ -33,14 +33,23 @@ func setup(size_px: Vector2) -> void:
 	_clock = phase_offset
 
 
+enum Phase { ON, TELEGRAPH, OFF }
+var _phase := Phase.OFF
+
+
 func _physics_process(delta: float) -> void:
 	_clock = fmod(_clock + delta, on_time + off_time)
 	var active := _clock < on_time
 	var telegraphing := not active and (off_time - (_clock - on_time)) < TELEGRAPH
+	var phase := Phase.ON if active else (Phase.TELEGRAPH if telegraphing else Phase.OFF)
+	if phase == _phase:
+		return # edge-triggered: no per-frame set_deferred churn (review P4-25)
+	_phase = phase
 	_shape.set_deferred("disabled", not active)
-	if active:
-		_visual.modulate = Color(1, 1, 1, 0.9)
-	elif telegraphing:
-		_visual.modulate = Color(1, 1, 1, 0.25) # warning shimmer
-	else:
-		_visual.modulate = Color(1, 1, 1, 0.0)
+	match phase:
+		Phase.ON:
+			_visual.modulate = Color(1, 1, 1, 0.9)
+		Phase.TELEGRAPH:
+			_visual.modulate = Color(1, 1, 1, 0.25) # warning shimmer
+		Phase.OFF:
+			_visual.modulate = Color(1, 1, 1, 0.0)

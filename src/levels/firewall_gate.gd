@@ -51,17 +51,19 @@ func _ready() -> void:
 	set_physics_process(false)
 
 
-var _player_inside: Player
+## Count, not a single ref — P2 brushing past froze the poll while P1
+## waited at the gate (review P1-7).
+var _players_inside := 0
 
 
-## Polled while the player is at the gate: opens the moment they hold a key,
-## even if the key was collected while already standing here.
+## Polled while any player is at the gate: opens the moment the party holds
+## a key, even if the key was collected while already standing here.
 func _physics_process(_delta: float) -> void:
 	_try_open()
 
 
 func _try_open() -> void:
-	if open or _player_inside == null or GameManager.usb_keys <= 0:
+	if open or _players_inside <= 0 or GameManager.usb_keys <= 0:
 		return
 	GameManager.usb_keys -= 1
 	open = true
@@ -75,7 +77,7 @@ func _try_open() -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if open or body is not Player:
 		return
-	_player_inside = body
+	_players_inside += 1
 	set_physics_process(true)
 	if GameManager.usb_keys <= 0:
 		AudioManager.play_sfx("menu_back") # locked "denied" blip
@@ -83,6 +85,8 @@ func _on_body_entered(body: Node2D) -> void:
 
 
 func _on_body_exited(body: Node2D) -> void:
-	if body == _player_inside:
-		_player_inside = null
+	if body is not Player:
+		return
+	_players_inside = maxi(0, _players_inside - 1)
+	if _players_inside == 0:
 		set_physics_process(false)

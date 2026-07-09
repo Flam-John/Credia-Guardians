@@ -22,6 +22,9 @@ var character: StringName = &"chris"
 ## Co-op: second guardian; empty StringName = single-player.
 var character2: StringName = &""
 var stage_id: int = 1
+## Scene the current run lives in — retry/restart route through this, so
+## non-stage modes (boss rush) retry correctly (review P0-1).
+var current_scene_path := ""
 
 
 func is_coop() -> bool:
@@ -60,17 +63,37 @@ func character_stats(id: StringName = character) -> CharacterStats:
 func launch_stage(new_stage_id: int, new_character: StringName,
 		second_character: StringName = &"") -> void:
 	assert(STAGE_SCENES.has(new_stage_id), "No scene for stage %d" % new_stage_id)
+	if SceneManager.is_busy():
+		return # never mutate run state for a transition that won't happen
 	character2 = second_character
+	current_scene_path = STAGE_SCENES[new_stage_id]
 	start_stage(new_stage_id, new_character)
-	SceneManager.change_scene(STAGE_SCENES[new_stage_id])
+	SceneManager.change_scene(current_scene_path)
+
+
+## Non-stage modes (boss rush) register themselves here so retry works.
+func launch_custom(scene_path: String, new_character: StringName) -> void:
+	if SceneManager.is_busy():
+		return
+	character2 = &"" # custom modes are solo unless they opt in
+	current_scene_path = scene_path
+	start_stage(0, new_character)
+	SceneManager.change_scene(scene_path)
 
 
 func retry_stage() -> void:
-	launch_stage(stage_id, character, character2)
+	if SceneManager.is_busy():
+		return
+	if current_scene_path.is_empty():
+		quit_to_menu()
+		return
+	start_stage(stage_id, character)
+	SceneManager.change_scene(current_scene_path)
 
 
 func quit_to_menu() -> void:
 	end_stage()
+	character2 = &"" # co-op intent dies with the session (review P1-5)
 	get_tree().paused = false
 	SceneManager.change_scene(MENU_SCENE)
 

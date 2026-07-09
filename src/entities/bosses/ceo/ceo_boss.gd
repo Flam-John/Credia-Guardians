@@ -19,16 +19,37 @@ var _minions: Array[Node] = []
 var _final_death := false
 
 
+## Dormant until the player approaches the arena: spawning during map parse
+## used to stomp boss music with stage music and spoil the HP bar from the
+## level's first frame (review P2-11).
+var activated := false
+
+
 func _ready() -> void:
 	# frames must exist BEFORE super(): the FSM enters Choose (plays "idle")
 	# during EnemyBase._ready. @onready vars are already resolved here.
 	sprite.sprite_frames = SpriteFramesBuilder.build_boss_frames(SUIT_SHEET, "ceo_suit")
 	super()
 	health.reset(PHASE_HP[0])
-	EventBus.boss_spawned.emit(stats.display_name, health.hp, health.max_hp)
 	health.damaged.connect(func(_a: int, hp: int, max_hp: int) -> void:
 		EventBus.boss_hp_changed.emit(hp, max_hp))
+
+
+func _physics_process(delta: float) -> void:
+	if not activated:
+		var player := find_player()
+		if player != null and \
+				player.global_position.distance_to(global_position) <= stats.detection_range:
+			_activate()
+		return
+	super(delta)
+
+
+func _activate() -> void:
+	activated = true
+	EventBus.boss_spawned.emit(stats.display_name, health.hp, health.max_hp)
 	AudioManager.play_music("boss_final")
+	GameFeel.shake(get_tree(), 4.0)
 
 
 func take_hit(damage: int, from_global_pos: Vector2) -> void:
