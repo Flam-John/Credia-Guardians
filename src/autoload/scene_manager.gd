@@ -36,6 +36,12 @@ func register_screen_root(node: Node) -> void:
 	_screen_root = node
 
 
+## Callers that mutate state before transitioning MUST check this first —
+## change_scene silently drops calls while a fade is in flight.
+func is_busy() -> bool:
+	return _busy
+
+
 ## Fade out -> threaded load -> swap -> fade in.
 func change_scene(path: String) -> void:
 	if _busy:
@@ -96,3 +102,13 @@ func _fade_to(alpha: float) -> void:
 	var tween := create_tween()
 	tween.tween_property(_rect, "modulate:a", alpha, FADE_SEC)
 	await tween.finished
+
+
+func _exit_tree() -> void:
+	# static resource caches survive past ObjectDB teardown and read as
+	# leaks at exit (review P4-28); clear them from a reliably-torn-down
+	# autoload so the leak baseline stays clean for real regressions
+	SpriteFramesBuilder._cache.clear()
+	Coin._frames_cache = null
+	Checkpoint._frames_cache = null
+	HitSpark._frames_cache = null

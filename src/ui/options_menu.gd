@@ -132,6 +132,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_listening_action = &""
 		return
 	if event.is_action_pressed(&"ui_cancel"):
+		# consume, or the same ESC press falls through to PauseMenu and
+		# unpauses the game in one stroke (review P0-3)
+		accept_event()
 		_on_back()
 
 

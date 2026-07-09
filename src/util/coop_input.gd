@@ -22,6 +22,14 @@ const P2_KEYS := {
 static var _built := false
 
 
+## Rebinding edits BASE actions only; co-op sets are snapshots and must be
+## refreshed or rebinds silently never reach co-op players (review P1-10).
+static func refresh_if_built() -> void:
+	if _built:
+		_built = false
+		ensure_actions()
+
+
 static func ensure_actions() -> void:
 	if _built:
 		return

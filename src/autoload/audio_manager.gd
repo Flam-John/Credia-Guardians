@@ -57,9 +57,14 @@ func stop_music(fade_sec: float = 0.5) -> void:
 	_current_track = ""
 	if _music_tween != null and _music_tween.is_valid():
 		_music_tween.kill()
+	# fade BOTH players: killing a mid-crossfade tween orphans the outgoing
+	# track at half volume if only _active_music is stopped (review P4-29)
 	_music_tween = create_tween()
-	_music_tween.tween_property(_active_music, "volume_db", -40.0, fade_sec)
-	_music_tween.tween_callback(_active_music.stop)
+	_music_tween.set_parallel(true)
+	_music_tween.tween_property(_music_a, "volume_db", -40.0, fade_sec)
+	_music_tween.tween_property(_music_b, "volume_db", -40.0, fade_sec)
+	_music_tween.chain().tween_callback(_music_a.stop)
+	_music_tween.chain().tween_callback(_music_b.stop)
 
 
 func play_sfx(name_: String, jitter: bool = true) -> void:

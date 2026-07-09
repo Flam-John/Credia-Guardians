@@ -30,12 +30,23 @@ func setup(tiles_wide: int) -> void:
 	_clock = phase_offset
 
 
+enum Phase { SOLID, FADING, GONE }
+var _phase := Phase.GONE
+
+
 func _physics_process(delta: float) -> void:
 	_clock = fmod(_clock + delta, solid_time + gone_time)
 	var solid := _clock < solid_time
 	var fading: bool = solid and (solid_time - _clock) < 0.4
+	var phase := (Phase.FADING if fading else Phase.SOLID) if solid else Phase.GONE
+	if phase == _phase:
+		return # edge-triggered (review P4-25)
+	_phase = phase
 	_shape.set_deferred("disabled", not solid)
-	if solid:
-		_visual.modulate.a = 0.5 if fading else 1.0 # blink = about to drop
-	else:
-		_visual.modulate.a = 0.12
+	match phase:
+		Phase.SOLID:
+			_visual.modulate.a = 1.0
+		Phase.FADING:
+			_visual.modulate.a = 0.5 # blink = about to drop
+		Phase.GONE:
+			_visual.modulate.a = 0.12

@@ -20,8 +20,10 @@ static func hitstop(tree: SceneTree, duration := 0.05) -> void:
 
 
 static func shake(tree: SceneTree, amount_px := 3.0) -> void:
-	var camera := tree.root.get_camera_2d() as PlayerCamera
-	if camera != null:
+	# duck-typed: PlayerCamera AND CoopCamera implement add_shake — the old
+	# PlayerCamera cast silently killed all shake in co-op (review P1-8)
+	var camera := tree.root.get_camera_2d()
+	if camera != null and camera.has_method("add_shake"):
 		camera.add_shake(amount_px)
 
 

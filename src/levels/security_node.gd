@@ -11,7 +11,9 @@ const HOLD_TIME := 0.5
 @export var id: StringName = &""
 
 var active := false
-var _player_inside: Player
+## ALL overlapping players — a single slot froze the node when P2 passed
+## through while P1 was holding (review P1-7).
+var _players_inside: Array[Player] = []
 var _hold := 0.0
 var _sprite: Sprite2D
 var _atlas: AtlasTexture
@@ -46,10 +48,17 @@ func _ready() -> void:
 	set_physics_process(false)
 
 
+func _any_inside_pressing() -> bool:
+	for player in _players_inside:
+		if is_instance_valid(player) and player.pressed(&"interact"):
+			return true
+	return false
+
+
 func _physics_process(delta: float) -> void:
-	if active or _player_inside == null:
+	if active or _players_inside.is_empty():
 		return
-	if _player_inside.pressed(&"interact"):
+	if _any_inside_pressing():
 		if _hold == 0.0:
 			_atlas.region = Rect2(32, 0, 32, 32) # charging (blue)
 			AudioManager.play_sfx("node_hold_loop")
@@ -78,13 +87,13 @@ func _reset_charge() -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body is Player and not active:
-		_player_inside = body
+		_players_inside.append(body)
 		set_physics_process(true)
 
 
 func _on_body_exited(body: Node2D) -> void:
-	if body == _player_inside:
-		_player_inside = null
+	_players_inside.erase(body)
+	if _players_inside.is_empty():
 		if not active:
 			_reset_charge()
 		set_physics_process(false)

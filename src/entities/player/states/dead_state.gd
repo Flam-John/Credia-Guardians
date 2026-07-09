@@ -11,6 +11,7 @@ func _init() -> void:
 
 func enter(_prev: StringName) -> void:
 	_announced = false
+	player.mark_dead() # enemies stop targeting the corpse (review P1-6)
 	player.play(&"death")
 	AudioManager.play_sfx("death")
 	player.velocity.x = 0.0

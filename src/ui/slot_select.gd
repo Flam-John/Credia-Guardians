@@ -24,7 +24,18 @@ func _rebuild() -> void:
 	items.append(UIKit.button(tr("BACK"), _back))
 	_column = UIKit.menu_column(items)
 	add_child(UIKit.center(_column))
-	UIKit.grab_first_focus.call_deferred(self)
+	# focus must FOLLOW the armed slot across rebuilds — resetting to the
+	# first button made X-mashing delete the WRONG save (review P0-2)
+	_focus_slot.call_deferred(_confirm_delete_slot)
+
+
+func _focus_slot(slot: int) -> void:
+	if slot > 0:
+		for button in _column.get_children():
+			if button.has_meta(&"slot") and button.get_meta(&"slot") == slot:
+				button.grab_focus()
+				return
+	UIKit.grab_first_focus(self)
 
 
 func _slot_button(summary: Dictionary) -> Button:
@@ -58,6 +69,7 @@ func _on_slot(summary: Dictionary) -> void:
 	else:
 		var data := SaveManager.load_slot(slot)
 		GameManager.hi_score = int(data.get("global_hi_score", 0))
+		GameManager.character2 = &"" # CONTINUE is solo (review P1-5)
 		SceneManager.change_scene("res://scenes/ui/stage_select.tscn")
 
 

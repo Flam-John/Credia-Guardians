@@ -33,7 +33,7 @@ func _physics_process(_delta: float) -> void:
 	for p in players:
 		if is_instance_valid(p) and p.global_position.y > _kill_y \
 				and not p.health.is_dead():
-			p.take_hit(999, p.global_position)
+			p.kill() # bypasses shields/i-frames — pits are always lethal
 
 
 ## Single-player entry (levels call this with GameManager.character_stats()).

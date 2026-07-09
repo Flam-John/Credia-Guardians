@@ -77,16 +77,31 @@ func just_released(base: StringName) -> bool:
 	return Input.is_action_just_released(action(base))
 
 
+## Alloc-free registry of living players — AI targeting iterates this
+## instead of allocating group arrays every frame (review P1-6).
+static var alive: Array[Player] = []
+
+
 func _ready() -> void:
 	assert(stats != null, "Player needs a CharacterStats resource")
 	if player_index > 0:
 		CoopInput.ensure_actions()
 	add_to_group(&"player")
+	alive.append(self)
 	sprite.sprite_frames = SpriteFramesBuilder.build_player_frames(stats.sheet)
 	shield_meter = stats.shield_capacity
 	_build_combat_nodes()
 	state_machine.setup(self, stats)
 	EventBus.player_spawned.emit(self)
+
+
+func _exit_tree() -> void:
+	alive.erase(self)
+
+
+## Called by DeadState: dead players stop being AI targets immediately.
+func mark_dead() -> void:
+	alive.erase(self)
 
 
 ## Combat plumbing is code-built so player.tscn stays small and both
@@ -233,6 +248,20 @@ func heal(amount: int) -> void:
 	if health.heal(amount) > 0:
 		EventBus.player_healed.emit(health.hp, health.max_hp)
 		AudioManager.play_sfx("heal")
+
+
+## Unavoidable death (kill planes): bypasses shields and i-frames — pits
+## used to pop the firewall bubble and stall (review P2-14).
+func kill() -> void:
+	if health.is_dead():
+		return
+	firewall_shield = false
+	if _bubble != null:
+		_bubble.visible = false
+	dash_iframes_active = false
+	health.damage(health.hp)
+	EventBus.player_damaged.emit(health.hp, health.max_hp)
+	state_machine.transition(&"Dead")
 
 
 func apply_speed_boost(multiplier: float, duration: float) -> void:

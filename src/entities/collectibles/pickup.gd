@@ -28,10 +28,16 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 
 
+var _collected := false
+
+
 func _on_body_entered(body: Node2D) -> void:
 	var player := body as Player
-	if player == null:
+	if player == null or _collected:
 		return
+	# immediate guard: deferred monitoring-off lets both co-op players'
+	# callbacks run in the same flush (double keys/heals — review P1-9)
+	_collected = true
 	set_deferred("monitoring", false)
 	_apply(player)
 	EventBus.pickup_collected.emit(Kind.keys()[kind].to_lower())

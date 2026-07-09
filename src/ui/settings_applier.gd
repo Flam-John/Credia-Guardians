@@ -54,6 +54,7 @@ static func apply_key_binding(action: StringName, physical_keycode: int) -> void
 	var key := InputEventKey.new()
 	key.physical_keycode = physical_keycode as Key
 	InputMap.action_add_event(action, key)
+	CoopInput.refresh_if_built() # keep p1_/p2_ snapshots in sync
 
 
 ## Current keyboard key name for an action (for the options UI).
