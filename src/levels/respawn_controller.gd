@@ -18,6 +18,11 @@ const FALL_KILL_MARGIN := 48.0
 var player: Player
 var players: Array[Player] = []
 
+## Tests inject a spy here; the default routes through SceneManager. This is
+## the one line that lets game-over ROUTING be verified without actually
+## swapping scenes mid-test (review P5-33).
+var scene_router: Callable = Callable()
+
 var _characters: Array[CharacterStats] = []
 var _active_checkpoint_pos := Vector2.ZERO
 var _kill_y := INF
@@ -114,6 +119,13 @@ func _on_player_died(dead: Node2D) -> void:
 	# everyone down
 	if GameManager.lives <= 0:
 		GameManager.end_stage()
-		SceneManager.change_scene("res://scenes/ui/game_over.tscn")
+		_route("res://scenes/ui/game_over.tscn")
 		return
 	_spawn_all(_active_checkpoint_pos)
+
+
+func _route(path: String) -> void:
+	if scene_router.is_valid():
+		scene_router.call(path)
+	else:
+		SceneManager.change_scene(path)

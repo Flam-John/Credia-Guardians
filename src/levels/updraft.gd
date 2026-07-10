@@ -1,28 +1,12 @@
 class_name Updraft
-extends Area2D
+extends PushZone
 ## Coffee-steam column: lifts the player while inside (boosted jumps).
-## Same pre-player-tick pattern as ConveyorBelt.
 
 @export var strength := 260.0 # upward accel px/s^2
 
-var _height_tiles := 1
-
-
-func _ready() -> void:
-	process_physics_priority = -1 # physics ordering, not process_priority
-	collision_layer = 0
-	collision_mask = PhysicsLayers.PLAYER
-	monitorable = false
-
 
 func setup(height_tiles: int) -> void:
-	_height_tiles = height_tiles
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(14, height_tiles * 16)
-	shape.shape = rect
-	shape.position = Vector2(8, height_tiles * 8.0)
-	add_child(shape)
+	add_rect_shape(Vector2(14, height_tiles * 16), Vector2(8, height_tiles * 8.0))
 	var steam := CPUParticles2D.new()
 	steam.amount = 8
 	steam.lifetime = 1.2
@@ -37,10 +21,5 @@ func setup(height_tiles: int) -> void:
 	add_child(steam)
 
 
-func _physics_process(_delta: float) -> void:
-	if not has_overlapping_bodies():
-		return # allocation-free guard (review P4-23)
-	for body in get_overlapping_bodies():
-		var player := body as Player
-		if player != null:
-			player.updraft_strength = strength
+func _affect(player: Player) -> void:
+	player.apply_field_force(0.0, strength)
