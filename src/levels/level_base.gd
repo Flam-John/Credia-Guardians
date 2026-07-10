@@ -220,6 +220,8 @@ func _build_parallax() -> void:
 			"res://assets/art/backgrounds/stage_%d_far.png" % data.stage_id, 0.2)
 	_parallax_layer(parallax,
 			"res://assets/art/backgrounds/stage_%d_mid.png" % data.stage_id, 0.5)
+	_parallax_layer(parallax,
+			"res://assets/art/backgrounds/stage_%d_near.png" % data.stage_id, 0.8)
 
 
 func _parallax_layer(parent: ParallaxBackground, texture_path: String, motion: float) -> void:

@@ -288,67 +288,158 @@ def gen_tileset(path: str, top_light=None, top_glow=None):
     img.save(path)
 
 
+SILHOUETTE = (4, 8, 16, 255)  # near-layer color: darker than everything behind
+
+
+def _near_layer(out_path: str, draw_fn):
+    """480x270 mostly-transparent foreground silhouette layer (motion 0.8)."""
+    img = Image.new("RGBA", (480, 270), P.TRANSPARENT)
+    draw_fn(ImageDraw.Draw(img), img)
+    img.save(out_path)
+
+
+def _hanging_cables(d, img, seed_step=70, color=SILHOUETTE):
+    """Cable bundles drooping from the ceiling — the key art's canopy."""
+    for x in range(10, 480, seed_step):
+        droop = 22 + (x * 13) % 30
+        d.arc([x, -droop, x + seed_step + 10, droop], 15, 165, fill=color, width=2)
+        _px(d, x + seed_step // 2, droop - 1, (30, 60, 40, 255))  # status LED
+
+
 def gen_stage_backgrounds(out_dir):
-    """Far/mid parallax for stages 2-4, matching each theme accent."""
-    # Stage 2: Data Center — server racks + digital rain
+    """Parallax for stages 2-4: far/mid + near silhouettes, key-art depth."""
+    # ---- Stage 2: Data Center — server racks, LEDs, digital rain
     far = Image.new("RGBA", (480, 270), P.BG_VOID)
     d = ImageDraw.Draw(far)
-    for x in range(8, 480, 48):  # server racks
-        _rect(d, x, 30, x + 32, 250, (8, 16, 28, 255))
-        for row in range(38, 245, 14):
-            _px(d, x + 5, row, P.GREEN_DARK if (x + row) % 3 else P.CYAN)
+    for x in range(8, 480, 48):  # server racks, vertically shaded
+        vshade_rect(d, x, 30, x + 32, 250, ((5, 10, 18, 255), (8, 16, 28, 255),
+                                            (12, 24, 40, 255)))
+        _rect(d, x, 28, x + 32, 29, (16, 32, 52, 255))  # rack cap
+        for row in range(38, 245, 14):  # LED columns: green/cyan, rare red fault
+            fault = (x * 7 + row) % 11 == 0
+            _px(d, x + 5, row, P.RED if fault else
+                (P.GREEN_DARK if (x + row) % 3 else P.CYAN))
             _px(d, x + 12, row, (12, 60, 60, 255))
-    for col in range(20, 480, 90):  # digital rain streaks
+            _px(d, x + 26, row + 4, (10, 40, 70, 255))
+        for vy in range(40, 240, 28):  # vent slits
+            d.line([(x + 18, vy), (x + 22, vy)], fill=(4, 8, 14, 255))
+    for col in range(20, 480, 90):  # digital rain streaks (two tones)
         for y in range((col * 7) % 40, 260, 26):
             _rect(d, col, y, col, y + 8, (14, 90, 90, 255))
+            _px(d, col, y + 9, (20, 140, 140, 255))
+    for x in range(24, 480, 96):  # floor light pools under the racks
+        glow_pool(far, x, 258, 26, P.CYAN)
     far.save(f"{out_dir}/stage_2_far.png")
 
     mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
     d = ImageDraw.Draw(mid)
-    for x in range(0, 480, 120):  # cable trays
+    for x in range(0, 480, 120):  # cable trays with drooping bundles
         _rect(d, x, 60, x + 100, 63, (16, 30, 48, 255))
+        _rect(d, x, 60, x + 100, 60, (26, 46, 70, 255))  # lit tray edge
         for cx in range(x + 10, x + 90, 20):
             d.arc([cx, 63, cx + 18, 80], 0, 180, fill=(16, 30, 48, 255))
+    for x in range(60, 480, 160):  # wall status monitors
+        _rect(d, x, 110, x + 26, 128, (10, 20, 34, 255))
+        _rect(d, x + 2, 112, x + 24, 126, (6, 30, 30, 255))
+        for line in range(3):
+            d.line([(x + 4, 115 + line * 4), (x + 4 + 12 - line * 3, 115 + line * 4)],
+                   fill=P.GREEN_DARK)
+        glow_pool(mid, x + 13, 132, 14, P.GREEN)
     mid.save(f"{out_dir}/stage_2_mid.png")
 
-    # Stage 3: Corporate HQ — marble columns + tall windows, gold accent
+    _near_layer(f"{out_dir}/stage_2_near.png",
+                lambda d, img: _hanging_cables(d, img, 64))
+
+    # ---- Stage 3: Corporate HQ — marble, gold light, chandeliers
     far = Image.new("RGBA", (480, 270), (8, 10, 16, 255))
     d = ImageDraw.Draw(far)
-    for x in range(15, 480, 80):  # columns
-        _rect(d, x, 20, x + 14, 250, (22, 24, 34, 255))
+    for x in range(15, 480, 80):  # columns with capitals, gold-lit edge
+        vshade_rect(d, x, 20, x + 14, 250, ((14, 15, 22, 255), (22, 24, 34, 255),
+                                            (34, 37, 50, 255)))
+        d.line([(x + 2, 22), (x + 2, 248)], fill=(48, 44, 30, 255))  # gold sheen
         _rect(d, x - 3, 16, x + 17, 22, (30, 32, 44, 255))
+        _rect(d, x - 3, 14, x + 17, 15, (52, 48, 34, 255))  # capital light
         _rect(d, x - 3, 248, x + 17, 254, (30, 32, 44, 255))
-    for x in range(45, 480, 160):  # gold-lit windows
+    for x in range(45, 480, 160):  # gold-lit windows with muntins
         _rect(d, x, 50, x + 50, 160, (26, 22, 12, 255))
         _rect(d, x + 4, 54, x + 46, 156, (48, 38, 16, 255))
+        d.line([(x + 25, 54), (x + 25, 156)], fill=(26, 22, 12, 255))
+        d.line([(x + 4, 105), (x + 46, 105)], fill=(26, 22, 12, 255))
+        glow_pool(far, x + 25, 258, 30, P.GOLD)
+    for x in range(85, 480, 160):  # chandelier glow between windows
+        glow_disc(far, x + 40, 34, 16, P.GOLD)
+        _px(d, x + 40, 30, P.GOLD)
+        _px(d, x + 38, 33, P.GOLD_RAMP[0])
+        _px(d, x + 42, 33, P.GOLD_RAMP[0])
     far.save(f"{out_dir}/stage_3_far.png")
 
     mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
     d = ImageDraw.Draw(mid)
-    for x in range(0, 480, 96):  # velvet rope posts
+    for x in range(0, 480, 96):  # velvet rope posts with gold caps
         _rect(d, x + 20, 200, x + 23, 230, (40, 34, 18, 255))
+        _px(d, x + 21, 199, P.GOLD)
         d.arc([x + 23, 195, x + 93, 225], 20, 160, fill=(60, 50, 22, 255))
+    for x in range(30, 480, 192):  # gilt-framed portraits of past chairmen
+        _rect(d, x, 90, x + 30, 130, (52, 42, 18, 255))
+        _rect(d, x + 3, 93, x + 27, 127, (16, 14, 20, 255))
+        _rect(d, x + 10, 100, x + 20, 112, (44, 36, 40, 255))  # dim figure
+        _rect(d, x + 12, 96, x + 18, 100, (60, 52, 56, 255))   # face blob
     mid.save(f"{out_dir}/stage_3_mid.png")
 
-    # Stage 4: Digital Vault — vault doors + gold on black
+    def _hq_near(d, img):
+        for x in (0, 440):  # heavy foreground pilasters at screen edges
+            _rect(d, x, 0, x + 39, 269, SILHOUETTE)
+            d.line([(x + 38 if x else x, 0), (x + 38 if x else x, 269)],
+                   fill=(24, 22, 16, 255))
+        for x in range(120, 440, 160):  # hanging banner tips
+            d.polygon([(x, 0), (x + 22, 0), (x + 11, 34)], fill=SILHOUETTE)
+            _px(d, x + 11, 30, (60, 50, 22, 255))
+    _near_layer(f"{out_dir}/stage_3_near.png", _hq_near)
+
+    # ---- Stage 4: Digital Vault — vault wheels, deposit boxes, gold on black
     far = Image.new("RGBA", (480, 270), (4, 6, 10, 255))
     d = ImageDraw.Draw(far)
-    for x in range(30, 480, 140):  # giant vault wheels
+    for x in range(30, 480, 140):  # giant vault wheels, lit from upper-left
         d.ellipse([x, 60, x + 90, 150], outline=(40, 34, 14, 255), width=4)
+        d.arc([x, 60, x + 90, 150], 190, 300, fill=(80, 66, 26, 255), width=2)
         d.ellipse([x + 30, 90, x + 60, 120], outline=(60, 50, 20, 255), width=2)
-        for ang in range(0, 360, 60):
+        for ang in range(0, 360, 60):  # rivets + spokes
             lx = x + 45 + int(55 * math.cos(math.radians(ang)))
             ly = 105 + int(55 * math.sin(math.radians(ang)))
             _px(d, lx, ly, P.GOLD)
+            d.line([(x + 45 + int(16 * math.cos(math.radians(ang))),
+                     105 + int(16 * math.sin(math.radians(ang)))),
+                    (x + 45 + int(40 * math.cos(math.radians(ang))),
+                     105 + int(40 * math.sin(math.radians(ang))))],
+                   fill=(30, 26, 12, 255))
+        glow_pool(far, x + 45, 258, 34, P.GOLD)
+    for x in range(0, 480, 40):  # laser security grid, very dim
+        d.line([(x, 180), (x + 24, 250)], fill=(30, 10, 14, 255))
     far.save(f"{out_dir}/stage_4_far.png")
 
     mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
     d = ImageDraw.Draw(mid)
-    for x in range(0, 480, 60):  # deposit box walls
+    for x in range(0, 480, 60):  # deposit box wall with gold clasps
         for y in range(170, 250, 20):
-            _rect(d, x + 4, y, x + 52, y + 16, (14, 14, 20, 255))
+            shade_rect(d, x + 4, y, x + 52, y + 16,
+                       ((8, 8, 12, 255), (14, 14, 20, 255), (24, 24, 34, 255)))
             _px(d, x + 28, y + 8, (60, 50, 20, 255))
+            _px(d, x + 29, y + 8, P.GOLD_RAMP[0])
+    for x in range(50, 480, 180):  # stacked gold coin piles
+        for level, w in ((246, 10), (242, 7), (238, 4)):
+            _rect(d, x - w, level, x + w, level + 3, (60, 50, 20, 255))
+            d.line([(x - w, level), (x + w, level)], fill=P.GOLD)
+        _px(d, x, 236, P.GOLD_RAMP[2])
     mid.save(f"{out_dir}/stage_4_mid.png")
+
+    def _vault_near(d, img):
+        for x in range(30, 480, 110):  # hanging security chains
+            d.line([(x, 0), (x + 3, 40 + (x * 11) % 25)], fill=SILHOUETTE, width=2)
+            _px(d, x + 3, 41 + (x * 11) % 25, (60, 50, 20, 255))  # gold hook
+        for x in range(70, 480, 220):  # ceiling camera silhouettes
+            _rect(d, x, 0, x + 10, 8, SILHOUETTE)
+            _px(d, x + 8, 6, P.RED)  # recording LED
+    _near_layer(f"{out_dir}/stage_4_near.png", _vault_near)
 
 
 # Enemy sheet layouts: (anim name, frames) per row. MUST match
@@ -880,49 +971,97 @@ def gen_exit_gate(path):
 
 
 def gen_stage1_backgrounds(out_dir):
-    """Parallax: far = office wall panels + window glow; mid = desk/monitor
-    silhouettes. 480x270 each, tileable horizontally."""
+    """Stage 1 (office) parallax: far wall + windows + framed monitors,
+    mid desk rows, near hanging cables. 480x270, tileable horizontally."""
     far = Image.new("RGBA", (480, 270), P.BG_VOID)
     d = ImageDraw.Draw(far)
-    for x in range(0, 480, 60):  # wall panels
+    for x in range(0, 480, 60):  # wall panels with lit top edge
         d.rectangle([x + 2, 20, x + 57, 250], outline=(10, 22, 38, 255))
-    for x in range(30, 480, 120):  # dim windows with blue glow
+        d.line([(x + 3, 21), (x + 56, 21)], fill=(16, 34, 56, 255))
+    d.line([(0, 18), (480, 18)], fill=(14, 40, 30, 255))  # ceiling LED strip
+    for x in range(0, 480, 16):
+        _px(d, x, 18, P.GREEN_DARK)
+    for x in range(30, 480, 120):  # night windows: blue glow + city lights
         _rect(d, x, 40, x + 40, 90, (8, 18, 40, 255))
         _rect(d, x + 4, 44, x + 36, 86, (12, 30, 66, 255))
+        d.line([(x + 20, 44), (x + 20, 86)], fill=(8, 18, 40, 255))
+        for wx, wy in ((x + 8, 74), (x + 14, 66), (x + 27, 78), (x + 31, 60)):
+            _px(d, wx, wy, (40, 90, 150, 255))  # distant city windows
+        glow_pool(far, x + 20, 258, 28, P.BLUE)
+    for x in range(88, 480, 120):  # wall-mounted framed monitors (key art)
+        _rect(d, x, 110, x + 30, 132, (10, 20, 34, 255))
+        d.rectangle([x, 110, x + 30, 132], outline=(20, 44, 70, 255))
+        _rect(d, x + 3, 113, x + 27, 129, (6, 26, 24, 255))
+        for line in range(3):
+            d.line([(x + 6, 117 + line * 4), (x + 6 + 14 - line * 4, 117 + line * 4)],
+                   fill=P.GREEN_DARK)
+        glow_pool(far, x + 15, 136, 16, P.GREEN)
     far.save(f"{out_dir}/stage_1_far.png")
 
     mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
     d = ImageDraw.Draw(mid)
-    for x in range(0, 480, 96):  # desk silhouettes with glowing monitors
+    for x in range(0, 480, 96):  # cubicle desks with glowing monitors
         _rect(d, x + 8, 210, x + 80, 216, P.BG_PANEL)      # desk top
+        d.line([(x + 8, 210), (x + 80, 210)], fill=(20, 38, 60, 255))
         _rect(d, x + 12, 216, x + 16, 250, P.BG_PANEL)      # legs
         _rect(d, x + 70, 216, x + 74, 250, P.BG_PANEL)
         _rect(d, x + 28, 190, x + 52, 208, P.BG_PANEL)      # monitor
         _rect(d, x + 31, 193, x + 49, 205, (16, 46, 34, 255))  # dim green screen
-        _px(d, x + 34, 196, P.GREEN_DARK)
-        _px(d, x + 40, 199, P.GREEN_DARK)
+        for line in range(3):
+            d.line([(x + 33, 195 + line * 4), (x + 33 + 11 - line * 3, 195 + line * 4)],
+                   fill=P.GREEN_DARK)
+        _rect(d, x + 37, 208, x + 43, 209, P.BG_PANEL)      # monitor stand
+        glow_pool(mid, x + 40, 214, 14, P.GREEN)
+        # office chair silhouette beside the desk
+        _rect(d, x + 58, 222, x + 68, 226, (8, 16, 28, 255))
+        _rect(d, x + 62, 226, x + 64, 244, (8, 16, 28, 255))
+        _rect(d, x + 58, 206, x + 60, 222, (8, 16, 28, 255))
     mid.save(f"{out_dir}/stage_1_mid.png")
+
+    _near_layer(f"{out_dir}/stage_1_near.png",
+                lambda d, img: _hanging_cables(d, img, 80))
 
 
 def gen_core_backgrounds(out_dir):
-    """Stage 5: blue circuitry invaded by red corruption veins."""
+    """Stage 5 (the Core): circuitry invaded by corruption. The far layer is
+    a procedural fallback — extract_from_key_art.py overwrites it with the
+    photo's vault-chamber walls when the key art is present."""
     far = Image.new("RGBA", (480, 270), (3, 4, 10, 255))
     d = ImageDraw.Draw(far)
-    for x in range(0, 480, 40):  # circuit traces
+    for x in range(0, 480, 40):  # circuit traces with solder-point glints
         col = P.RED if (x // 40) % 3 == 0 else P.BLUE_DEEP
         d.line([(x, 0), (x, 130), (x + 20, 150), (x + 20, 270)], fill=col)
         _px(d, x, 130, P.CYAN)
+        _px(d, x + 20, 150, scale_color(col, 1.6))
     for y in range(30, 270, 60):
         d.line([(0, y), (480, y)], fill=(14, 22, 50, 255))
     far.save(f"{out_dir}/stage_5_far.png")
 
     mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
     d = ImageDraw.Draw(mid)
-    for x in range(20, 480, 110):  # corruption veins
+    for x in range(20, 480, 110):  # corruption veins with pulsing tips
         d.line([(x, 270), (x + 12, 200), (x - 6, 150), (x + 8, 90)],
                fill=(120, 16, 28, 255), width=2)
+        d.line([(x + 2, 268), (x + 13, 202)], fill=(70, 10, 18, 255))  # vein shadow
+        for branch_y, branch_dx in ((230, -10), (170, 12)):
+            d.line([(x + 6, branch_y), (x + 6 + branch_dx, branch_y - 16)],
+                   fill=(90, 12, 22, 255))
         _px(d, x + 8, 90, P.RED)
+        glow_disc(mid, x + 8, 90, 8, P.RED)
+    for x in range(75, 480, 110):  # infected data pillars
+        for y in range(120, 250, 8):
+            _px(d, x, y, (20, 40, 90, 255) if y % 16 else P.RED)
     mid.save(f"{out_dir}/stage_5_mid.png")
+
+    def _core_near(d, img):
+        for x in range(15, 480, 90):  # falling corrupted data columns
+            for y in range((x * 3) % 30, 260, 34):
+                _rect(d, x, y, x, y + 10, (60, 10, 16, 255))
+                _px(d, x, y + 11, (140, 24, 36, 255))
+        for x in range(55, 480, 180):  # torn cable stubs sparking from ceiling
+            d.line([(x, 0), (x + 2, 18)], fill=SILHOUETTE, width=2)
+            _px(d, x + 2, 19, P.RED)
+    _near_layer(f"{out_dir}/stage_5_near.png", _core_near)
 
 
 def main():
