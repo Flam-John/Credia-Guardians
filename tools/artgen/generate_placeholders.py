@@ -17,6 +17,8 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(__file__))
 import palette as P  # noqa: E402
+from pixkit import (dither_row, glow_disc, glow_pool, scale_color,  # noqa: E402
+                    shade_rect, vshade_rect)
 
 FRAME = 32  # player frame size
 SHEET_COLS = 8
@@ -43,12 +45,18 @@ def _outline_rect(draw, x0, y0, x1, y1, fill, outline=P.OUTLINE):
     draw.rectangle([x0, y0, x1, y1], fill=fill, outline=outline)
 
 
-def draw_hero_frame(draw, ox: int, oy: int, anim: str, i: int, hair, long_hair: bool):
+def draw_hero_frame(draw, ox: int, oy: int, anim: str, i: int, hero: str):
     """One 32x32 hero frame at sheet offset (ox, oy).
 
-    Simple articulated placeholder: head + suit torso + legs + arm, with
-    per-animation offsets so timing/feel is testable before real art.
+    Key-art look: segmented black armor with green circuit piping between
+    plates, shoulder pads, cape, glowing chest logo, 2-tone face.
+    hero = 'chris' (bulky, short dark hair, forearm shield emitter) or
+    'flam' (lean, long swaying brown hair, cyan accents).
     """
+    chris = hero == "chris"
+    hair_ramp = P.CHRIS_HAIR_RAMP if chris else P.FLAM_HAIR_RAMP
+    accent = P.GREEN_DARK if chris else P.CYAN
+    half = 6 if chris else 5  # torso half-width: Chris is the tank
     cx = ox + 16  # frame center x
     is_attack = anim.startswith("attack") or anim == "air_attack"
     bob = [0, 1, 0, -1][i % 4] if anim in ("idle", "victory", "ability") else 0
@@ -87,54 +95,116 @@ def draw_hero_frame(draw, ox: int, oy: int, anim: str, i: int, hair, long_hair: 
         arm_y = 10 + (i % 2)
 
     body_top = min(body_top, 24)
-    # legs (suit)
-    _rect(draw, cx - 4 + leg_l // 2, oy + 22, cx - 2 + leg_l // 2, oy + 29, P.SUIT)
-    _rect(draw, cx + 1 + leg_r // 2, oy + 22, cx + 3 + leg_r // 2, oy + 29, P.SUIT)
-    # boots (green glow soles)
-    _rect(draw, cx - 4 + leg_l // 2, oy + 29, cx - 2 + leg_l // 2, oy + 30, P.GREEN_DARK)
-    _rect(draw, cx + 1 + leg_r // 2, oy + 29, cx + 3 + leg_r // 2, oy + 30, P.GREEN_DARK)
-    # torso (suit with green chest line)
-    _outline_rect(draw, cx - 5 + lean, oy + body_top, cx + 5 + lean, oy + 22, P.SUIT)
-    _rect(draw, cx - 1 + lean, oy + body_top + 2, cx + lean, oy + 20, P.GREEN)
-    # chest coin logo (blue/green)
-    _px(draw, cx - 3 + lean, oy + body_top + 3, P.BLUE)
-    _px(draw, cx - 2 + lean, oy + body_top + 3, P.GREEN)
-    # arm
-    _rect(draw, cx + 4 + lean, oy + arm_y, cx + 4 + lean + arm_len, oy + arm_y + 2, P.SUIT)
+    t0, t1 = oy + body_top, oy + 22
+
+    # cape behind everything (dark navy, trails against motion, sways at rest)
+    cape_sway = [0, 1, 0, -1][i % 4]
+    draw.polygon([
+        (cx - half + 1 + lean, t0 + 1),
+        (cx + half - 1 + lean, t0 + 1),
+        (cx + half - 2 + cape_sway - lean * 2, oy + 26),
+        (cx - half - 1 + cape_sway - lean * 2, oy + 25),
+    ], fill=(10, 16, 34, 255))
+    draw.line([(cx - half + cape_sway - lean * 2, oy + 25),
+               (cx + half - 3 + cape_sway - lean * 2, oy + 26)],
+              fill=(6, 10, 22, 255))  # cape hem shadow
+
+    # legs: armored, knee piping, glow soles
+    for leg_x, off in ((cx - 4, leg_l // 2), (cx + 1, leg_r // 2)):
+        shade_rect(draw, leg_x + off, oy + 22, leg_x + 2 + off, oy + 28, P.ARMOR_RAMP)
+        _px(draw, leg_x + 1 + off, oy + 25, accent)  # knee seam
+        _rect(draw, leg_x + off, oy + 29, leg_x + 2 + off, oy + 30, P.ARMOR_RAMP[0])
+        _rect(draw, leg_x + off, oy + 30, leg_x + 2 + off, oy + 30, P.GREEN_DARK)
+
+    # torso: 3 armor plates split by green piping seams
+    _outline_rect(draw, cx - half + lean, t0, cx + half + lean, t1, P.ARMOR_RAMP[1])
+    draw.line([(cx - half + 1 + lean, t0 + 1), (cx + half - 1 + lean, t0 + 1)],
+              fill=P.ARMOR_RAMP[2])  # top plate light
+    draw.line([(cx + half - 1 + lean, t0 + 2), (cx + half - 1 + lean, t1 - 1)],
+              fill=P.ARMOR_RAMP[0])  # side shadow
+    h = t1 - t0
+    for seam_y in (t0 + h // 3 + 1, t0 + 2 * h // 3 + 1):
+        if t0 + 1 < seam_y < t1:
+            draw.line([(cx - half + 1 + lean, seam_y), (cx + half - 1 + lean, seam_y)],
+                      fill=P.GREEN_DARK)
+    _px(draw, cx - half + 1 + lean, t0 + h // 3 + 1, P.GREEN)  # piping glint
+    # belt with gold buckle
+    draw.line([(cx - half + 1 + lean, t1 - 1), (cx + half - 1 + lean, t1 - 1)],
+              fill=P.ARMOR_RAMP[0])
+    _px(draw, cx + lean, t1 - 1, P.GOLD)
+    # glowing chest logo (blue/green coin)
+    _px(draw, cx - 1 + lean, t0 + 3, P.BLUE)
+    _px(draw, cx + lean, t0 + 3, P.GREEN)
+    _px(draw, cx - 1 + lean, t0 + 4, P.BLUE_RAMP[0])
+    _px(draw, cx + lean, t0 + 4, P.GREEN_RAMP[0])
+
+    # shoulder pads (green rim on top)
+    shade_rect(draw, cx + half - 2 + lean, t0 - 1, cx + half + 1 + lean, t0 + 2,
+               (P.ARMOR_RAMP[0], P.ARMOR_RAMP[1], P.GREEN_DARK))
+    _px(draw, cx - half + lean, t0, P.ARMOR_RAMP[2])  # far pad hint
+
+    # arm: segmented, Chris carries the shield emitter on the forearm
+    shade_rect(draw, cx + 4 + lean, oy + arm_y, cx + 4 + lean + arm_len,
+               oy + arm_y + 2, P.ARMOR_RAMP)
+    if arm_len >= 3:
+        _px(draw, cx + 5 + lean + arm_len // 2, oy + arm_y + 1, accent)  # elbow seam
+    if chris and arm_len >= 3:
+        _px(draw, cx + 3 + lean + arm_len, oy + arm_y, P.CYAN)  # emitter
     if is_attack:
-        # melee swoosh at arm tip
-        _rect(draw, cx + 5 + lean + arm_len, oy + arm_y - 2, cx + 6 + lean + arm_len,
-              oy + arm_y + 4, P.CYAN)
-    # head
+        # melee swoosh at arm tip (cyan arc with hot core)
+        tip = cx + 5 + lean + arm_len
+        _rect(draw, tip, oy + arm_y - 2, tip + 1, oy + arm_y + 4, P.CYAN)
+        _px(draw, tip, oy + arm_y + 1, P.WHITE)
+        _px(draw, tip - 1, oy + arm_y - 3, P.CYAN_RAMP[0])
+        _px(draw, tip - 1, oy + arm_y + 5, P.CYAN_RAMP[0])
+
+    # head: 2-tone skin, brow, green eyes
     head_y = oy + body_top - 8
     _outline_rect(draw, cx - 4 + lean, head_y, cx + 4 + lean, head_y + 7, P.SKIN)
-    # hair
-    _rect(draw, cx - 4 + lean, head_y, cx + 4 + lean, head_y + 2, hair)
-    if long_hair:
-        _rect(draw, cx - 5 + lean, head_y + 1, cx - 4 + lean, head_y + 9 + (i % 2), hair)
-    # visor eyes (green)
+    draw.line([(cx - 3 + lean, head_y + 6), (cx + 3 + lean, head_y + 6)],
+              fill=P.SKIN_RAMP[0])  # jaw shadow
+    _px(draw, cx - 3 + lean, head_y + 5, P.SKIN_RAMP[0])
+    _px(draw, cx - 1 + lean, head_y + 4, P.SKIN_RAMP[2])  # cheek light
+    draw.line([(cx + 1 + lean, head_y + 3), (cx + 3 + lean, head_y + 3)],
+              fill=P.OUTLINE)  # brow
     _px(draw, cx + 1 + lean, head_y + 4, P.GREEN)
     _px(draw, cx + 3 + lean, head_y + 4, P.GREEN)
 
+    # hair: base + hairline dither + shine
+    _rect(draw, cx - 4 + lean, head_y, cx + 4 + lean, head_y + 1, hair_ramp[1])
+    dither_row(draw, cx - 4 + lean, cx + 4 + lean, head_y + 2, hair_ramp[1], phase=1)
+    _px(draw, cx - 2 + lean, head_y, hair_ramp[2])  # shine
+    _px(draw, cx + 4 + lean, head_y + 1, hair_ramp[0])
+    if not chris:
+        # Flam: long strand down the left, sways with the frame
+        sway = i % 2
+        _rect(draw, cx - 6 + lean, head_y + 1, cx - 5 + lean, head_y + 9 + sway,
+              hair_ramp[1])
+        draw.line([(cx - 6 + lean, head_y + 3), (cx - 6 + lean, head_y + 8 + sway)],
+                  fill=hair_ramp[0])
+        _px(draw, cx - 5 + lean, head_y + 2, hair_ramp[2])
+
     if anim == "ability":
-        # Chris: shield shimmer arc / Flam: charge glow — generic cyan arc
+        # Chris: shield shimmer arc / Flam: charge glow — cyan arc
         for dy in range(-2, 14, 2):
             _px(draw, cx + 8 + (i % 2), oy + 8 + dy, P.CYAN)
+            _px(draw, cx + 9 + (i % 2), oy + 9 + dy, (22, 224, 224, 90))
     if anim == "hurt":
         _px(draw, cx - 7, oy + 8, P.RED)
         _px(draw, cx + 7, oy + 6, P.RED)
     if anim == "victory":
-        # raised fist
-        _rect(draw, cx + 4, oy + 4 + bob, cx + 6, oy + 12, P.SUIT)
+        # raised armored fist with glowing knuckle
+        shade_rect(draw, cx + 4, oy + 4 + bob, cx + 6, oy + 12, P.ARMOR_RAMP)
         _px(draw, cx + 5, oy + 3 + bob, P.GREEN)
+        _px(draw, cx + 5, oy + 2 + bob, P.GREEN_RAMP[2])
 
 
-def gen_player_sheet(path: str, hair, long_hair: bool):
+def gen_player_sheet(path: str, hero: str):
     sheet = Image.new("RGBA", (SHEET_COLS * FRAME, len(PLAYER_ANIMS) * FRAME), P.TRANSPARENT)
     draw = ImageDraw.Draw(sheet)
     for row, (anim, frames) in enumerate(PLAYER_ANIMS):
         for i in range(frames):
-            draw_hero_frame(draw, i * FRAME, row * FRAME, anim, i, hair, long_hair)
+            draw_hero_frame(draw, i * FRAME, row * FRAME, anim, i, hero)
     sheet.save(path)
 
 
@@ -733,8 +803,8 @@ def main():
     for sub in ("characters", "tiles", "props", "enemies", "fx", "backgrounds"):
         os.makedirs(f"{out}/{sub}", exist_ok=True)
 
-    gen_player_sheet(f"{out}/characters/chris_sheet.png", P.CHRIS_HAIR, False)
-    gen_player_sheet(f"{out}/characters/flam_sheet.png", P.FLAM_HAIR, True)
+    gen_player_sheet(f"{out}/characters/chris_sheet.png", "chris")
+    gen_player_sheet(f"{out}/characters/flam_sheet.png", "flam")
     gen_portraits(f"{out}/characters/portraits.png")
     gen_coin(f"{out}/props/coin.png")
     gen_tileset(f"{out}/tiles/tileset_office.png")
