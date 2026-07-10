@@ -387,44 +387,67 @@ def draw_special_enemy_frame(d, ox, oy, size, kind, anim, i):
     bottom = oy + size - 2
     bob = i % 2
     if kind == "auditor":
-        # spiked ledger hat (anti-stomp tell)
+        # spiked ledger hat (anti-stomp tell) — metallic ramp spikes
         hat_y = bottom - 22 + bob
         for s in range(3):
             d.polygon([(cx - 5 + s * 4, hat_y), (cx - 3 + s * 4, hat_y - 4),
                        (cx - 1 + s * 4, hat_y)], fill=P.GRAY_DARK)
+            _px(d, cx - 4 + s * 4, hat_y - 2, P.GRAY_RAMP[2])  # spike glint
+        # gaunt face: gray hair fringe, cyan glasses, pinched cheeks
         _outline_rect(d, cx - 3, hat_y, cx + 3, hat_y + 6, P.SKIN)
-        _px(d, cx - 2, hat_y + 2, P.CYAN)  # glasses glint
-        _px(d, cx + 1, hat_y + 2, P.CYAN)
-        _outline_rect(d, cx - 4, hat_y + 7, cx + 4, bottom - 6, P.GRAY)
-        _rect(d, cx - 1, hat_y + 8, cx, bottom - 8, P.RED)
+        d.line([(cx - 2, hat_y + 5), (cx + 2, hat_y + 5)], fill=P.SKIN_RAMP[0])
+        _px(d, cx - 3, hat_y + 1, P.GRAY)
+        _px(d, cx + 3, hat_y + 1, P.GRAY)
+        _rect(d, cx - 2, hat_y + 2, cx - 1, hat_y + 3, P.CYAN)   # glasses
+        _rect(d, cx + 1, hat_y + 2, cx + 2, hat_y + 3, P.CYAN)
+        _px(d, cx, hat_y + 3, P.OUTLINE)  # bridge
+        _banker_suit(d, cx, hat_y + 7, bottom - 6, 4, 0)
         legs = [1, -1][i % 2] if anim == "hop_back" else 0
-        _rect(d, cx - 3 + legs, bottom - 6, cx - 1 + legs, bottom, P.GRAY_DARK)
-        _rect(d, cx + 1 - legs, bottom - 6, cx + 3 - legs, bottom, P.GRAY_DARK)
+        _rect(d, cx - 3 + legs, bottom - 6, cx - 1 + legs, bottom, P.SUIT_RAMP[0])
+        _rect(d, cx + 1 - legs, bottom - 6, cx + 3 - legs, bottom, P.SUIT_RAMP[0])
         if anim == "throw":
             arm = [2, 5, 8, 4][i]
-            _rect(d, cx + 4, hat_y + 9, cx + 4 + arm, hat_y + 11, P.GRAY)
+            shade_rect(d, cx + 4, hat_y + 9, cx + 4 + arm, hat_y + 11, P.SUIT_RAMP)
             if i == 2:
                 _outline_rect(d, cx + 9, hat_y + 6, cx + 13, hat_y + 10, P.WHITE)
+                d.line([(cx + 10, hat_y + 7), (cx + 12, hat_y + 7)], fill=P.GRAY)
         if anim == "death":
             _px(d, cx - 6, hat_y - 2, P.GOLD)
             _px(d, cx + 6, hat_y - 3, P.GOLD)
+            _px(d, cx + (i % 2), hat_y - 6, P.GOLD_RAMP[2])
     elif kind == "loan_shark":
+        shark_ramp = ((52, 70, 90, 255), (96, 120, 140, 255), (150, 178, 200, 255))
         if anim == "hidden_fin":
             d.polygon([(cx - 3, bottom), (cx, bottom - 6 - bob), (cx + 3, bottom)],
-                      fill=P.GRAY_DARK)
+                      fill=shark_ramp[0])
+            _px(d, cx, bottom - 4 - bob, shark_ramp[2])  # fin edge light
             return
         rise = {"emerge": [12, 20, 26], "lunge": [28, 30, 28],
                 "recover": [24, 22], "death": [22, 16, 10, 4]}[anim][i]
         body_top = bottom - rise
         if body_top + 8 < bottom:  # sinking death frames may have no suit left
-            _outline_rect(d, cx - 7, body_top + 8, cx + 7, bottom, P.GRAY)
-            for stripe in range(cx - 5, cx + 6, 4):  # pinstripes
-                for y in range(body_top + 9, bottom - 1, 3):
-                    _px(d, stripe, y, P.GRAY_DARK)
-        # shark head
+            # pinstripe power suit with lapels
+            shade_rect(d, cx - 7, body_top + 8, cx + 7, bottom, P.SUIT_RAMP,
+                       outline=P.OUTLINE)
+            for stripe in range(cx - 5, cx + 6, 3):  # pinstripes
+                for y in range(body_top + 10, bottom - 1, 2):
+                    _px(d, stripe, y, P.GRAY_RAMP[1])
+            d.line([(cx - 6, body_top + 9), (cx - 2, body_top + 12)],
+                   fill=P.SUIT_RAMP[0])  # lapel
+            d.line([(cx + 6, body_top + 9), (cx + 2, body_top + 12)],
+                   fill=P.SUIT_RAMP[0])
+            _rect(d, cx - 1, body_top + 10, cx, body_top + 16, P.RED)  # tie
+        # shark head: shaded snout, white belly line, gills
         d.polygon([(cx - 8, body_top + 10), (cx + 2, body_top - 2),
-                   (cx + 9, body_top + 10)], fill=(96, 120, 140, 255))
-        _px(d, cx + 3, body_top + 4, P.OUTLINE)  # eye
+                   (cx + 9, body_top + 10)], fill=shark_ramp[1])
+        d.line([(cx + 2, body_top - 2), (cx + 9, body_top + 10)],
+               fill=shark_ramp[2])  # lit snout edge
+        d.line([(cx - 8, body_top + 10), (cx + 2, body_top - 2)],
+               fill=shark_ramp[0])  # shadow edge
+        for gill in range(3):  # gill slits
+            _px(d, cx - 4 + gill, body_top + 6 + gill, shark_ramp[0])
+        _px(d, cx + 3, body_top + 4, P.WHITE)  # eye
+        _px(d, cx + 4, body_top + 4, P.OUTLINE)  # pupil
         if anim == "lunge":
             for t in range(cx - 4, cx + 5, 3):  # teeth
                 d.polygon([(t, body_top + 9), (t + 1, body_top + 6),
@@ -436,10 +459,16 @@ def draw_special_enemy_frame(d, ox, oy, size, kind, anim, i):
         top = oy + 6 + bob
         glitch = [0, 2, -2][i % 3] if anim in ("teleport_out", "teleport_in") else 0
         alpha_body = P.BLUE if anim != "stagger" else P.RED
-        _outline_rect(d, cx - 8 + glitch, top + 14, cx + 8 - glitch, bottom - 4,
-                      (20, 60, 120, 255))
-        _rect(d, cx - 1, top + 15, cx, bottom - 6, P.CYAN)  # tie line
-        _outline_rect(d, cx - 5, top, cx + 5, top + 12, (30, 80, 150, 255))
+        shade_rect(d, cx - 8 + glitch, top + 14, cx + 8 - glitch, bottom - 4,
+                   P.HOLO_RAMP, outline=P.OUTLINE)
+        # holo lapels + cyan tie
+        d.line([(cx - 7 + glitch, top + 15), (cx - 1, top + 17)], fill=P.HOLO_RAMP[0])
+        d.line([(cx + 7 - glitch, top + 15), (cx + 1, top + 17)], fill=P.HOLO_RAMP[0])
+        _rect(d, cx - 1, top + 15, cx, bottom - 6, P.CYAN)
+        _px(d, cx, bottom - 6, P.CYAN_RAMP[0])
+        # visor head
+        shade_rect(d, cx - 5, top, cx + 5, top + 12, P.HOLO_RAMP, outline=P.OUTLINE)
+        _rect(d, cx - 3, top + 4, cx + 3, top + 6, (10, 24, 50, 255))  # visor band
         _px(d, cx - 2, top + 5, alpha_body)
         _px(d, cx + 2, top + 5, alpha_body)
         # scanline glitches
@@ -449,6 +478,7 @@ def draw_special_enemy_frame(d, ox, oy, size, kind, anim, i):
         if anim == "cast" and i >= 2:
             for orb in (-12, 0, 12):
                 _px(d, cx + orb, top - 3, P.RED)
+                _px(d, cx + orb, top - 4, P.RED_RAMP[2])
         if anim == "death":
             for s in range(i + 1):
                 _px(d, cx - 8 + s * 4, bottom - 2 - (s * 5) % 14, P.CYAN)
@@ -498,50 +528,100 @@ def draw_ceo_frame(d, ox, oy, w, h, demon, anim, i):
     bottom = oy + h - 4
     bob = i % 2
     if not demon:
-        # giant suited chairman
+        # giant suited chairman — the key art's KO'd executives at full power
         lean = {"slam": [0, 2, 4, 6, 2, -4], "charge": [4, 6, 4, 6],
                 "stagger": [-6, -8, -6], "coin_volley": [0, 2, 2, 0],
                 "phase_change": [0, 0, 2, 4], "idle": [0, 1, 0, -1]}[anim][i]
         crouch = 12 if anim == "slam" and i >= 3 else 0
         body_top = oy + 30 + bob + crouch
-        _outline_rect(d, cx - 16 + lean, body_top, cx + 16 + lean, bottom, P.GRAY_DARK)
-        _rect(d, cx - 2 + lean, body_top + 4, cx + 2 + lean, bottom - 20,
-              P.GOLD if anim != "phase_change" else P.RED)  # tie
-        # arms
+        # jacket: vertical 3-band shading, dark power suit
+        vshade_rect(d, cx - 16 + lean, body_top, cx + 16 + lean, bottom,
+                    ((10, 14, 20, 255), (24, 32, 42, 255), (44, 56, 70, 255)))
+        d.rectangle([cx - 16 + lean, body_top, cx + 16 + lean, bottom],
+                    outline=P.OUTLINE)
+        # wide lapels + white shirt
+        d.line([(cx - 14 + lean, body_top + 2), (cx - 3 + lean, body_top + 9)],
+               fill=P.OUTLINE)
+        d.line([(cx + 14 + lean, body_top + 2), (cx + 3 + lean, body_top + 9)],
+               fill=P.OUTLINE)
+        d.polygon([(cx - 4 + lean, body_top + 2), (cx + 4 + lean, body_top + 2),
+                   (cx + lean, body_top + 8)], fill=P.WHITE)
+        tie = P.GOLD if anim != "phase_change" else P.RED
+        _rect(d, cx - 2 + lean, body_top + 4, cx + 2 + lean, bottom - 20, tie)
+        _rect(d, cx - 1 + lean, bottom - 20, cx + 1 + lean, bottom - 18,
+              P.GOLD_RAMP[0] if tie == P.GOLD else P.RED_RAMP[0])  # tie tip
+        _px(d, cx - 1 + lean, body_top + 5, P.GOLD_RAMP[2])  # tie knot glint
+        # pocket square
+        _rect(d, cx - 11 + lean, body_top + 8, cx - 9 + lean, body_top + 9, P.WHITE)
+        # arms with cufflink
         arm = 10 if anim in ("slam", "coin_volley") and 1 <= i <= 3 else 4
-        _rect(d, cx + 15 + lean, body_top + 10, cx + 15 + lean + arm, body_top + 16, P.GRAY_DARK)
-        # head
-        _outline_rect(d, cx - 9 + lean, body_top - 20, cx + 9 + lean, body_top - 2, P.SKIN)
-        _rect(d, cx - 9 + lean, body_top - 20, cx + 9 + lean, body_top - 15, P.GRAY)
+        shade_rect(d, cx + 15 + lean, body_top + 10, cx + 15 + lean + arm,
+                   body_top + 16, ((10, 14, 20, 255), (24, 32, 42, 255),
+                                   (44, 56, 70, 255)))
+        _px(d, cx + 14 + lean + arm, body_top + 13, P.GOLD)  # cufflink
+        # head: jowly executive, silver hair swept back
+        _outline_rect(d, cx - 9 + lean, body_top - 20, cx + 9 + lean,
+                      body_top - 2, P.SKIN)
+        d.line([(cx - 7 + lean, body_top - 4), (cx + 7 + lean, body_top - 4)],
+               fill=P.SKIN_RAMP[0])  # jowl shadow
+        _px(d, cx - 6 + lean, body_top - 8, P.SKIN_RAMP[0])  # cheek crease
+        _px(d, cx + 6 + lean, body_top - 8, P.SKIN_RAMP[0])
+        _rect(d, cx - 9 + lean, body_top - 20, cx + 9 + lean, body_top - 15,
+              P.GRAY)
+        dither_row(d, cx - 8 + lean, cx + 8 + lean, body_top - 14, P.GRAY)
+        _px(d, cx - 3 + lean, body_top - 19, P.GRAY_RAMP[2])  # hair shine
         eye = P.RED if anim in ("charge", "phase_change") else P.OUTLINE
+        # heavy brows over the eyes
+        d.line([(cx - 5 + lean, body_top - 12), (cx - 2 + lean, body_top - 12)],
+               fill=P.GRAY_RAMP[0])
+        d.line([(cx + 3 + lean, body_top - 12), (cx + 6 + lean, body_top - 12)],
+               fill=P.GRAY_RAMP[0])
         _px(d, cx - 3 + lean, body_top - 10, eye)
         _px(d, cx + 4 + lean, body_top - 10, eye)
+        d.line([(cx - 2 + lean, body_top - 5), (cx + 2 + lean, body_top - 5)],
+               fill=P.SKIN_RAMP[0])  # scowl
         if anim == "stagger":
             _px(d, cx - 12, body_top - 26 + (i % 2), P.GOLD)
             _px(d, cx + 12, body_top - 28 - (i % 2), P.GOLD)
+            _px(d, cx + (i % 2) * 4 - 2, body_top - 30, P.GOLD_RAMP[2])
     else:
-        # digital demon form: red/black with cyan glitches
+        # digital demon form: shaded red/black mass with cyan glitches
         top = oy + 10 + bob * 2
-        _outline_rect(d, cx - 20, top + 20, cx + 20, bottom, (30, 6, 12, 255))
-        d.polygon([(cx - 24, top + 30), (cx - 34, top + 10), (cx - 16, top + 22)],
-                  fill=(60, 8, 16, 255))  # wing L
-        d.polygon([(cx + 24, top + 30), (cx + 34, top + 10), (cx + 16, top + 22)],
-                  fill=(60, 8, 16, 255))  # wing R
-        _outline_rect(d, cx - 12, top, cx + 12, top + 22, (40, 8, 14, 255))
+        vshade_rect(d, cx - 20, top + 20, cx + 20, bottom, P.DEMON_RAMP)
+        d.rectangle([cx - 20, top + 20, cx + 20, bottom], outline=P.OUTLINE)
+        for wing_dir in (-1, 1):  # webbed wings with lit leading edge
+            tipx = cx + wing_dir * 34
+            d.polygon([(cx + wing_dir * 24, top + 30), (tipx, top + 10),
+                       (cx + wing_dir * 16, top + 22)], fill=P.DEMON_RAMP[1])
+            d.line([(cx + wing_dir * 24, top + 30), (tipx, top + 10)],
+                   fill=P.DEMON_RAMP[2])
+            _px(d, tipx, top + 10, P.RED)  # wing claw
+        shade_rect(d, cx - 12, top, cx + 12, top + 22, P.DEMON_RAMP,
+                   outline=P.OUTLINE)
+        # burning eyes with glow
         _px(d, cx - 5, top + 8, P.RED)
         _px(d, cx + 5, top + 8, P.RED)
-        for hrn in (-10, 10):  # horns
+        _px(d, cx - 5, top + 7, P.RED_RAMP[2])
+        _px(d, cx + 5, top + 7, P.RED_RAMP[2])
+        # jagged maw
+        for tooth in range(-3, 4, 2):
+            _px(d, cx + tooth, top + 16, P.WHITE)
+        for hrn in (-10, 10):  # ramped horns
             d.polygon([(cx + hrn - 2, top), (cx + hrn, top - 8), (cx + hrn + 2, top)],
                       fill=P.RED)
-        # core
+            d.line([(cx + hrn, top - 8), (cx + hrn - 2, top)], fill=P.RED_RAMP[2])
+        # core: green when exposed (weak point), pulsing ember otherwise
         core_col = P.GREEN if anim == "core_exposed" else (80, 20, 30, 255)
         d.ellipse([cx - 5, top + 34, cx + 5, top + 44], fill=core_col, outline=P.OUTLINE)
+        _px(d, cx - 2, top + 36,
+            P.GREEN_RAMP[2] if anim == "core_exposed" else P.RED_RAMP[1])
         for g in range(4):  # glitch scanlines
             gy = top + 6 + g * 18 + (i * 5) % 11
             _rect(d, cx - 22, gy, cx + 22, gy, (22, 224, 224, 100))
         if anim == "death":
             for s in range(i + 1):
                 _px(d, cx - 20 + s * 5, bottom - (s * 9) % 60, P.CYAN)
+                _px(d, cx - 19 + s * 5, bottom - (s * 9) % 60 - 4, (22, 224, 224, 140))
 
 
 def gen_ceo_sheets(out_dir):
@@ -571,8 +651,59 @@ def gen_monitors(path):
     img.save(path)
 
 
-def draw_banker_frame(d, ox, oy, size, anim, i, tie_color):
-    """Comedic suited banker placeholder. Gray suit, red tie (corruption)."""
+def _banker_suit(d, cx, body_top, bottom, bw, lean, tie=P.RED):
+    """Shared suit rendering: 4-tone jacket, lapels, shirt triangle, red tie,
+    wrinkle pixels — the KO'd bankers of the key art, upright."""
+    shade_rect(d, cx - bw + lean, body_top, cx + bw + lean, bottom, P.SUIT_RAMP,
+               outline=P.OUTLINE)
+    # lapels: dark V from the shoulders
+    d.line([(cx - bw + 1 + lean, body_top + 1), (cx - 1 + lean, body_top + 3)],
+           fill=P.SUIT_RAMP[0])
+    d.line([(cx + bw - 1 + lean, body_top + 1), (cx + 1 + lean, body_top + 3)],
+           fill=P.SUIT_RAMP[0])
+    # white shirt triangle + tie
+    d.polygon([(cx - 1 + lean, body_top + 1), (cx + 1 + lean, body_top + 1),
+               (cx + lean, body_top + 3)], fill=P.WHITE)
+    _rect(d, cx - 1 + lean, body_top + 2, cx + lean, bottom - 3, tie)
+    _px(d, cx + lean, bottom - 3, P.RED_RAMP[0] if tie == P.RED else P.GOLD_RAMP[0])
+    # suit wrinkles
+    _px(d, cx - bw + 2 + lean, bottom - 3, P.SUIT_RAMP[0])
+    _px(d, cx + bw - 2 + lean, bottom - 5, P.SUIT_RAMP[0])
+    # jacket button
+    _px(d, cx + 2 + lean, bottom - 4, P.GRAY_RAMP[2])
+
+
+def _banker_head(d, cx, head_y, lean, kind, dizzy, i):
+    """6x7 banker head with per-type features. dizzy = KO stars + X eyes."""
+    _outline_rect(d, cx - 3 + lean, head_y, cx + 3 + lean, head_y + 6, P.SKIN)
+    d.line([(cx - 2 + lean, head_y + 5), (cx + 2 + lean, head_y + 5)],
+           fill=P.SKIN_RAMP[0])  # jaw shadow
+    if kind == "junior":
+        # young: full dark hair with shine
+        _rect(d, cx - 3 + lean, head_y, cx + 3 + lean, head_y + 1, P.CHRIS_HAIR_RAMP[1])
+        _px(d, cx - 1 + lean, head_y, P.CHRIS_HAIR_RAMP[2])
+    else:
+        # manager: balding — gray side tufts, shiny scalp, comb-over strands
+        _px(d, cx - 3 + lean, head_y + 1, P.GRAY)
+        _px(d, cx + 3 + lean, head_y + 1, P.GRAY)
+        _px(d, cx - 1 + lean, head_y, P.SKIN_RAMP[2])  # scalp shine
+        dither_row(d, cx - 2 + lean, cx + 2 + lean, head_y, P.GRAY, phase=i % 2)
+    if dizzy:
+        # X eyes
+        _px(d, cx + 1 + lean, head_y + 3, P.OUTLINE)
+        _px(d, cx - 2 + lean, head_y + 3, P.OUTLINE)
+    else:
+        _px(d, cx + 1 + lean, head_y + 3, P.OUTLINE)
+        _px(d, cx + 3 + lean, head_y + 3, P.OUTLINE)
+        if kind == "manager":
+            # permanent angry brow
+            d.line([(cx + 1 + lean, head_y + 2), (cx + 3 + lean, head_y + 2)],
+                   fill=P.RED_RAMP[0])
+
+
+def draw_banker_frame(d, ox, oy, size, anim, i, kind):
+    """Comedic suited banker — the key art's KO'd villains, animated.
+    kind: 'junior' (young, briefcase) or 'manager' (balding, bulkier)."""
     cx = ox + size // 2
     bottom = oy + size - 2
     bob = i % 2
@@ -591,31 +722,29 @@ def draw_banker_frame(d, ox, oy, size, anim, i, tie_color):
         bob = [0, 1, 0][i % 3]
     body_h = size // 2
     body_top = bottom - body_h - 6 + bob
-    # legs
-    _rect(d, cx - 3 + legs // 2, bottom - 6, cx - 1 + legs // 2, bottom, P.GRAY_DARK)
-    _rect(d, cx + 1 - legs // 2, bottom - 6, cx + 3 - legs // 2, bottom, P.GRAY_DARK)
-    # suit body
-    _outline_rect(d, cx - 4 + lean, body_top, cx + 4 + lean, bottom - 6, P.GRAY)
-    # tie
-    _rect(d, cx - 1 + lean, body_top + 1, cx + lean, bottom - 8, tie_color)
+    bw = 4 if size <= 24 else 5
+    # legs: pressed trousers + shoes with shine
+    for leg_x, off in ((cx - 3, legs // 2), (cx + 1, -legs // 2)):
+        _rect(d, leg_x + off, bottom - 6, leg_x + 2 + off, bottom - 1, P.SUIT_RAMP[0])
+        _rect(d, leg_x + off, bottom - 1, leg_x + 2 + off, bottom, P.OUTLINE)
+        _px(d, leg_x + off, bottom - 1, P.GRAY_RAMP[1])  # shoe shine
+    _banker_suit(d, cx, body_top, bottom - 6, bw, lean)
     # briefcase (walk/panic)
     if anim in ("walk", "panic_run"):
-        _outline_rect(d, cx + 5 + lean, body_top + 4 + bob, cx + 9 + lean,
-                      body_top + 8 + bob, P.GRAY_DARK)
-    # head
-    head_y = body_top - 7
-    _outline_rect(d, cx - 3 + lean, head_y, cx + 3 + lean, head_y + 6, P.SKIN)
-    _rect(d, cx - 3 + lean, head_y, cx + 3 + lean, head_y + 1, P.GRAY)  # hair
+        shade_rect(d, cx + bw + 1 + lean, body_top + 4 + bob, cx + bw + 5 + lean,
+                   body_top + 8 + bob, ((26, 18, 10, 255), (58, 40, 22, 255),
+                                        (96, 68, 38, 255)), outline=P.OUTLINE)
+        _px(d, cx + bw + 3 + lean, body_top + 4 + bob, P.GOLD)  # clasp
+    dizzy = anim in ("wall_stun", "death")
+    _banker_head(d, cx, body_top - 7, lean, kind, dizzy, i)
     if anim == "alert":
         # red !! telegraph
         _rect(d, cx - 1, oy + 1, cx, oy + 4 + (i % 2), P.RED)
-    if anim in ("wall_stun", "death"):
-        # dizzy stars
-        _px(d, cx - 5, head_y - 2 + (i % 2), P.GOLD)
-        _px(d, cx + 5, head_y - 3 - (i % 2), P.GOLD)
-    else:
-        _px(d, cx + 1 + lean, head_y + 3, P.OUTLINE)
-        _px(d, cx + 3 + lean, head_y + 3, P.OUTLINE)
+    if dizzy:
+        # gold dizzy stars (the key art's signature KO gag)
+        _px(d, cx - 5, body_top - 9 + (i % 2), P.GOLD)
+        _px(d, cx + 5, body_top - 10 - (i % 2), P.GOLD)
+        _px(d, cx + (i % 2) * 2 - 1, body_top - 12, P.GOLD_RAMP[2])
 
 
 def gen_enemy_sheets(out_dir):
@@ -626,9 +755,10 @@ def gen_enemy_sheets(out_dir):
         cols = max(f for _, f in spec["anims"])
         img = Image.new("RGBA", (cols * size, len(spec["anims"]) * size), P.TRANSPARENT)
         d = ImageDraw.Draw(img)
+        kind = "junior" if name == "junior_banker" else "manager"
         for row, (anim, frames) in enumerate(spec["anims"]):
             for i in range(frames):
-                draw_banker_frame(d, i * size, row * size, size, anim, i, P.RED)
+                draw_banker_frame(d, i * size, row * size, size, anim, i, kind)
         img.save(f"{out_dir}/{name}.png")
 
 
