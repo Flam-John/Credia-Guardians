@@ -24,10 +24,11 @@ var shield_regen_wait := 0.0
 ## Energy Drink (docs/GDD.md §8): multiplies run speed while boosted.
 var speed_boost := 1.0
 var _boost_left := 0.0
-## Written by ConveyorBelt/Updraft areas (process_priority -1, i.e. before
-## this body ticks); consumed and zeroed here every frame.
-var conveyor_push := 0.0
-var updraft_strength := 0.0
+## Environmental forces for THIS physics frame — written only through
+## apply_field_force() by PushZone props (which tick before this body);
+## consumed and zeroed after the slide. Internals, not an API.
+var _field_push_x := 0.0
+var _field_lift := 0.0
 ## Firewall Shield pickup: absorbs exactly one hit (docs/GDD.md §8).
 var firewall_shield := false
 var _bubble: Sprite2D
@@ -190,11 +191,11 @@ func _physics_process(delta: float) -> void:
 	# into stored velocity. RESTORE (not subtract): if a wall zeroed the
 	# pushed velocity, subtracting would manufacture reverse velocity.
 	var pre_push_vx := velocity.x
-	velocity.x += conveyor_push
+	velocity.x += _field_push_x
 	move_and_slide()
-	velocity.x = 0.0 if (is_on_wall() and conveyor_push != 0.0) else pre_push_vx
-	conveyor_push = 0.0
-	updraft_strength = 0.0
+	velocity.x = 0.0 if (is_on_wall() and _field_push_x != 0.0) else pre_push_vx
+	_field_push_x = 0.0
+	_field_lift = 0.0
 	# INVARIANT: charge reset stays AFTER move_and_slide — is_on_floor() is
 	# only fresh post-slide, so a same-frame landing refreshes air options.
 	if is_on_floor():
@@ -269,6 +270,17 @@ func apply_speed_boost(multiplier: float, duration: float) -> void:
 	_boost_left = duration
 
 
+## The one entry point for environmental force fields (review P3-20).
+## push_x: signed horizontal px/s applied for this frame's slide only.
+## lift: upward acceleration that REPLACES gravity while > 0.
+## Called by PushZone props each physics frame they overlap the player.
+func apply_field_force(push_x: float, lift: float) -> void:
+	if push_x != 0.0:
+		_field_push_x = push_x
+	if lift > 0.0:
+		_field_lift = maxf(_field_lift, lift)
+
+
 func emit_land_dust() -> void:
 	_dust.global_position = global_position
 	_dust.restart()
@@ -324,14 +336,14 @@ func _shield_blocks(from_global_pos: Vector2) -> bool:
 
 
 func apply_gravity(delta: float) -> void:
-	if updraft_strength > 0.0:
+	if _field_lift > 0.0:
 		# Steam column REPLACES gravity: accelerate toward a sustained rise
 		# (playtest audit: adding lift on top of gravity could never win —
 		# net accel stayed downward and the clamp murdered jump velocity).
 		# DESIGN: lift lives in apply_gravity, so Dash (overrides_gravity)
 		# ignores updrafts — a dash keeps its flat trajectory, MMX-style.
 		velocity.y = move_toward(
-				velocity.y, -0.7 * updraft_strength, updraft_strength * 3.0 * delta)
+				velocity.y, -0.7 * _field_lift, _field_lift * 3.0 * delta)
 		return
 	var g := stats.gravity_rise if velocity.y < 0.0 else stats.gravity_fall
 	velocity.y = minf(velocity.y + g * delta, stats.max_fall_speed)
