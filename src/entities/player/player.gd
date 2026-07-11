@@ -158,6 +158,7 @@ func _build_combat_nodes() -> void:
 		ghost.top_level = true # stays put in world space while we move on
 		ghost.visible = false
 		ghost.modulate = Color(0.3, 0.9, 1.0, 0.45)
+		ghost.material = FX.additive()  # Phase 3 glow pass
 		add_child(ghost)
 		_ghosts.append(ghost)
 

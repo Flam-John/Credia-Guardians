@@ -112,3 +112,4 @@ func _exit_tree() -> void:
 	Coin._frames_cache = null
 	Checkpoint._frames_cache = null
 	HitSpark._frames_cache = null
+	FX.clear_cache()
