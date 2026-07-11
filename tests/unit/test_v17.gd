@@ -42,14 +42,17 @@ func test_loot_coin_bounces_off_wall() -> void:
 			"coin bounced back instead of embedding in the wall")
 
 
-func test_loot_coin_settles_on_floor_and_collectable() -> void:
-	_make_wall(Vector2(0, 60), Vector2(400, 20))  # floor top at y=50
+func test_loot_coin_bounces_off_ceiling_face() -> void:
+	# discriminating case (review v1.7-1): old code flew INTO the tile and
+	# froze inside it; new code bounces and rests below the face
+	_make_wall(Vector2(0, -20), Vector2(400, 20))  # ceiling bottom face at y=-10
 	var coin: Coin = COIN_SCENE.instantiate()
 	coin.position = Vector2.ZERO
 	add_child_autofree(coin)
-	coin.pop(Vector2(30, -60))
-	await wait_physics_frames(90)
-	assert_lt(coin.position.y, 51.0, "coin rests on (not inside) the floor")
+	coin.pop(Vector2(0, -140))  # straight up into the ceiling
+	await wait_physics_frames(60)
+	assert_gt(coin.position.y, -10.0 + Coin.RADIUS - 1.0,
+			"coin rests below the ceiling face instead of inside the tile")
 	assert_true(coin.monitoring, "settled coin is collectable again")
 
 
