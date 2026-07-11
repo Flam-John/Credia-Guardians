@@ -30,7 +30,17 @@ func _ready() -> void:
 		items.append(_bind_row(action))
 	items.append(UIKit.button(tr("RESET DEFAULTS"), _on_reset))
 	items.append(UIKit.button(tr("BACK"), _on_back))
-	add_child(UIKit.center(UIKit.menu_column(items)))
+	# the column outgrew the 270px screen (audio + video + language + keys):
+	# scroll it, and follow_focus keeps keyboard/gamepad navigation visible
+	var column := UIKit.menu_column(items)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.custom_minimum_size = Vector2(300, 244)
+	scroll.add_child(column)
+	add_child(UIKit.center(scroll))
 	UIKit.grab_first_focus(self)
 
 
@@ -43,6 +53,8 @@ func _slider_row(label_text: String, section: String, key: String) -> Control:
 	slider.step = 0.05
 	slider.value = _settings[section][key]
 	slider.custom_minimum_size = Vector2(110, 14)
+	# wheel must scroll the page, not silently drift the volume (review v1.8-1)
+	slider.scrollable = false
 	slider.value_changed.connect(func(v: float) -> void:
 		_settings[section][key] = v
 		_apply())
