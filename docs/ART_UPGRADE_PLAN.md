@@ -1,5 +1,13 @@
 # Graphics Upgrade Plan — "Make it look like the key art"
 
+> **Status (v1.4.0)**: the narrowed scope — heroes, bankers, backgrounds —
+> SHIPPED. Palette ramps + pixkit toolkit, hero sheets v2 (segmented armor,
+> piping, capes, faces), all banker/CEO sheets v2 (4-tone suits, lapels,
+> per-type faces), 3-layer parallax for all 5 stages with glow pools, and
+> portraits + stage-5 vault wall extracted straight from the key art
+> (tools/artgen/extract_from_key_art.py). Still open below: tilesets, vault
+> door prop, HUD atlas, Phase 2 (Aseprite), Phase 3 (in-engine glow).
+
 Source of truth: `CHRIS_FLAM_LEVEL_1_VICTORY.png`. Current placeholders are
 3-4 flat colors per sprite; the key art's identity comes from **glow, depth,
 and material detail**. This plan closes that gap in three phases.
