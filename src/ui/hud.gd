@@ -6,10 +6,20 @@ extends Control
 
 const PORTRAITS := preload("res://assets/art/characters/portraits.png")
 const COIN_SHEET := preload("res://assets/art/props/coin.png")
+const HUD_ATLAS := preload("res://assets/art/ui/hud_atlas.png")
+
+# hud_atlas.png regions (see tools/artgen gen_hud_atlas)
+const REGION_FRAME := Rect2(0, 0, 24, 24)
+const REGION_HP_ON := Rect2(24, 0, 7, 8)
+const REGION_HP_OFF := Rect2(24, 8, 7, 8)
+const REGION_BOSS_ON := Rect2(32, 0, 6, 6)
+const REGION_BOSS_OFF := Rect2(32, 8, 6, 6)
+const REGION_PANEL := Rect2(40, 0, 12, 12)
 
 var _portrait: TextureRect
 var _hp_box: HBoxContainer
 var _portrait2: TextureRect
+var _portrait_frame2: TextureRect
 var _hp_box2: HBoxContainer
 var _boss_bar: HBoxContainer
 var _boss_name: Label
@@ -24,6 +34,11 @@ var _max_hp := 6
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# CanvasLayer children don't stretch with anchors (project gotcha — same
+	# reason SceneManager sizes screens explicitly). Without this the HUD rect
+	# is 0x0 and every anchored child (HI-SCORE, boss bar, timer) collapses
+	# to the origin.
+	size = get_viewport_rect().size
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	_portrait = TextureRect.new()
@@ -33,6 +48,7 @@ func _ready() -> void:
 	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_portrait.size = Vector2(20, 20)
 	add_child(_portrait)
+	add_child(_make_portrait_frame(Vector2(4, 4)))
 
 	_hp_box = HBoxContainer.new()
 	_hp_box.position = Vector2(30, 8)
@@ -44,6 +60,9 @@ func _ready() -> void:
 	_portrait2.position = Vector2(454, 6)
 	_portrait2.visible = false
 	add_child(_portrait2)
+	_portrait_frame2 = _make_portrait_frame(Vector2(452, 4))
+	_portrait_frame2.visible = false
+	add_child(_portrait_frame2)
 	_hp_box2 = HBoxContainer.new()
 	_hp_box2.position = Vector2(400, 8)
 	_hp_box2.add_theme_constant_override(&"separation", 1)
@@ -53,9 +72,13 @@ func _ready() -> void:
 	_lives_label = _make_label(Vector2(30, 18), 7, UIKit.GRAY)
 	add_child(_lives_label)
 
-	_timer_label = _make_label(Vector2(-70, 18), 8, UIKit.CYAN)
+	_timer_label = _make_label(Vector2.ZERO, 8, UIKit.CYAN)
 	_timer_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_timer_label.position = Vector2(-70, 30)
+	# offsets, not position: position is parent-origin-relative and would
+	# drag anchored controls off-screen (same for boss bar / HI-SCORE below)
+	_timer_label.offset_left = -70
+	_timer_label.offset_right = -6
+	_timer_label.offset_top = 30
 	_timer_label.visible = false
 	add_child(_timer_label)
 	EventBus.settings_applied.connect(func(s: Dictionary) -> void:
@@ -77,21 +100,41 @@ func _ready() -> void:
 	_coin_label = _make_label(Vector2(20, 42), 8, UIKit.GOLD)
 	add_child(_coin_label)
 
-	_hi_label = _make_label(Vector2(0, 6), 8, UIKit.GREEN)
+	# HI-SCORE sits on a beveled panel backing (key-art physical UI)
+	var hi_panel := NinePatchRect.new()
+	hi_panel.texture = HUD_ATLAS
+	hi_panel.region_rect = REGION_PANEL
+	hi_panel.patch_margin_left = 4
+	hi_panel.patch_margin_top = 4
+	hi_panel.patch_margin_right = 4
+	hi_panel.patch_margin_bottom = 4
+	hi_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	# offsets, not position: position would re-derive them from the parent
+	# origin and drag the panel off the center anchor
+	hi_panel.offset_left = -60
+	hi_panel.offset_right = 60
+	hi_panel.offset_top = 4
+	hi_panel.offset_bottom = 18
+	add_child(hi_panel)
+	_hi_label = _make_label(Vector2.ZERO, 8, UIKit.GREEN)
 	_hi_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_hi_label.offset_top = 6
+	_hi_label.offset_bottom = 16
 	_hi_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_hi_label)
 
 	_boss_bar = HBoxContainer.new()
 	_boss_bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	_boss_bar.alignment = BoxContainer.ALIGNMENT_CENTER
-	_boss_bar.position.y = -18
+	_boss_bar.offset_top = -18
+	_boss_bar.offset_bottom = -12
 	_boss_bar.add_theme_constant_override(&"separation", 1)
 	_boss_bar.visible = false
 	add_child(_boss_bar)
 	_boss_name = _make_label(Vector2.ZERO, 7, UIKit.RED)
 	_boss_name.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_boss_name.position.y = -28
+	_boss_name.offset_top = -28
+	_boss_name.offset_bottom = -20
 	_boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_boss_name.visible = false
 	add_child(_boss_name)
@@ -140,6 +183,7 @@ func _on_player_spawned(player: Node2D) -> void:
 	(_portrait2 if is_p2 else _portrait).texture = atlas
 	if is_p2:
 		_portrait2.visible = true
+		_portrait_frame2.visible = true
 		_hp_box2.visible = true
 	_set_hp(typed.health.hp, typed.stats.max_hp, is_p2)
 	if not is_p2:
@@ -154,14 +198,13 @@ func _on_hp_signal(player_index: int, hp: int, max_hp: int) -> void:
 func _set_hp(hp: int, max_hp: int, is_p2 := false) -> void:
 	var box := _hp_box2 if is_p2 else _hp_box
 	while box.get_child_count() < max_hp:
-		var seg := ColorRect.new()
-		seg.custom_minimum_size = Vector2(7, 8)
-		box.add_child(seg)
+		box.add_child(_make_pill(REGION_HP_OFF, Vector2(7, 8)))
 	while box.get_child_count() > max_hp:
 		box.get_child(box.get_child_count() - 1).free()
 	for i in box.get_child_count():
-		(box.get_child(i) as ColorRect).color = \
-				UIKit.GREEN if i < hp else UIKit.BG_PANEL
+		var seg := box.get_child(i) as TextureRect
+		(seg.texture as AtlasTexture).region = \
+				REGION_HP_ON if i < hp else REGION_HP_OFF
 	_refresh_meta()
 
 
@@ -192,19 +235,43 @@ func _on_boss_spawned(display_name: String, hp: int, max_hp: int) -> void:
 
 func _set_boss_hp(hp: int, max_hp: int) -> void:
 	while _boss_bar.get_child_count() < max_hp:
-		var seg := ColorRect.new()
-		seg.custom_minimum_size = Vector2(6, 6)
-		_boss_bar.add_child(seg)
+		_boss_bar.add_child(_make_pill(REGION_BOSS_OFF, Vector2(6, 6)))
 	while _boss_bar.get_child_count() > max_hp:
 		_boss_bar.get_child(_boss_bar.get_child_count() - 1).free()
 	for i in _boss_bar.get_child_count():
-		(_boss_bar.get_child(i) as ColorRect).color = \
-				UIKit.RED if i < hp else UIKit.BG_PANEL
+		var seg := _boss_bar.get_child(i) as TextureRect
+		(seg.texture as AtlasTexture).region = \
+				REGION_BOSS_ON if i < hp else REGION_BOSS_OFF
 
 
 func _on_boss_died() -> void:
 	_boss_bar.visible = false
 	_boss_name.visible = false
+
+
+func _make_pill(region: Rect2, pill_size: Vector2) -> TextureRect:
+	# each pill owns its AtlasTexture — regions are flipped per-segment
+	var seg := TextureRect.new()
+	var atlas := AtlasTexture.new()
+	atlas.atlas = HUD_ATLAS
+	atlas.region = region
+	seg.texture = atlas
+	seg.custom_minimum_size = pill_size
+	seg.stretch_mode = TextureRect.STRETCH_KEEP
+	return seg
+
+
+func _make_portrait_frame(pos: Vector2) -> TextureRect:
+	var frame := TextureRect.new()
+	var atlas := AtlasTexture.new()
+	atlas.atlas = HUD_ATLAS
+	atlas.region = REGION_FRAME
+	frame.texture = atlas
+	frame.position = pos
+	frame.size = Vector2(24, 24)
+	frame.stretch_mode = TextureRect.STRETCH_KEEP
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return frame
 
 
 func _make_label(pos: Vector2, size: int, color: Color) -> Label:
