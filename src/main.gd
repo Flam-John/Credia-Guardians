@@ -19,6 +19,7 @@ func _ready() -> void:
 	ui_layer.add_child(hud)
 
 	add_child(PauseMenu.new())
+	add_child(VignetteOverlay.new())
 	add_child(ScanlineOverlay.new())
 
 	# settings before the first frame: volumes, window, keybinds, scanlines

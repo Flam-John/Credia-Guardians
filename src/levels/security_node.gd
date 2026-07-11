@@ -32,6 +32,13 @@ func _ready() -> void:
 	_sprite.texture = _atlas
 	_sprite.position = Vector2(0, -16)
 	add_child(_sprite)
+	# Phase 3 glow pass: additive echo of the same frame makes the core bloom
+	var glow := Sprite2D.new()
+	glow.texture = _atlas
+	glow.position = _sprite.position
+	glow.material = FX.additive()
+	glow.modulate = Color(1, 1, 1, 0.4)
+	add_child(glow)
 	var shape := CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
 	rect.size = Vector2(28, 32)

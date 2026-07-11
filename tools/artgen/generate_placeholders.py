@@ -1024,21 +1024,75 @@ def gen_security_node(path):
 
 
 def gen_exit_gate(path):
-    """48x64 x2: closed (red firewall bars), open (green frame, clear)."""
-    img = Image.new("RGBA", (96, 64), P.TRANSPARENT)
+    """Vault door, 64x64 x4: [0] closed (red security beams over the dark
+    slab), [1..3] open — green rim shimmer + spinning yin-yang core. The
+    key art's centerpiece as the stage-end reward. Consumed by GateProp."""
+    img = Image.new("RGBA", (256, 64), P.TRANSPARENT)
     d = ImageDraw.Draw(img)
-    for i in range(2):
-        ox = i * 48
-        frame = P.GREEN_DARK if i else P.GRAY_DARK
-        _outline_rect(d, ox + 2, 0, ox + 45, 63, P.BG_PANEL, frame)
-        _rect(d, ox + 6, 4, ox + 41, 59, P.BG_VOID)
-        if i == 0:  # closed: red energy bars
-            for y in range(8, 60, 8):
-                _rect(d, ox + 6, y, ox + 41, y + 2, P.RED)
-        else:  # open: soft green shimmer edges
-            for y in range(6, 58, 10):
-                _px(d, ox + 7, y, P.GREEN)
-                _px(d, ox + 40, y + 4, P.GREEN)
+    core_w = [12, 4, 8]  # apparent core width per open frame (coin-style spin)
+    for f in range(4):
+        ox = f * 64
+        cx, cy = ox + 32, 32
+        closed = f == 0
+        rim = P.GRAY_DARK if closed else P.GREEN_DARK
+        # door slab with lit upper-left arc
+        d.ellipse([ox + 2, 2, ox + 61, 61], fill=(12, 16, 26, 255),
+                  outline=P.OUTLINE)
+        d.ellipse([ox + 4, 4, ox + 59, 59], outline=rim)
+        d.arc([ox + 6, 6, ox + 57, 57], 190, 280, fill=(44, 56, 76, 255))
+        # concentric rings
+        for r, col in ((24, (30, 38, 54, 255)), (17, (22, 28, 42, 255)),
+                       (11, (30, 38, 54, 255))):
+            d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=col)
+        # radial spokes + rivets between them
+        for ang in range(0, 360, 45):
+            x1 = cx + int(11 * math.cos(math.radians(ang)))
+            y1 = cy + int(11 * math.sin(math.radians(ang)))
+            x2 = cx + int(24 * math.cos(math.radians(ang)))
+            y2 = cy + int(24 * math.sin(math.radians(ang)))
+            d.line([(x1, y1), (x2, y2)], fill=(38, 48, 66, 255))
+            rx = cx + int(27 * math.cos(math.radians(ang + 22)))
+            ry = cy + int(27 * math.sin(math.radians(ang + 22)))
+            _px(d, rx, ry, rim)
+        if closed:
+            # red security beams + dormant core
+            for y in range(10, 60, 12):
+                _rect(d, ox + 6, y, ox + 57, y + 1, P.RED_RAMP[0])
+                _px(d, ox + 8, y, P.RED)
+            d.ellipse([cx - 7, cy - 7, cx + 7, cy + 7], fill=(30, 10, 14, 255),
+                      outline=P.OUTLINE)
+            _px(d, cx - 2, cy - 2, P.RED)
+        else:
+            # yin-yang core spin inside a dark porthole
+            d.ellipse([cx - 8, cy - 8, cx + 8, cy + 8], fill=(6, 10, 18, 255),
+                      outline=P.GREEN_DARK)
+            w = core_w[f - 1]
+            x0, x1 = cx - w // 2, cx + w // 2
+            d.ellipse([x0, cy - 7, x1, cy + 7], fill=P.BLUE, outline=P.OUTLINE)
+            if w > 4:
+                d.chord([x0, cy - 7, x1, cy + 7], 90, 270, fill=P.GREEN)
+            # rotating green shimmer on the rim
+            for ang in range(0, 360, 60):
+                gx = cx + int(29 * math.cos(math.radians(ang + f * 20)))
+                gy = cy + int(29 * math.sin(math.radians(ang + f * 20)))
+                _px(d, gx, gy, P.GREEN)
+    img.save(path)
+
+
+def gen_vignette(path):
+    """480x270 always-on overlay (Phase 3): transparent center, soft dark
+    corners — the key art's framing. Quadratic falloff past 72% radius."""
+    img = Image.new("RGBA", (480, 270), P.TRANSPARENT)
+    px = img.load()
+    for y in range(270):
+        for x in range(480):
+            dx = (x - 240) / 240.0
+            dy = (y - 135) / 135.0
+            dist = (dx * dx + dy * dy) ** 0.5
+            a = min(1.0, max(0.0, dist - 0.72) / 0.55)
+            alpha = int(120 * a * a)
+            if alpha:
+                px[x, y] = (2, 4, 10, alpha)
     img.save(path)
 
 
@@ -1186,6 +1240,7 @@ def main():
     gen_projectiles(f"{out}/props/projectiles.png")
     gen_monitors(f"{out}/props/monitors.png")
     gen_hud_atlas(f"{out}/ui/hud_atlas.png")
+    gen_vignette(f"{out}/fx/vignette.png")
     if has_key_art:
         src = Image.open(keyart.DEFAULT_SRC).convert("RGBA")
         keyart.make_portraits(src, portraits_path)

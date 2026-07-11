@@ -68,6 +68,7 @@ func _ready() -> void:
 		_instantiate_marker(spawn)
 
 	_build_parallax()
+	_spawn_ambient_particles(builder.room_size)
 	add_child(DebugOverlay.new())
 
 	if not GameManager.is_stage_running():
@@ -222,6 +223,41 @@ func _build_parallax() -> void:
 			"res://assets/art/backgrounds/stage_%d_mid.png" % data.stage_id, 0.5)
 	_parallax_layer(parallax,
 			"res://assets/art/backgrounds/stage_%d_near.png" % data.stage_id, 0.8)
+
+
+## Phase 3 atmosphere: slow drifting particles per stage theme — dust motes
+## in the office, digital rain drips, gilded dust, rising gold sparkle,
+## rising corruption embers. Purely visual, z below entities.
+const AMBIENT := {
+	1: {"color": Color(0.55, 0.65, 0.8, 0.35), "vel": Vector2(4, 6), "amount": 20},
+	2: {"color": Color(0.1, 0.85, 0.85, 0.5), "vel": Vector2(0, 55), "amount": 28},
+	3: {"color": Color(1.0, 0.85, 0.35, 0.35), "vel": Vector2(3, 4), "amount": 16},
+	4: {"color": Color(1.0, 0.8, 0.2, 0.5), "vel": Vector2(0, -8), "amount": 18},
+	5: {"color": Color(1.0, 0.25, 0.3, 0.5), "vel": Vector2(0, -14), "amount": 24},
+}
+
+
+func _spawn_ambient_particles(room_size: Vector2) -> void:
+	if not AMBIENT.has(data.stage_id):
+		return
+	var cfg: Dictionary = AMBIENT[data.stage_id]
+	var motes := CPUParticles2D.new()
+	motes.amount = cfg.amount * maxi(1, int(room_size.x / 480.0))
+	motes.lifetime = 7.0
+	motes.preprocess = 7.0 # room is already dusted when the stage fades in
+	motes.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	motes.emission_rect_extents = room_size / 2.0
+	motes.position = room_size / 2.0
+	var vel: Vector2 = cfg.vel
+	motes.direction = vel.normalized() if vel.length() > 0.0 else Vector2.DOWN
+	motes.initial_velocity_min = vel.length() * 0.6
+	motes.initial_velocity_max = vel.length() * 1.4
+	motes.gravity = Vector2.ZERO
+	motes.scale_amount_min = 0.6
+	motes.scale_amount_max = 1.4
+	motes.color = cfg.color
+	motes.z_index = -1
+	add_child(motes)
 
 
 func _parallax_layer(parent: ParallaxBackground, texture_path: String, motion: float) -> void:

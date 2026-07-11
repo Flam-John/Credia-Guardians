@@ -9,6 +9,7 @@ static var _frames_cache: SpriteFrames
 
 func _ready() -> void:
 	sprite_frames = _build_frames()
+	material = FX.additive()  # Phase 3 glow pass
 	animation_finished.connect(_on_finished)
 
 

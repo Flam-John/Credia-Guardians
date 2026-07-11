@@ -8,7 +8,7 @@ const REBINDABLE: Array[StringName] = [&"jump", &"attack", &"dash", &"ability", 
 static func defaults() -> Dictionary:
 	return {
 		"audio": {"master": 1.0, "music": 0.8, "sfx": 1.0},
-		"video": {"fullscreen": false, "window_scale": 3, "scanlines": false,
+		"video": {"fullscreen": false, "window_scale": 3, "scanlines": true,
 				"show_timer": false, "rumble": true},
 		"general": {"locale": "en"},
 		"input": {},

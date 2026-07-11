@@ -6,6 +6,9 @@ extends Area2D
 ## (review P3-19: the two gates were ~80% copy-paste).
 
 const SHEET := preload("res://assets/art/props/exit_gate.png")
+const FRAME := Vector2(64, 64)
+const SPIN_FRAMES := 3   # open frames 1..3: yin-yang core rotation
+const SPIN_INTERVAL := 0.18
 
 @export var trigger_size := Vector2(32, 60)
 @export var blocker_size := Vector2(32, 60)
@@ -14,6 +17,7 @@ const SHEET := preload("res://assets/art/props/exit_gate.png")
 var open := false
 var _atlas: AtlasTexture
 var _blocker: StaticBody2D
+var _spin_frame := 0
 
 
 func _ready() -> void:
@@ -21,7 +25,7 @@ func _ready() -> void:
 	collision_mask = PhysicsLayers.PLAYER
 	_atlas = AtlasTexture.new()
 	_atlas.atlas = SHEET
-	_atlas.region = Rect2(0, 0, 48, 64)
+	_atlas.region = Rect2(Vector2.ZERO, FRAME)
 	var sprite := Sprite2D.new()
 	sprite.texture = _atlas
 	sprite.position = Vector2(0, -32)
@@ -51,10 +55,21 @@ func open_gate() -> void:
 	if open:
 		return
 	open = true
-	_atlas.region = Rect2(48, 0, 48, 64)
+	_atlas.region = Rect2(Vector2(FRAME.x, 0), FRAME)
 	_blocker.queue_free()
 	AudioManager.play_sfx("gate_open")
+	# spin the vault-door core while open (frames 1..3)
+	var spin := Timer.new()
+	spin.wait_time = SPIN_INTERVAL
+	spin.autostart = true
+	spin.timeout.connect(_advance_spin)
+	add_child(spin)
 	_gate_opened()
+
+
+func _advance_spin() -> void:
+	_spin_frame = (_spin_frame + 1) % SPIN_FRAMES
+	_atlas.region = Rect2(Vector2(FRAME.x * (1 + _spin_frame), 0), FRAME)
 
 
 ## Subclass hooks.

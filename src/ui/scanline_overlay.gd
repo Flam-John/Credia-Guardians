@@ -13,6 +13,9 @@ func _ready() -> void:
 	rect.stretch_mode = TextureRect.STRETCH_SCALE
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(rect)
+	# CanvasLayer children don't stretch with anchors (project gotcha, same
+	# as the HUD) — without this the rect is 0x0 and scanlines never render
+	rect.size = rect.get_viewport_rect().size
 	EventBus.settings_applied.connect(_on_settings)
 
 

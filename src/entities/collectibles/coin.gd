@@ -19,6 +19,7 @@ func _ready() -> void:
 	var sprite := AnimatedSprite2D.new()
 	sprite.sprite_frames = _spin_frames()
 	sprite.play(&"spin")
+	sprite.material = FX.additive()  # Phase 3 glow pass
 	add_child(sprite)
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
