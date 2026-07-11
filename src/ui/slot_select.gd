@@ -20,7 +20,7 @@ func _rebuild() -> void:
 		UIKit.caption(tr("X: delete slot   ESC: back")),
 	]
 	for summary in SaveManager.get_slot_summaries():
-		items.append(_slot_button(summary))
+		items.append(_slot_row(summary))
 	items.append(UIKit.button(tr("BACK"), _back))
 	_column = UIKit.menu_column(items)
 	add_child(UIKit.center(_column))
@@ -31,14 +31,33 @@ func _rebuild() -> void:
 
 func _focus_slot(slot: int) -> void:
 	if slot > 0:
-		for button in _column.get_children():
-			if button.has_meta(&"slot") and button.get_meta(&"slot") == slot:
+		# an armed slot keeps focus on its DELETE button so the second
+		# press lands where the first did
+		for button in _slot_buttons():
+			if button.get_meta(&"slot_delete", -1) == slot:
+				button.grab_focus()
+				return
+		for button in _slot_buttons():
+			if button.get_meta(&"slot", -1) == slot:
 				button.grab_focus()
 				return
 	UIKit.grab_first_focus(self)
 
 
-func _slot_button(summary: Dictionary) -> Button:
+## All buttons in the column, including those nested in slot rows.
+func _slot_buttons() -> Array[Button]:
+	var out: Array[Button] = []
+	for child in _column.get_children():
+		if child is Button:
+			out.append(child)
+		else:
+			for nested in child.get_children():
+				if nested is Button:
+					out.append(nested)
+	return out
+
+
+func _slot_row(summary: Dictionary) -> Control:
 	var slot: int = summary.slot
 	var text: String
 	if summary.get("incompatible", false):
@@ -57,7 +76,32 @@ func _slot_button(summary: Dictionary) -> Button:
 			or (SlotSelectFlow.mode == SlotSelectFlow.Mode.CONTINUE and summary.get("empty", true)):
 		btn.disabled = true
 	btn.set_meta(&"slot", slot)
-	return btn
+	# occupied (or locked) slots get a visible delete button — same
+	# two-press confirm as the X shortcut, so a run can be restarted
+	# from scratch without knowing the keyboard shortcut
+	if summary.get("empty", true) and not summary.get("incompatible", false):
+		return btn
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override(&"separation", 4)
+	row.add_child(btn)
+	var del := UIKit.button(
+			tr("SURE?") if _confirm_delete_slot == slot else tr("DELETE"),
+			_delete_slot.bind(slot))
+	del.custom_minimum_size = Vector2(64, 20)
+	del.set_meta(&"slot_delete", slot)
+	row.add_child(del)
+	return row
+
+
+## Two-press delete, shared by the DELETE button and the X shortcut.
+func _delete_slot(slot: int) -> void:
+	if _confirm_delete_slot == slot:
+		SaveManager.delete_slot(slot)
+		_confirm_delete_slot = -1
+		AudioManager.play_sfx("menu_back")
+	else:
+		_confirm_delete_slot = slot
+	_rebuild()
 
 
 func _on_slot(summary: Dictionary) -> void:
@@ -84,19 +128,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _delete_focused() -> void:
 	var focused := get_viewport().gui_get_focus_owner()
-	if focused == null or not focused.has_meta(&"slot"):
+	if focused == null:
 		return
-	var slot: int = focused.get_meta(&"slot")
+	var slot: int = focused.get_meta(&"slot", focused.get_meta(&"slot_delete", -1))
+	if slot < 1:
+		return
 	var summary: Dictionary = SaveManager.get_slot_summaries()[slot - 1]
 	if summary.get("empty", true) and not summary.get("incompatible", false):
 		return
-	if _confirm_delete_slot == slot:
-		SaveManager.delete_slot(slot)
-		_confirm_delete_slot = -1
-		AudioManager.play_sfx("menu_back")
-	else:
-		_confirm_delete_slot = slot
-	_rebuild()
+	_delete_slot(slot)
 
 
 func _back() -> void:

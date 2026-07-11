@@ -6,6 +6,8 @@ extends Area2D
 const SPIN_SHEET := preload("res://assets/art/props/coin.png")
 const FRAME := 16
 const GRAVITY := 500.0
+const RADIUS := 7.0
+const BOUNCE_DAMPING := 0.55
 
 @export var value := 100
 
@@ -47,12 +49,30 @@ func _physics_process(delta: float) -> void:
 	if not _popping:
 		return
 	_pop_velocity.y += GRAVITY * delta
-	position += _pop_velocity * delta
+	var motion := _pop_velocity * delta
+	# raycast against the world so pops BOUNCE off walls/floors instead of
+	# embedding the coin inside a tile (loot flung sideways by a kill)
+	var query := PhysicsRayQueryParameters2D.create(
+			global_position, global_position + motion, PhysicsLayers.WORLD)
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		position += motion
+	else:
+		var normal: Vector2 = hit.normal
+		global_position = (hit.position as Vector2) + normal * RADIUS
+		_pop_velocity = _pop_velocity.bounce(normal) * BOUNCE_DAMPING
+		if normal.y < -0.5 and _pop_velocity.length() < 50.0:
+			_settle() # came to rest on a floor
+			return
 	if _pop_velocity.y > 60.0:
-		_popping = false
-		set_physics_process(false)
-		monitoring = true
-		set_deferred("monitorable", true)
+		_settle()
+
+
+func _settle() -> void:
+	_popping = false
+	set_physics_process(false)
+	monitoring = true
+	set_deferred("monitorable", true)
 
 
 var _collected := false
