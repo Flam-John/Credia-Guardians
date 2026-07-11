@@ -18,11 +18,11 @@ func _ready() -> void:
 	row.add_child(_character_panel(&"flam", 1,
 			tr("FLAM_BLURB")))
 	_title = UIKit.title(_title_text(), 20)
+	# no spacers: with 128px portraits the column is 266/270px — spacers
+	# pushed BACK below the screen (review v1.8.1-1)
 	var column := UIKit.menu_column([
 		_title,
-		_spacer(8),
 		row,
-		_spacer(8),
 		UIKit.button(tr("BACK"), _back),
 	])
 	add_child(UIKit.center(column))
@@ -36,7 +36,9 @@ func _character_panel(id: StringName, portrait_index: int, blurb: String) -> Con
 	atlas.atlas = PORTRAITS
 	atlas.region = Rect2(portrait_index * 32, 0, 32, 32)
 	portrait.texture = atlas
-	portrait.custom_minimum_size = Vector2(64, 64)
+	# 4x integer scale — at 64px the photo-extracted faces were too small
+	# to read; 128px keeps the pixels crisp and the faces recognizable
+	portrait.custom_minimum_size = Vector2(128, 128)
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
