@@ -22,9 +22,11 @@ import palette as P  # noqa: E402
 DEFAULT_SRC = os.path.expanduser(
     "~/OneDrive/Υπολογιστής/CHRIS_FLAM_LEVEL_1_VICTORY.png")
 
-# Crop boxes as fractions (x0, y0, x1, y1) of the source image.
-CHRIS_FACE = (0.024, 0.012, 0.080, 0.112)
-FLAM_FACE = (0.676, 0.012, 0.732, 0.112)
+# Crop boxes as fractions (x0, y0, x1, y1) of the source image — the INNER
+# area of each corner portrait frame (measured against the 1402x1122 photo;
+# the old boxes clipped Flam's cheek and both chins).
+CHRIS_FACE = (0.023, 0.025, 0.088, 0.123)
+FLAM_FACE = (0.679, 0.021, 0.737, 0.124)
 # Vault-chamber walls with the in-world propaganda monitors; stop above the
 # KO'd bankers on the floor.
 VAULT_WALL_L = (0.000, 0.240, 0.175, 0.610)
@@ -50,8 +52,17 @@ def make_portraits(src: Image.Image, out_path: str) -> Image.Image:
     d = ImageDraw.Draw(img)
     for idx, box in enumerate((CHRIS_FACE, FLAM_FACE)):
         ox = idx * 32
-        face = _crop(src, box).resize((26, 26), Image.Resampling.LANCZOS)
-        face = _quantize(face, 24)
+        face = _crop(src, box)
+        # cover-crop: scale preserving aspect to FILL 26x26, then trim the
+        # overflow centered — the old square resize squashed the tall crops
+        # and mangled the faces
+        scale = max(26.0 / face.width, 26.0 / face.height)
+        face = face.resize((max(26, round(face.width * scale)),
+                            max(26, round(face.height * scale))),
+                           Image.Resampling.LANCZOS)
+        left = (face.width - 26) // 2
+        top = (face.height - 26) // 2
+        face = _quantize(face.crop((left, top, left + 26, top + 26)), 24)
         d.rectangle([ox + 2, 2, ox + 29, 29], fill=P.BG_PANEL, outline=P.GREEN_DARK)
         img.paste(face, (ox + 3, 3))
         d.rectangle([ox + 2, 2, ox + 29, 29], outline=P.GREEN_DARK)  # re-frame
