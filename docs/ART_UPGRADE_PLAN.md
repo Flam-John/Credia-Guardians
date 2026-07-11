@@ -12,8 +12,12 @@
 > frames, glossy HP/boss pills, HI-SCORE panel) SHIPPED — plus a real fix:
 > the HUD root was 0x0 (CanvasLayer children don't stretch with anchors),
 > so the boss bar and speedrun timer had never rendered on-screen.
-> Still open below: vault door prop, monitors/glow-pool props, Phase 2
-> (Aseprite), Phase 3 (in-engine glow/particles/victory rebuild).
+> **Status (v1.6.0)**: vault door (64x64 x4, spinning core via GateProp
+> timer) + Phase 3 SHIPPED: FX.additive glow pass (coins/ghosts/sparks/
+> node cores), scanlines default ON (+ fixed ScanlineOverlay 0x0 — they
+> had never rendered), VignetteOverlay, per-stage ambient particles,
+> victory tableau rebuild. Remaining: Phase 2 only (Aseprite hand-polish
+> — blocked on Aseprite purchase/build).
 
 Source of truth: `CHRIS_FLAM_LEVEL_1_VICTORY.png`. Current placeholders are
 3-4 flat colors per sprite; the key art's identity comes from **glow, depth,
