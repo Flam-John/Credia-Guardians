@@ -5,8 +5,15 @@
 > piping, capes, faces), all banker/CEO sheets v2 (4-tone suits, lapels,
 > per-type faces), 3-layer parallax for all 5 stages with glow pools, and
 > portraits + stage-5 vault wall extracted straight from the key art
-> (tools/artgen/extract_from_key_art.py). Still open below: tilesets, vault
-> door prop, HUD atlas, Phase 2 (Aseprite), Phase 3 (in-engine glow).
+> (tools/artgen/extract_from_key_art.py).
+>
+> **Status (v1.5.0)**: tilesets v2 (grout/rivets, glow+bloom edge, circuit
+> traces, ramped spikes, glossy one-way) + HUD atlas (beveled portrait
+> frames, glossy HP/boss pills, HI-SCORE panel) SHIPPED — plus a real fix:
+> the HUD root was 0x0 (CanvasLayer children don't stretch with anchors),
+> so the boss bar and speedrun timer had never rendered on-screen.
+> Still open below: vault door prop, monitors/glow-pool props, Phase 2
+> (Aseprite), Phase 3 (in-engine glow/particles/victory rebuild).
 
 Source of truth: `CHRIS_FLAM_LEVEL_1_VICTORY.png`. Current placeholders are
 3-4 flat colors per sprite; the key art's identity comes from **glow, depth,
