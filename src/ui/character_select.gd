@@ -18,11 +18,11 @@ func _ready() -> void:
 	row.add_child(_character_panel(&"flam", 1,
 			tr("FLAM_BLURB")))
 	_title = UIKit.title(_title_text(), 20)
+	# no spacers: with 128px portraits the column is 266/270px — spacers
+	# pushed BACK below the screen (review v1.8.1-1)
 	var column := UIKit.menu_column([
 		_title,
-		_spacer(8),
 		row,
-		_spacer(8),
 		UIKit.button(tr("BACK"), _back),
 	])
 	add_child(UIKit.center(column))
