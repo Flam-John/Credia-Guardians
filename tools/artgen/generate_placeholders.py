@@ -228,6 +228,36 @@ def gen_portraits(path: str):
     img.save(path)
 
 
+def gen_hud_atlas(path: str):
+    """64x24 HUD atlas — fixed regions consumed by src/ui/hud.gd:
+    (0,0,24,24)  beveled metal portrait frame, transparent 20x20 center
+    (24,0,7,8)   HP pill ON (glossy green)   (24,8,7,8)  HP pill OFF
+    (32,0,6,6)   boss pill ON (red)          (32,8,6,6)  boss pill OFF
+    (40,0,12,12) 9-patch dark panel (4px margins) for label backings
+    """
+    img = Image.new("RGBA", (64, 24), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    # portrait frame: outer bevel lit top-left, inner bevel inverted
+    shade_rect(d, 0, 0, 23, 23, P.GRAY_RAMP, outline=P.OUTLINE)
+    shade_rect(d, 1, 1, 22, 22, (P.GRAY_RAMP[2], P.GRAY_RAMP[1], P.GRAY_RAMP[0]))
+    d.rectangle([2, 2, 21, 21], fill=P.TRANSPARENT)  # punch the window
+    for cx_, cy_ in ((0, 0), (23, 0), (0, 23), (23, 23)):  # corner screws
+        _px(d, cx_, cy_, P.OUTLINE)
+    _px(d, 1, 1, P.GREEN)  # power LED in the top-left corner
+    # HP pills
+    shade_rect(d, 24, 0, 30, 7, P.GREEN_RAMP, outline=P.OUTLINE)
+    _px(d, 25, 1, P.WHITE)  # gloss glint
+    shade_rect(d, 24, 8, 30, 15, P.PANEL_RAMP, outline=P.OUTLINE)
+    # boss pills
+    shade_rect(d, 32, 0, 37, 5, P.RED_RAMP, outline=P.OUTLINE)
+    _px(d, 33, 1, P.RED_RAMP[2])
+    shade_rect(d, 32, 8, 37, 13, P.PANEL_RAMP, outline=P.OUTLINE)
+    # 9-patch panel: dark backing with metallic border
+    shade_rect(d, 40, 0, 51, 11, P.PANEL_RAMP, outline=P.GRAY_DARK)
+    d.rectangle([41, 1, 50, 10], outline=P.PANEL_RAMP[0])
+    img.save(path)
+
+
 def gen_coin(path: str):
     """6-frame spin of the blue/green yin-yang Credia coin, 16x16."""
     img = Image.new("RGBA", (96, 16), P.TRANSPARENT)
@@ -244,6 +274,13 @@ def gen_coin(path: str):
     img.save(path)
 
 
+def _mix(a, b, f: float):
+    """Opaque blend of two colors: a*(1-f) + b*f. Tiles must stay opaque —
+    ImageDraw writes raw RGBA, so alpha would punch see-through holes."""
+    return (int(a[0] * (1 - f) + b[0] * f), int(a[1] * (1 - f) + b[1] * f),
+            int(a[2] * (1 - f) + b[2] * f), 255)
+
+
 def gen_tileset(path: str, top_light=None, top_glow=None):
     """256x256 tileset. Row 0 holds the core gameplay tiles at fixed coords
     used by AsciiRoomBuilder: 0 solid-top, 1 solid-interior, 2 bg panel,
@@ -252,6 +289,10 @@ def gen_tileset(path: str, top_light=None, top_glow=None):
     """
     top_light = top_light or P.GREEN_DARK
     top_glow = top_glow or P.GREEN
+    trace = _mix(P.PANEL_RAMP[1], top_light, 0.35)  # dim circuit-trace color
+    bloom = _mix(P.PANEL_RAMP[2], top_glow, 0.30)   # soft row under the strip
+    rivet = (20, 38, 60, 255)
+    grout = (3, 6, 12, 255)
     img = Image.new("RGBA", (256, 256), P.TRANSPARENT)
     d = ImageDraw.Draw(img)
     t = 16
@@ -259,37 +300,61 @@ def gen_tileset(path: str, top_light=None, top_glow=None):
     def tile(ix, iy):
         return ix * t, iy * t
 
-    # 0: solid with themed light strip on top
+    def panel_body(x, y):
+        """Shared solid-tile body: shaded panel, grout seams, corner rivets."""
+        vshade_rect(d, x, y, x + 15, y + 15, P.PANEL_RAMP)
+        d.line([(x, y + 15), (x + 15, y + 15)], fill=grout)
+        d.line([(x + 15, y), (x + 15, y + 15)], fill=grout)
+        for rx, ry in ((x + 2, y + 2), (x + 13, y + 2),
+                       (x + 2, y + 13), (x + 13, y + 13)):
+            _px(d, rx, ry, rivet)
+
+    # 0: solid walkable — glow strip, bloom row, circuit trace
     x, y = tile(0, 0)
-    _rect(d, x, y, x + 15, y + 15, P.BG_PANEL)
-    _rect(d, x, y, x + 15, y + 1, top_light)
+    panel_body(x, y)
     _rect(d, x, y, x + 15, y, top_glow)
-    for i in range(0, 16, 4):
-        _px(d, x + i, y + 8, P.GRAY_DARK)
-    # 1: solid interior
+    _rect(d, x, y + 1, x + 15, y + 2, top_light)
+    _rect(d, x, y + 3, x + 15, y + 3, bloom)
+    d.line([(x + 3, y + 8), (x + 8, y + 8), (x + 8, y + 12)], fill=trace)
+    _px(d, x + 8, y + 12, top_light)  # solder point
+    # 1: solid interior — grout grid + traces + vent slits
     x, y = tile(1, 0)
-    _rect(d, x, y, x + 15, y + 15, P.BG_PANEL)
-    for i in range(0, 16, 4):
-        _px(d, x + i + 2, y + 4, P.GRAY_DARK)
-        _px(d, x + i, y + 12, P.GRAY_DARK)
-    # 2: background panel (no collision) — darker
+    panel_body(x, y)
+    d.line([(x + 2, y + 5), (x + 7, y + 5), (x + 7, y + 10), (x + 12, y + 10)],
+           fill=trace)
+    _px(d, x + 12, y + 10, top_light)
+    d.line([(x + 11, y + 3), (x + 13, y + 3)], fill=P.PANEL_RAMP[0])
+    d.line([(x + 2, y + 12), (x + 4, y + 12)], fill=P.PANEL_RAMP[0])
+    # 2: background panel (no collision) — darker inset
     x, y = tile(2, 0)
     _rect(d, x, y, x + 15, y + 15, P.BG_VOID)
     d.rectangle([x + 2, y + 2, x + 13, y + 13], outline=P.BG_PANEL)
-    # 3: spike hazard (red)
+    d.line([(x + 3, y + 3), (x + 12, y + 3)], fill=(14, 28, 46, 255))  # inset light
+    _px(d, x + 7, y + 8, _mix(P.BG_VOID, top_light, 0.3))  # faint status LED
+    # 3: spike hazard — ramped spikes on a base plate
     x, y = tile(3, 0)
+    _rect(d, x, y + 14, x + 15, y + 15, P.PANEL_RAMP[0])
+    d.line([(x, y + 14), (x + 15, y + 14)], fill=P.PANEL_RAMP[2])
     for s in range(4):
         sx = x + s * 4
-        d.polygon([(sx, y + 15), (sx + 2, y + 8), (sx + 3, y + 15)], fill=P.RED)
-    # 4: one-way platform
+        d.polygon([(sx, y + 14), (sx + 2, y + 6), (sx + 3, y + 14)],
+                  fill=P.RED_RAMP[0])
+        d.line([(sx + 2, y + 6), (sx + 2, y + 13)], fill=P.RED)  # lit face
+        _px(d, sx + 2, y + 6, P.RED_RAMP[2])  # hot tip
+    # 4: one-way platform — glossy energy strip with brackets
     x, y = tile(4, 0)
-    _rect(d, x, y + 2, x + 15, y + 5, P.BLUE_DEEP)
+    _rect(d, x, y + 2, x + 15, y + 5, P.BLUE_RAMP[0])
+    _rect(d, x, y + 3, x + 15, y + 4, P.BLUE_DEEP)
     _rect(d, x, y + 2, x + 15, y + 2, P.CYAN)
+    for gx in range(x + 2, x + 16, 6):
+        _px(d, gx, y + 2, P.WHITE)  # glints
+        _rect(d, gx, y + 6, gx + 1, y + 7, P.PANEL_RAMP[1])  # support bracket
     # 5/6: solid left/right edge lit
     for ix, edge_x in ((5, 0), (6, 15)):
         x, y = tile(ix, 0)
-        _rect(d, x, y, x + 15, y + 15, P.BG_PANEL)
+        panel_body(x, y)
         _rect(d, x + edge_x, y, x + edge_x, y + 15, top_light)
+        _px(d, x + edge_x, y, top_glow)
     img.save(path)
 
 
@@ -1078,7 +1143,8 @@ def main():
     ap.add_argument("--out", default="assets/art")
     args = ap.parse_args()
     out = args.out
-    for sub in ("characters", "tiles", "props", "enemies", "fx", "backgrounds"):
+    for sub in ("characters", "tiles", "props", "enemies", "fx", "backgrounds",
+                "ui"):
         os.makedirs(f"{out}/{sub}", exist_ok=True)
 
     # Two assets come straight from the key-art photo when it is available.
@@ -1119,6 +1185,7 @@ def main():
     gen_special_enemy_sheets(f"{out}/enemies")
     gen_projectiles(f"{out}/props/projectiles.png")
     gen_monitors(f"{out}/props/monitors.png")
+    gen_hud_atlas(f"{out}/ui/hud_atlas.png")
     if has_key_art:
         src = Image.open(keyart.DEFAULT_SRC).convert("RGBA")
         keyart.make_portraits(src, portraits_path)
