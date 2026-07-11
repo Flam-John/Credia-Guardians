@@ -36,7 +36,9 @@ func _character_panel(id: StringName, portrait_index: int, blurb: String) -> Con
 	atlas.atlas = PORTRAITS
 	atlas.region = Rect2(portrait_index * 32, 0, 32, 32)
 	portrait.texture = atlas
-	portrait.custom_minimum_size = Vector2(64, 64)
+	# 4x integer scale — at 64px the photo-extracted faces were too small
+	# to read; 128px keeps the pixels crisp and the faces recognizable
+	portrait.custom_minimum_size = Vector2(128, 128)
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
