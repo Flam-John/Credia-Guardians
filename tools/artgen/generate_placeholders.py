@@ -99,14 +99,19 @@ def draw_hero_frame(draw, ox: int, oy: int, anim: str, i: int, hero: str):
 
     # cape behind everything (dark navy, trails against motion, sways at rest)
     cape_sway = [0, 1, 0, -1][i % 4]
+    trail = cape_sway - lean * 2
+
+    def _cl(x: int) -> int:  # keep the trailing cape inside this 32px cell
+        return max(ox, min(ox + 31, x))
+
     draw.polygon([
         (cx - half + 1 + lean, t0 + 1),
         (cx + half - 1 + lean, t0 + 1),
-        (cx + half - 2 + cape_sway - lean * 2, oy + 26),
-        (cx - half - 1 + cape_sway - lean * 2, oy + 25),
+        (_cl(cx + half - 2 + trail), oy + 26),
+        (_cl(cx - half - 1 + trail), oy + 25),
     ], fill=(10, 16, 34, 255))
-    draw.line([(cx - half + cape_sway - lean * 2, oy + 25),
-               (cx + half - 3 + cape_sway - lean * 2, oy + 26)],
+    draw.line([(_cl(cx - half + trail), oy + 25),
+               (_cl(cx + half - 3 + trail), oy + 26)],
               fill=(6, 10, 22, 255))  # cape hem shadow
 
     # legs: armored, knee piping, glow soles
@@ -527,7 +532,9 @@ def draw_special_enemy_frame(d, ox, oy, size, kind, anim, i):
                    fill=P.SUIT_RAMP[0])  # lapel
             d.line([(cx + 6, body_top + 9), (cx + 2, body_top + 12)],
                    fill=P.SUIT_RAMP[0])
-            _rect(d, cx - 1, body_top + 10, cx, body_top + 16, P.RED)  # tie
+            tie_y1 = min(body_top + 16, bottom - 1)  # clamped in-cell
+            if tie_y1 >= body_top + 10:
+                _rect(d, cx - 1, body_top + 10, cx, tie_y1, P.RED)  # tie
         # shark head: shaded snout, white belly line, gills
         d.polygon([(cx - 8, body_top + 10), (cx + 2, body_top - 2),
                    (cx + 9, body_top + 10)], fill=shark_ramp[1])
@@ -833,9 +840,9 @@ def draw_banker_frame(d, ox, oy, size, anim, i, kind):
         _rect(d, cx - 1, oy + 1, cx, oy + 4 + (i % 2), P.RED)
     if dizzy:
         # gold dizzy stars (the key art's signature KO gag)
-        _px(d, cx - 5, body_top - 9 + (i % 2), P.GOLD)
-        _px(d, cx + 5, body_top - 10 - (i % 2), P.GOLD)
-        _px(d, cx + (i % 2) * 2 - 1, body_top - 12, P.GOLD_RAMP[2])
+        _px(d, cx - 5, max(oy + 1, body_top - 9 + (i % 2)), P.GOLD)
+        _px(d, cx + 5, max(oy + 1, body_top - 10 - (i % 2)), P.GOLD)
+        _px(d, cx + (i % 2) * 2 - 1, max(oy + 1, body_top - 12), P.GOLD_RAMP[2])
 
 
 def gen_enemy_sheets(out_dir):
@@ -1022,10 +1029,11 @@ def gen_stage1_backgrounds(out_dir):
                 lambda d, img: _hanging_cables(d, img, 80))
 
 
-def gen_core_backgrounds(out_dir):
+def gen_core_backgrounds(out_dir, write_far=True):
     """Stage 5 (the Core): circuitry invaded by corruption. The far layer is
-    a procedural fallback — extract_from_key_art.py overwrites it with the
-    photo's vault-chamber walls when the key art is present."""
+    a procedural fallback — main() replaces it with the photo's vault-chamber
+    walls when the key art is present, and keeps the committed photo version
+    (write_far=False) when it isn't."""
     far = Image.new("RGBA", (480, 270), (3, 4, 10, 255))
     d = ImageDraw.Draw(far)
     for x in range(0, 480, 40):  # circuit traces with solder-point glints
@@ -1035,7 +1043,8 @@ def gen_core_backgrounds(out_dir):
         _px(d, x + 20, 150, scale_color(col, 1.6))
     for y in range(30, 270, 60):
         d.line([(0, y), (480, y)], fill=(14, 22, 50, 255))
-    far.save(f"{out_dir}/stage_5_far.png")
+    if write_far:
+        far.save(f"{out_dir}/stage_5_far.png")
 
     mid = Image.new("RGBA", (480, 270), P.TRANSPARENT)
     d = ImageDraw.Draw(mid)
@@ -1072,9 +1081,21 @@ def main():
     for sub in ("characters", "tiles", "props", "enemies", "fx", "backgrounds"):
         os.makedirs(f"{out}/{sub}", exist_ok=True)
 
+    # Two assets come straight from the key-art photo when it is available.
+    # Without it, KEEP the committed photo versions instead of silently
+    # downgrading them to procedural placeholders.
+    import extract_from_key_art as keyart
+    has_key_art = os.path.exists(keyart.DEFAULT_SRC)
+    portraits_path = f"{out}/characters/portraits.png"
+    far5_path = f"{out}/backgrounds/stage_5_far.png"
+
     gen_player_sheet(f"{out}/characters/chris_sheet.png", "chris")
     gen_player_sheet(f"{out}/characters/flam_sheet.png", "flam")
-    gen_portraits(f"{out}/characters/portraits.png")
+    if has_key_art or not os.path.exists(portraits_path):
+        gen_portraits(portraits_path)
+    else:
+        print("key art not found at", keyart.DEFAULT_SRC,
+              "- keeping committed portraits.png")
     gen_coin(f"{out}/props/coin.png")
     gen_tileset(f"{out}/tiles/tileset_office.png")
     gen_tileset(f"{out}/tiles/tileset_datacenter.png", (18, 140, 140, 255), P.CYAN)
@@ -1082,7 +1103,10 @@ def main():
     gen_tileset(f"{out}/tiles/tileset_vault.png", (120, 100, 24, 255), (255, 220, 120, 255))
     gen_tileset(f"{out}/tiles/tileset_core.png", (140, 30, 40, 255), P.RED)
     gen_stage_backgrounds(f"{out}/backgrounds")
-    gen_core_backgrounds(f"{out}/backgrounds")
+    write_far5 = has_key_art or not os.path.exists(far5_path)
+    if not write_far5:
+        print("key art not found - keeping committed stage_5_far.png")
+    gen_core_backgrounds(f"{out}/backgrounds", write_far=write_far5)
     gen_ceo_sheets(f"{out}/enemies")
     gen_enemy_sheets(f"{out}/enemies")
     gen_pickups(f"{out}/props/pickups.png")
@@ -1095,6 +1119,11 @@ def main():
     gen_special_enemy_sheets(f"{out}/enemies")
     gen_projectiles(f"{out}/props/projectiles.png")
     gen_monitors(f"{out}/props/monitors.png")
+    if has_key_art:
+        src = Image.open(keyart.DEFAULT_SRC).convert("RGBA")
+        keyart.make_portraits(src, portraits_path)
+        keyart.make_vault_wall(src, far5_path)
+        print("key-art extraction applied (portraits, stage_5_far)")
     print("placeholder art generated ->", out)
 
 
