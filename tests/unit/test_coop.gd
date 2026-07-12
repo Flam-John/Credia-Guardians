@@ -63,6 +63,29 @@ func test_coop_actions_exist_and_are_scoped() -> void:
 			assert_eq(event.device, 1, "P2 pad events pinned to device 1")
 
 
+func test_p1_and_p2_keyboard_keys_are_disjoint() -> void:
+	# regression (v1.8.3): base actions bind BOTH WASD and the arrows, and
+	# the arrows leaked into p1_* — both keyboards drove the same character
+	CoopInput.refresh_if_built()
+	CoopInput.ensure_actions()
+	for base in CoopInput.GAMEPLAY_ACTIONS:
+		var p1_keys := {}
+		for event in InputMap.action_get_events(StringName("p1_%s" % base)):
+			if event is InputEventKey:
+				p1_keys[(event as InputEventKey).physical_keycode] = true
+		for event in InputMap.action_get_events(StringName("p2_%s" % base)):
+			if event is InputEventKey:
+				var code := (event as InputEventKey).physical_keycode
+				assert_false(p1_keys.has(code),
+						"%s: key %s bound to BOTH players" % [base, code])
+	# P1 keeps its own keys (A) but not P2's arrow
+	var p1_left := InputMap.action_get_events(&"p1_move_left")
+	var codes: Array = p1_left.filter(func(e: InputEvent) -> bool: return e is InputEventKey) \
+			.map(func(e: InputEvent) -> int: return (e as InputEventKey).physical_keycode)
+	assert_has(codes, KEY_A, "P1 keeps WASD")
+	assert_does_not_have(codes, KEY_LEFT, "arrows stay exclusive to P2")
+
+
 func test_p2_input_moves_only_p2() -> void:
 	var pair := _spawn_pair()
 	await wait_physics_frames(30) # both land
