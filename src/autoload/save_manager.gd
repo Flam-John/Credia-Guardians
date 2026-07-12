@@ -59,6 +59,7 @@ func get_slot_summaries() -> Array[Dictionary]:
 				"play_time_sec": data.get("play_time_sec", 0),
 				"stages_cleared": _count_cleared(data),
 				"global_hi_score": data.get("global_hi_score", 0),
+				"coop": bool(data.get("coop", false)),
 			})
 	return out
 
@@ -139,6 +140,8 @@ func new_slot_data(character: StringName) -> Dictionary:
 		},
 		"hp_upgrades_found": [],
 		"global_hi_score": 0,
+		"coop": false,
+		"character2": "",
 	}
 
 

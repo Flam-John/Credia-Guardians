@@ -27,20 +27,16 @@ func _ready() -> void:
 	items.append(_check_row("SPEEDRUN TIMER", "video", "show_timer"))
 	items.append(_check_row("GAMEPAD RUMBLE", "video", "rumble"))
 	items.append(_language_row())
-	if GameManager.is_coop():
-		# co-op: each player sees and edits HIS OWN keys
-		items.append(UIKit.caption(tr("— P1 KEYS —"), 8, UIKit.GREEN))
-		items.append(UIKit.caption(tr("P1 MOVES WITH WASD"), 8, UIKit.GRAY))
-		for action in SettingsApplier.REBINDABLE:
-			items.append(_bind_row(action))
-		items.append(UIKit.caption(tr("— P2 KEYS —"), 8, UIKit.CYAN))
-		items.append(UIKit.caption(tr("P2 MOVES WITH THE ARROWS"), 8, UIKit.GRAY))
-		for action in SettingsApplier.REBINDABLE:
-			items.append(_bind_row_p2(action))
-	else:
-		items.append(UIKit.caption(tr("— KEYS —"), 8, UIKit.GRAY))
-		for action in SettingsApplier.REBINDABLE:
-			items.append(_bind_row(action))
+	# both key sections are always available — co-op keys can be set up
+	# from the main menu BEFORE a co-op run starts
+	items.append(UIKit.caption(tr("— P1 KEYS —"), 8, UIKit.GREEN))
+	items.append(UIKit.caption(tr("P1 MOVES WITH WASD"), 8, UIKit.GRAY))
+	for action in SettingsApplier.REBINDABLE:
+		items.append(_bind_row(action))
+	items.append(UIKit.caption(tr("— P2 KEYS (CO-OP) —"), 8, UIKit.CYAN))
+	items.append(UIKit.caption(tr("P2 MOVES WITH THE ARROWS"), 8, UIKit.GRAY))
+	for action in SettingsApplier.REBINDABLE:
+		items.append(_bind_row_p2(action))
 	items.append(UIKit.button(tr("RESET DEFAULTS"), _on_reset))
 	items.append(UIKit.button(tr("BACK"), _on_back))
 	# the column outgrew the 270px screen (audio + video + language + keys):

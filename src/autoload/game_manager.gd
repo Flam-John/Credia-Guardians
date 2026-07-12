@@ -30,6 +30,16 @@ var current_scene_path := ""
 func is_coop() -> bool:
 	return character2 != &""
 
+
+## CONTINUE restores what the slot saved: a co-op slot resumes as co-op
+## with the recorded partner, a solo slot resumes solo.
+func continue_from_slot(data: Dictionary) -> void:
+	hi_score = int(data.get("global_hi_score", 0))
+	if bool(data.get("coop", false)):
+		character2 = StringName(String(data.get("character2", "")))
+	else:
+		character2 = &""
+
 var score: int = 0
 var coins: int = 0
 var lives: int = STARTING_LIVES

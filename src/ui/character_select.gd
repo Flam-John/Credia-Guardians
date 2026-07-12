@@ -69,9 +69,16 @@ func _on_pick(id: StringName) -> void:
 		return
 	var p1: StringName = _p1_pick if SlotSelectFlow.coop else id
 	var p2: StringName = id if SlotSelectFlow.coop else &""
-	if SaveManager.load_slot(SaveManager.active_slot).is_empty():
-		SaveManager.write_slot(SaveManager.active_slot, SaveManager.new_slot_data(p1))
+	var slot_data := SaveManager.load_slot(SaveManager.active_slot)
+	if slot_data.is_empty():
+		slot_data = SaveManager.new_slot_data(p1)
 		GameManager.hi_score = 0
+	# the slot REMEMBERS its mode: CO-OP/SOLO shows in the slot list and
+	# CONTINUE restores the same pair
+	slot_data["last_character"] = String(p1)
+	slot_data["coop"] = p2 != &""
+	slot_data["character2"] = String(p2)
+	SaveManager.write_slot(SaveManager.active_slot, slot_data)
 	GameManager.character = p1
 	GameManager.character2 = p2
 	SceneManager.change_scene("res://scenes/ui/intro_cutscene.tscn")
