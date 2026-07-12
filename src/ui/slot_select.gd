@@ -111,7 +111,7 @@ func _on_slot(summary: Dictionary) -> void:
 	if summary.get("empty", true):
 		# fresh run: character select creates the save on confirm
 		SceneManager.change_scene("res://scenes/ui/character_select.tscn")
-	elif SlotSelectFlow.coop:
+	elif SlotSelectFlow.mode == SlotSelectFlow.Mode.NEW_GAME and SlotSelectFlow.coop:
 		# explicit CO-OP entry on an existing save: re-pick the pair
 		# (character select updates the slot's co-op record)
 		SceneManager.change_scene("res://scenes/ui/character_select.tscn")

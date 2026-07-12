@@ -70,7 +70,12 @@ func _on_pick(id: StringName) -> void:
 	var p1: StringName = _p1_pick if SlotSelectFlow.coop else id
 	var p2: StringName = id if SlotSelectFlow.coop else &""
 	var slot_data := SaveManager.load_slot(SaveManager.active_slot)
-	if slot_data.is_empty():
+	var returning := not slot_data.is_empty()
+	if returning:
+		# arriving on an existing save (co-op re-pick): sync the HUD hi
+		# score to THIS slot, not whatever ran before (review v1.10-2)
+		GameManager.hi_score = int(slot_data.get("global_hi_score", 0))
+	else:
 		slot_data = SaveManager.new_slot_data(p1)
 		GameManager.hi_score = 0
 	# the slot REMEMBERS its mode: CO-OP/SOLO shows in the slot list and
@@ -81,7 +86,12 @@ func _on_pick(id: StringName) -> void:
 	SaveManager.write_slot(SaveManager.active_slot, slot_data)
 	GameManager.character = p1
 	GameManager.character2 = p2
-	SceneManager.change_scene("res://scenes/ui/intro_cutscene.tscn")
+	# a slot with progress resumes at stage select like solo does; only
+	# fresh saves watch the intro (review v1.10-3)
+	if returning:
+		SceneManager.change_scene("res://scenes/ui/stage_select.tscn")
+	else:
+		SceneManager.change_scene("res://scenes/ui/intro_cutscene.tscn")
 
 
 func _back() -> void:

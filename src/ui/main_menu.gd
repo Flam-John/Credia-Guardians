@@ -45,6 +45,9 @@ func _on_boss_rush() -> void:
 
 func _on_continue() -> void:
 	SlotSelectFlow.mode = SlotSelectFlow.Mode.CONTINUE
+	# static flag persists across scenes: without this, touching CO-OP GAME
+	# earlier hijacks CONTINUE into the re-pick flow (review v1.10-1)
+	SlotSelectFlow.coop = false
 	SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
 
 
