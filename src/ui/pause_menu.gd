@@ -41,45 +41,20 @@ func _build_menu() -> void:
 		# of frame and grab_first_focus would land on it (review v1.9-1)
 		_root.remove_child(_column)
 		_column.queue_free()
-	var items: Array[Control] = [
+	# key bindings live in OPTIONS only — the pause screen stays clean
+	_column = UIKit.center(UIKit.framed_panel(UIKit.menu_column([
 		UIKit.title(tr("PAUSED"), 20),
 		UIKit.caption(tr("SYSTEM SUSPENDED"), 8, UIKit.CYAN),
-	]
-	if GameManager.is_coop():
-		# each player sees his own current keys at a glance
-		items.append(UIKit.caption("P1: WASD + %s" % _key_summary_p1(),
-				8, UIKit.GREEN))
-		items.append(UIKit.caption("P2: %s + %s" % [tr("ARROWS"), _key_summary_p2()],
-				8, UIKit.CYAN))
-		items.append(UIKit.caption(tr("CHANGE KEYS IN OPTIONS"), 8, UIKit.GRAY))
-	items.append_array([
 		UIKit.button(tr("RESUME"), _toggle),
 		UIKit.button(tr("RESTART STAGE"), _restart),
 		UIKit.button(tr("OPTIONS"), _open_options),
 		UIKit.button(tr("QUIT TO MENU"), _quit),
-	] as Array[Control])
-	# beveled panel that sizes itself to the column (key-art physical UI)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.08, 0.13, 0.96)
-	style.border_color = Color(0.12, 0.66, 0.24)
-	style.set_border_width_all(1)
-	style.set_content_margin_all(14)
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override(&"panel", style)
-	panel.add_child(UIKit.menu_column(items))
-	_column = UIKit.center(panel)
+	])))
+	# a language change from the options overlay rebuilds this column —
+	# it must stay hidden (and unfocusable) while options are open
+	# (review v1.10.1-1)
+	_column.visible = _options == null or not is_instance_valid(_options)
 	_root.add_child(_column)
-
-
-## "JUMP/ATTACK/DASH" style summaries for the pause screen.
-func _key_summary_p1() -> String:
-	return "%s/%s/%s" % [SettingsApplier.key_label(&"jump"),
-			SettingsApplier.key_label(&"attack"), SettingsApplier.key_label(&"dash")]
-
-
-func _key_summary_p2() -> String:
-	return "%s/%s/%s" % [SettingsApplier.p2_key_label(&"jump"),
-			SettingsApplier.p2_key_label(&"attack"), SettingsApplier.p2_key_label(&"dash")]
 
 
 func _on_settings_applied(_settings: Dictionary) -> void:
@@ -129,11 +104,16 @@ func _open_options() -> void:
 	_options.overlay_mode = true
 	_options.closed.connect(_on_options_closed)
 	add_child(_options)
+	# CanvasLayer children need explicit sizing (project gotcha) — without
+	# this the overlay collapsed to 0x0: panel stuck top-left, no dim
+	_options.size = _root.get_viewport_rect().size
+	_column.visible = false # don't show PAUSED through the options dim
 
 
 func _on_options_closed() -> void:
 	_options.queue_free()
 	_options = null
+	_column.visible = true
 	UIKit.grab_first_focus(_root)
 
 
