@@ -86,6 +86,23 @@ func test_p1_and_p2_keyboard_keys_are_disjoint() -> void:
 	assert_does_not_have(codes, KEY_LEFT, "arrows stay exclusive to P2")
 
 
+func test_slot_remembers_coop_mode() -> void:
+	# v1.10: slots persist CO-OP/SOLO and CONTINUE restores the pair
+	var data := SaveManager.new_slot_data(&"chris")
+	data["coop"] = true
+	data["character2"] = "flam"
+	SaveManager.write_slot(3, data)
+	var summary: Dictionary = SaveManager.get_slot_summaries()[2]
+	assert_true(summary.get("coop", false), "summary carries the co-op flag")
+	GameManager.continue_from_slot(SaveManager.load_slot(3))
+	assert_eq(GameManager.character2, &"flam", "CONTINUE restores the partner")
+	data["coop"] = false
+	SaveManager.write_slot(3, data)
+	GameManager.continue_from_slot(SaveManager.load_slot(3))
+	assert_eq(GameManager.character2, &"", "solo slot resumes solo")
+	SaveManager.delete_slot(3)
+
+
 func test_p2_input_moves_only_p2() -> void:
 	var pair := _spawn_pair()
 	await wait_physics_frames(30) # both land

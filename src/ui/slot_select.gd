@@ -65,8 +65,9 @@ func _slot_row(summary: Dictionary) -> Control:
 	elif summary.get("empty", true):
 		text = tr("SLOT %d — EMPTY") % slot
 	else:
-		text = "SLOT %d — %s · %d/5 · HI %d" % [
+		text = "SLOT %d — %s · %s · %d/5 · HI %d" % [
 			slot, str(summary.last_character).to_upper(),
+			tr("CO-OP") if summary.get("coop", false) else tr("SOLO"),
 			summary.stages_cleared, summary.global_hi_score]
 	if _confirm_delete_slot == slot:
 		text = tr("SLOT %d — PRESS X AGAIN TO DELETE") % slot
@@ -110,10 +111,14 @@ func _on_slot(summary: Dictionary) -> void:
 	if summary.get("empty", true):
 		# fresh run: character select creates the save on confirm
 		SceneManager.change_scene("res://scenes/ui/character_select.tscn")
+	elif SlotSelectFlow.mode == SlotSelectFlow.Mode.NEW_GAME and SlotSelectFlow.coop:
+		# explicit CO-OP entry on an existing save: re-pick the pair
+		# (character select updates the slot's co-op record)
+		SceneManager.change_scene("res://scenes/ui/character_select.tscn")
 	else:
 		var data := SaveManager.load_slot(slot)
-		GameManager.hi_score = int(data.get("global_hi_score", 0))
-		GameManager.character2 = &"" # CONTINUE is solo (review P1-5)
+		# the slot remembers its mode: co-op saves resume as co-op
+		GameManager.continue_from_slot(data)
 		SceneManager.change_scene("res://scenes/ui/stage_select.tscn")
 
 
