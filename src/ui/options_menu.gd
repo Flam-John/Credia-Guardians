@@ -9,7 +9,9 @@ var overlay_mode := false
 
 var _settings: Dictionary
 var _listening_action: StringName = &""
+var _listening_p2 := false
 var _bind_buttons: Dictionary = {}
+var _bind_buttons_p2: Dictionary = {}
 
 
 func _ready() -> void:
@@ -25,9 +27,20 @@ func _ready() -> void:
 	items.append(_check_row("SPEEDRUN TIMER", "video", "show_timer"))
 	items.append(_check_row("GAMEPAD RUMBLE", "video", "rumble"))
 	items.append(_language_row())
-	items.append(UIKit.caption(tr("— KEYS —"), 8, UIKit.GRAY))
-	for action in SettingsApplier.REBINDABLE:
-		items.append(_bind_row(action))
+	if GameManager.is_coop():
+		# co-op: each player sees and edits HIS OWN keys
+		items.append(UIKit.caption(tr("— P1 KEYS —"), 8, UIKit.GREEN))
+		items.append(UIKit.caption(tr("P1 MOVES WITH WASD"), 8, UIKit.GRAY))
+		for action in SettingsApplier.REBINDABLE:
+			items.append(_bind_row(action))
+		items.append(UIKit.caption(tr("— P2 KEYS —"), 8, UIKit.CYAN))
+		items.append(UIKit.caption(tr("P2 MOVES WITH THE ARROWS"), 8, UIKit.GRAY))
+		for action in SettingsApplier.REBINDABLE:
+			items.append(_bind_row_p2(action))
+	else:
+		items.append(UIKit.caption(tr("— KEYS —"), 8, UIKit.GRAY))
+		for action in SettingsApplier.REBINDABLE:
+			items.append(_bind_row(action))
 	items.append(UIKit.button(tr("RESET DEFAULTS"), _on_reset))
 	items.append(UIKit.button(tr("BACK"), _on_back))
 	# the column outgrew the 270px screen (audio + video + language + keys):
@@ -113,7 +126,9 @@ func _rebuild() -> void:
 	for child in get_children():
 		child.queue_free()
 	_bind_buttons.clear()
+	_bind_buttons_p2.clear()
 	_listening_action = &""
+	_listening_p2 = false
 	_ready()
 
 
@@ -127,9 +142,27 @@ func _bind_row(action: StringName) -> Control:
 	return row
 
 
+func _bind_row_p2(action: StringName) -> Control:
+	var row := HBoxContainer.new()
+	row.add_child(_row_label(String(action).to_upper()))
+	var btn := UIKit.button(SettingsApplier.p2_key_label(action),
+			_start_listen_p2.bind(action))
+	btn.custom_minimum_size = Vector2(90, 16)
+	_bind_buttons_p2[action] = btn
+	row.add_child(btn)
+	return row
+
+
 func _start_listen(action: StringName) -> void:
 	_listening_action = action
+	_listening_p2 = false
 	_bind_buttons[action].text = tr("PRESS A KEY...")
+
+
+func _start_listen_p2(action: StringName) -> void:
+	_listening_action = action
+	_listening_p2 = true
+	_bind_buttons_p2[action].text = tr("PRESS A KEY...")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -138,10 +171,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		if key != null and key.pressed:
 			accept_event()
 			if key.physical_keycode != KEY_ESCAPE:
-				_settings.input[String(_listening_action)] = int(key.physical_keycode)
-				SettingsApplier.apply_key_binding(_listening_action, key.physical_keycode)
-			_bind_buttons[_listening_action].text = SettingsApplier.key_label(_listening_action)
+				if _listening_p2:
+					_settings.input_p2[String(_listening_action)] = int(key.physical_keycode)
+					CoopInput.p2_overrides = _settings.input_p2.duplicate()
+					CoopInput.refresh_if_built()
+				else:
+					_settings.input[String(_listening_action)] = int(key.physical_keycode)
+					SettingsApplier.apply_key_binding(_listening_action, key.physical_keycode)
+			if _listening_p2:
+				_bind_buttons_p2[_listening_action].text = \
+						SettingsApplier.p2_key_label(_listening_action)
+			else:
+				_bind_buttons[_listening_action].text = \
+						SettingsApplier.key_label(_listening_action)
 			_listening_action = &""
+			_listening_p2 = false
 		return
 	if event.is_action_pressed(&"ui_cancel"):
 		# consume, or the same ESC press falls through to PauseMenu and

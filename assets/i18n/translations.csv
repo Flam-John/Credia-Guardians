@@ -110,3 +110,9 @@ WAVE %d/3   %d:%02d.%d,WAVE %d/3   %d:%02d.%d,ΚΥΜΑ %d/3   %d:%02d.%d
 RUSH COMPLETE!   %d:%02d.%d   PRESS START,RUSH COMPLETE!   %d:%02d.%d   PRESS START,ΟΛΟΚΛΗΡΩΘΗΚΕ!   %d:%02d.%d   ΠΑΤΗΣΤΕ START
 DELETE,DELETE,ΔΙΑΓΡΑΦΗ
 SURE?,SURE?,ΣΙΓΟΥΡΑ;
+— P1 KEYS —,— P1 KEYS —,— ΠΛΗΚΤΡΑ P1 —
+— P2 KEYS —,— P2 KEYS —,— ΠΛΗΚΤΡΑ P2 —
+P1 MOVES WITH WASD,P1 MOVES WITH WASD,Ο P1 ΚΙΝΕΙΤΑΙ ΜΕ WASD
+P2 MOVES WITH THE ARROWS,P2 MOVES WITH THE ARROWS,Ο P2 ΚΙΝΕΙΤΑΙ ΜΕ ΤΑ ΒΕΛΑΚΙΑ
+ARROWS,ARROWS,ΒΕΛΑΚΙΑ
+CHANGE KEYS IN OPTIONS,CHANGE KEYS IN OPTIONS,ΑΛΛΑΓΗ ΠΛΗΚΤΡΩΝ ΣΤΙΣ ΡΥΘΜΙΣΕΙΣ
