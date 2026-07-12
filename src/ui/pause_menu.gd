@@ -16,17 +16,16 @@ func _ready() -> void:
 	layer = 20
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_root = Control.new()
-	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
 	dim.color = Color(0.01, 0.03, 0.06, 0.88)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.add_child(dim)
 	_last_locale = TranslationServer.get_locale()
 	_build_menu()
 	add_child(_root)
 	# CanvasLayer children don't stretch with anchors (project gotcha) —
-	# without this the root was 0x0: the dim NEVER rendered and the menu
-	# collapsed to the top-left instead of centering
+	# the root was 0x0: the dim NEVER rendered and the menu collapsed to
+	# the top-left. Explicit sizes, NO anchor presets (mixing both fires
+	# size-override warnings every boot).
 	_root.size = _root.get_viewport_rect().size
 	dim.size = _root.size
 	_root.visible = false
@@ -38,6 +37,9 @@ func _ready() -> void:
 
 func _build_menu() -> void:
 	if _column != null and is_instance_valid(_column):
+		# detach BEFORE queue_free: a dying column stays focusable until end
+		# of frame and grab_first_focus would land on it (review v1.9-1)
+		_root.remove_child(_column)
 		_column.queue_free()
 	var items: Array[Control] = [
 		UIKit.title(tr("PAUSED"), 20),
