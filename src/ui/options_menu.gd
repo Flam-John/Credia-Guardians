@@ -157,6 +157,9 @@ func _apply() -> void:
 func _on_reset() -> void:
 	_settings = SettingsApplier.defaults()
 	InputMap.load_from_project_settings() # restores every action's bindings
+	# the reload WIPES the runtime p1_/p2_ co-op actions — rebuild them or a
+	# co-op session resets into two frozen players (review v1.8.3-1)
+	CoopInput.refresh_if_built()
 	_apply()
 	_rebuild()
 
