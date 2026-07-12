@@ -15,7 +15,14 @@ var _bind_buttons_p2: Dictionary = {}
 
 
 func _ready() -> void:
-	UIKit.fill_background(self)
+	if overlay_mode:
+		# opened over a paused stage: dim the game instead of hiding it
+		var dim := ColorRect.new()
+		dim.color = Color(0.01, 0.03, 0.06, 0.75)
+		dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(dim)
+	else:
+		UIKit.fill_background(self)
 	_settings = SettingsApplier.merged_with_defaults(SaveManager.load_settings())
 	var items: Array[Control] = [UIKit.title(tr("OPTIONS"), 20)]
 	items.append(_slider_row("MASTER", "audio", "master"))
@@ -47,9 +54,10 @@ func _ready() -> void:
 	scroll.follow_focus = true
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.custom_minimum_size = Vector2(300, 244)
+	scroll.custom_minimum_size = Vector2(300, 230)
 	scroll.add_child(column)
-	add_child(UIKit.center(scroll))
+	# same bordered panel as the pause menu — consistent in-game chrome
+	add_child(UIKit.center(UIKit.framed_panel(scroll)))
 	UIKit.grab_first_focus(self)
 
 

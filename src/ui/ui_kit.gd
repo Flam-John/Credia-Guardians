@@ -71,6 +71,17 @@ static func panel_style(fill: Color, border: Color) -> StyleBoxFlat:
 	return style
 
 
+## Dark bordered panel around menu content — the key-art "physical UI"
+## look shared by the pause menu and the options overlay.
+static func framed_panel(content: Control) -> PanelContainer:
+	var style := panel_style(Color(0.04, 0.08, 0.13, 0.96), Color(0.12, 0.66, 0.24))
+	style.set_content_margin_all(12)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override(&"panel", style)
+	panel.add_child(content)
+	return panel
+
+
 ## Centered vertical menu; first button grabs focus (keyboard/D-pad ready).
 static func menu_column(items: Array[Control]) -> VBoxContainer:
 	var vbox := VBoxContainer.new()
