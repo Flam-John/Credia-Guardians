@@ -12,6 +12,7 @@ static func defaults() -> Dictionary:
 				"show_timer": false, "rumble": true},
 		"general": {"locale": "en"},
 		"input": {},
+		"input_p2": {},
 	}
 
 
@@ -41,6 +42,8 @@ static func apply(settings: Dictionary, window: Window) -> void:
 	TranslationServer.set_locale(settings.get("general", {}).get("locale", "en"))
 	for action: String in settings.input:
 		apply_key_binding(StringName(action), int(settings.input[action]))
+	CoopInput.p2_overrides = settings.get("input_p2", {}).duplicate()
+	CoopInput.refresh_if_built() # P2 overrides only matter to co-op sets
 	EventBus.settings_applied.emit(settings)
 
 
@@ -55,6 +58,21 @@ static func apply_key_binding(action: StringName, physical_keycode: int) -> void
 	key.physical_keycode = physical_keycode as Key
 	InputMap.action_add_event(action, key)
 	CoopInput.refresh_if_built() # keep p1_/p2_ snapshots in sync
+
+
+## Key name of P2's effective co-op binding (override or default).
+static func p2_key_label(action: StringName) -> String:
+	var code := CoopInput.p2_key(action)
+	if code == 0:
+		return "—"
+	# keypad keys: layout translation maps them to Insert/End/etc (numlock-
+	# off names) — the physical name (Kp 0...) is what's printed on the key
+	var is_keypad := (code >= KEY_KP_MULTIPLY and code <= KEY_KP_9) \
+			or code == KEY_KP_ENTER
+	if is_keypad or DisplayServer.get_name() == "headless":
+		return OS.get_keycode_string(code)
+	return OS.get_keycode_string(
+			DisplayServer.keyboard_get_keycode_from_physical(code))
 
 
 ## Current keyboard key name for an action (for the options UI).

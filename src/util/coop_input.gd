@@ -21,6 +21,16 @@ const P2_KEYS := {
 
 static var _built := false
 
+## Per-action P2 keyboard overrides (String action -> physical keycode int),
+## persisted in settings under "input_p2". Missing entries fall back to
+## P2_KEYS. SettingsApplier keeps this in sync and refreshes the sets.
+static var p2_overrides: Dictionary = {}
+
+
+## Effective P2 keyboard key for a gameplay action (override or default).
+static func p2_key(base: StringName) -> int:
+	return int(p2_overrides.get(String(base), int(P2_KEYS.get(base, 0))))
+
 
 ## Rebinding edits BASE actions only; co-op sets are snapshots and must be
 ## refreshed or rebinds silently never reach co-op players (review P1-10).
@@ -39,8 +49,10 @@ static func ensure_actions() -> void:
 	# every keyboard event gave P1 the arrows too — both "keyboards" drove
 	# the same character in co-op.
 	var p2_reserved := {}
-	for key: Key in P2_KEYS.values():
-		p2_reserved[key] = true
+	for base in GAMEPLAY_ACTIONS:
+		var reserved_key := p2_key(base)
+		if reserved_key != 0:
+			p2_reserved[reserved_key] = true
 	for base in GAMEPLAY_ACTIONS:
 		for player_index: int in [1, 2]:
 			var action := StringName("p%d_%s" % [player_index, base])
@@ -66,7 +78,9 @@ static func ensure_actions() -> void:
 			if player_index == 1 and p1_keys_added == 0:
 				for event in base_key_events:
 					InputMap.action_add_event(action, event.duplicate())
-			if player_index == 2 and P2_KEYS.has(base):
-				var key := InputEventKey.new()
-				key.physical_keycode = P2_KEYS[base]
-				InputMap.action_add_event(action, key)
+			if player_index == 2:
+				var key_code := p2_key(base)
+				if key_code != 0:
+					var key := InputEventKey.new()
+					key.physical_keycode = key_code as Key
+					InputMap.action_add_event(action, key)
