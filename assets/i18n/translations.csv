@@ -119,3 +119,11 @@ CHANGE KEYS IN OPTIONS,CHANGE KEYS IN OPTIONS,ΑΛΛΑΓΗ ΠΛΗΚΤΡΩΝ ΣΤ
 — P2 KEYS (CO-OP) —,— P2 KEYS (CO-OP) —,— ΠΛΗΚΤΡΑ P2 (CO-OP) —
 CO-OP,CO-OP,CO-OP
 SOLO,SOLO,SOLO
+ZAF_1,I AM ZAF. YOUR BOSS. THE BANK IS UNDER ATTACK — SO LISTEN UP.,ΕΙΜΑΙ Ο ZAF. ΤΟ ΑΦΕΝΤΙΚΟ ΣΑΣ. Η ΤΡΑΠΕΖΑ ΔΕΧΕΤΑΙ ΕΠΙΘΕΣΗ — ΑΚΟΥΣΤΕ ΠΡΟΣΕΚΤΙΚΑ.
+ZAF_2,MOVE WITH WASD. JUMP: %s · ATTACK: %s · DASH: %s,ΚΙΝΗΣΗ ΜΕ WASD. ΑΛΜΑ: %s · ΕΠΙΘΕΣΗ: %s · DASH: %s
+ZAF_2_COOP,P2 MOVES WITH THE ARROWS. JUMP: %s · ATTACK: %s,Ο P2 ΚΙΝΕΙΤΑΙ ΜΕ ΤΑ ΒΕΛΑΚΙΑ. ΑΛΜΑ: %s · ΕΠΙΘΕΣΗ: %s
+ZAF_3,TURN ON EVERY GREEN NODE. THEY UNLOCK THE VAULT DOOR AT THE END OF EACH STAGE.,ΕΝΕΡΓΟΠΟΙΗΣΤΕ ΟΛΟΥΣ ΤΟΥΣ ΠΡΑΣΙΝΟΥΣ ΚΟΜΒΟΥΣ. ΑΝΟΙΓΟΥΝ ΤΗΝ ΠΟΡΤΑ ΤΟΥ ΘΗΣΑΥΡΟΦΥΛΑΚΙΟΥ ΣΤΟ ΤΕΛΟΣ ΚΑΘΕ ΠΙΣΤΑΣ.
+ZAF_4,GRAB THE COINS. COFFEE HEALS YOU. USB KEYS OPEN LOCKED GATES. STOMP OR STRIKE THE CORRUPT BANKERS.,ΜΑΖΕΨΤΕ ΤΑ ΝΟΜΙΣΜΑΤΑ. Ο ΚΑΦΕΣ ΣΑΣ ΓΙΑΤΡΕΥΕΙ. ΤΑ USB ΚΛΕΙΔΙΑ ΑΝΟΙΓΟΥΝ ΚΛΕΙΔΩΜΕΝΕΣ ΠΥΛΕΣ. ΠΑΤΗΣΤΕ Ή ΧΤΥΠΗΣΤΕ ΤΟΥΣ ΔΙΕΦΘΑΡΜΕΝΟΥΣ ΤΡΑΠΕΖΙΤΕΣ.
+ZAF_5,CLEAR ALL 5 STAGES. BEAT THE CEO. SECURE OUR BANK. NOW GO!,ΚΑΘΑΡΙΣΤΕ ΚΑΙ ΤΙΣ 5 ΠΙΣΤΕΣ. ΝΙΚΗΣΤΕ ΤΟΝ CEO. ΑΣΦΑΛΙΣΤΕ ΤΗΝ ΤΡΑΠΕΖΑ ΜΑΣ. ΕΜΠΡΟΣ!
+NEXT ▶,NEXT ▶,ΕΠΟΜΕΝΟ ▶
+SKIP,SKIP,ΠΑΡΑΛΕΙΨΗ

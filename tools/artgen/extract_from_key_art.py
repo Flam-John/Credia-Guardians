@@ -21,6 +21,11 @@ import palette as P  # noqa: E402
 
 DEFAULT_SRC = os.path.expanduser(
     "~/OneDrive/Υπολογιστής/CHRIS_FLAM_LEVEL_1_VICTORY.png")
+# Zaf (the boss) concept art — one-time source for his dialog portrait.
+ZAF_SRC = os.path.expanduser(
+    "~/Downloads/ChatGPT_Image_18_2026_10_03_09_...jpeg")
+# Face region of the Zaf concept (fractions): hair top to beard bottom.
+ZAF_FACE = (0.20, 0.02, 0.72, 0.78)
 
 # Crop boxes as fractions (x0, y0, x1, y1) of the source image — the INNER
 # area of each corner portrait frame (measured against the 1402x1122 photo;
@@ -70,6 +75,27 @@ def make_portraits(src: Image.Image, out_path: str) -> Image.Image:
     return img
 
 
+def make_zaf_portrait(src: Image.Image, out_path: str) -> Image.Image:
+    """48x48 framed dialog portrait for the tutorial (cover-crop, quantized
+    to pixel-art color counts like the hero portraits)."""
+    img = Image.new("RGBA", (48, 48), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    face = _crop(src, ZAF_FACE)
+    scale = max(44.0 / face.width, 44.0 / face.height)
+    face = face.resize((max(44, round(face.width * scale)),
+                        max(44, round(face.height * scale))),
+                       Image.Resampling.LANCZOS)
+    left = (face.width - 44) // 2
+    top = (face.height - 44) // 2
+    face = _quantize(face.crop((left, top, left + 44, top + 44)), 24)
+    d.rectangle([0, 0, 47, 47], fill=P.BG_PANEL, outline=P.GREEN_DARK)
+    img.paste(face, (2, 2))
+    d.rectangle([0, 0, 47, 47], outline=P.GREEN_DARK)
+    d.rectangle([1, 1, 46, 46], outline=P.OUTLINE)
+    img.save(out_path)
+    return img
+
+
 def make_vault_wall(src: Image.Image, out_path: str) -> Image.Image:
     """480x270 stage-5 far layer: photo wall left, mirrored right, darkened
     center gap for the procedural corruption veins to live in."""
@@ -104,6 +130,14 @@ def main():
     src = Image.open(args.src).convert("RGBA")
     portraits = make_portraits(src, f"{args.out}/characters/portraits.png")
     wall = make_vault_wall(src, f"{args.out}/backgrounds/stage_5_far.png")
+    zaf_out = f"{args.out}/characters/zaf_portrait.png"
+    if os.path.exists(ZAF_SRC):
+        make_zaf_portrait(Image.open(ZAF_SRC).convert("RGBA"), zaf_out)
+    elif not os.path.exists(zaf_out):
+        print("WARNING: Zaf concept art missing and no committed portrait -",
+              ZAF_SRC)
+    else:
+        print("Zaf concept art not found - keeping committed zaf_portrait.png")
     if args.debug:
         dbg = Image.new("RGBA", (64 * 4 + 480, 270), (30, 30, 30, 255))
         dbg.paste(portraits.resize((256, 128), Image.Resampling.NEAREST), (0, 0))

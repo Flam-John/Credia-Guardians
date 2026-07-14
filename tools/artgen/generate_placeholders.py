@@ -228,6 +228,95 @@ def gen_portraits(path: str):
     img.save(path)
 
 
+def draw_zaf(d, ox: int, oy: int, i: int, talk: bool):
+    """Zaf, the boss (32x32): bulky build, black tee, tan skin, towering
+    spiky black hair, full gray beard, permanent scowl. Idle bobs with
+    crossed arms; talk waves a hand and flashes the mouth."""
+    cx = ox + 16
+    bob = [0, 1, 0, -1][i % 4] if not talk else 0
+    tee = ((10, 12, 16, 255), (22, 26, 32, 255), (40, 46, 56, 255))
+    beard = ((44, 48, 56, 255), (74, 80, 90, 255), (110, 118, 128, 255))
+    hair = P.CHRIS_HAIR_RAMP
+    zskin = ((150, 96, 58, 255), (196, 134, 84, 255), (234, 178, 122, 255))
+    # 17 = 11 (head) + max spike 6 above: the whole figure stays in-cell
+    body_top = oy + 17 + bob
+    # legs: dark trousers + boots
+    for leg_x in (cx - 5, cx + 2):
+        shade_rect(d, leg_x, oy + 24, leg_x + 3, oy + 29, tee)
+        _rect(d, leg_x, oy + 30, leg_x + 3, oy + 30, P.OUTLINE)
+    # torso: wide tee with shading
+    shade_rect(d, cx - 7, body_top, cx + 7, oy + 24, tee, outline=P.OUTLINE)
+    if talk and i % 2 == 1:
+        # raised gesturing hand
+        shade_rect(d, cx + 8, body_top - 3, cx + 11, body_top + 4, zskin)
+        _px(d, cx + 9, body_top - 4, zskin[2])
+    else:
+        # crossed arms: skin band over the chest
+        shade_rect(d, cx - 6, body_top + 3, cx + 6, body_top + 6, zskin)
+        d.line([(cx - 6, body_top + 6), (cx + 6, body_top + 6)], fill=zskin[0])
+    # head
+    head_y = body_top - 11
+    _outline_rect(d, cx - 5, head_y, cx + 5, head_y + 10, zskin[1])
+    _px(d, cx - 4, head_y + 3, zskin[2])  # brow light
+    # full beard: lower half of the face + below the chin
+    _rect(d, cx - 5, head_y + 5, cx + 5, head_y + 10, beard[1])
+    d.line([(cx - 4, head_y + 10), (cx + 4, head_y + 10)], fill=beard[0])
+    _rect(d, cx - 3, head_y + 11, cx + 3, head_y + 12 + (i % 2 if talk else 0),
+          beard[0])
+    _px(d, cx - 2, head_y + 6, beard[2])  # beard shine
+    if talk and i % 2 == 0:
+        _rect(d, cx - 1, head_y + 7, cx + 1, head_y + 7, (30, 20, 20, 255))  # mouth
+    # heavy scowling brows + stern eyes
+    d.line([(cx - 4, head_y + 2), (cx - 1, head_y + 3)], fill=P.OUTLINE)
+    d.line([(cx + 1, head_y + 3), (cx + 4, head_y + 2)], fill=P.OUTLINE)
+    _px(d, cx - 2, head_y + 4, P.OUTLINE)
+    _px(d, cx + 2, head_y + 4, P.OUTLINE)
+    # towering hair spikes (heights capped so the tips stay inside the cell)
+    for sx, sh in ((-5, 3), (-3, 5), (-1, 6), (1, 6), (3, 5), (5, 3)):
+        d.polygon([(cx + sx - 1, head_y + 1), (cx + sx, head_y - sh),
+                   (cx + sx + 1, head_y + 1)], fill=hair[1])
+        _px(d, cx + sx, head_y - sh + 1, hair[0])
+    d.line([(cx - 5, head_y), (cx + 5, head_y)], fill=hair[1])
+
+
+def gen_zaf_sheet(path: str):
+    """Zaf sheet, 32x32 x 6 cols x 3 rows:
+    row 0 materialize (6 frames: digital assembly, cyan resolve)
+    row 1 idle (4)   row 2 talk (4)
+    The tutorial scene plays row 0 forward to appear, reversed to leave."""
+    base = Image.new("RGBA", (32, 32), P.TRANSPARENT)
+    draw_zaf(ImageDraw.Draw(base), 0, 0, 0, False)
+    sheet = Image.new("RGBA", (6 * 32, 3 * 32), P.TRANSPARENT)
+    d = ImageDraw.Draw(sheet)
+    src = base.load()
+    for f in range(6):
+        thresh = (f + 1) / 6.0
+        for y in range(32):
+            for x in range(32):
+                c = src[x, y]
+                if c[3] == 0:
+                    continue
+                h = ((x * 31 + y * 17) % 97) / 97.0
+                if h < thresh:
+                    # newly-resolved pixels flash cyan before settling; the
+                    # terminal frame (thresh=1.0) must be FULLY resolved —
+                    # a lingering flash there reads as a permanent glitch,
+                    # since this is Zaf's resting frame once he's talking
+                    settled = f == 5 or h < thresh - 0.18
+                    sheet.putpixel((f * 32 + x, y),
+                                   c if settled else (22, 224, 224, 255))
+        if f < 5:
+            for g in range(3):  # roaming glitch scanlines
+                gy = (f * 11 + g * 9) % 30 + 1
+                d.line([(f * 32 + 5, gy), (f * 32 + 26, gy)],
+                       fill=(22, 224, 224, 120))
+    for i in range(4):
+        draw_zaf(d, i * 32, 32, i, False)
+    for i in range(4):
+        draw_zaf(d, i * 32, 64, i, True)
+    sheet.save(path)
+
+
 def gen_hud_atlas(path: str):
     """64x24 HUD atlas — fixed regions consumed by src/ui/hud.gd:
     (0,0,24,24)  beveled metal portrait frame, transparent 20x20 center
@@ -1211,6 +1300,7 @@ def main():
 
     gen_player_sheet(f"{out}/characters/chris_sheet.png", "chris")
     gen_player_sheet(f"{out}/characters/flam_sheet.png", "flam")
+    gen_zaf_sheet(f"{out}/characters/zaf_sheet.png")
     if has_key_art or not os.path.exists(portraits_path):
         gen_portraits(portraits_path)
     else:
@@ -1246,6 +1336,13 @@ def main():
         keyart.make_portraits(src, portraits_path)
         keyart.make_vault_wall(src, far5_path)
         print("key-art extraction applied (portraits, stage_5_far)")
+    zaf_path = f"{out}/characters/zaf_portrait.png"
+    if os.path.exists(keyart.ZAF_SRC):
+        keyart.make_zaf_portrait(
+                Image.open(keyart.ZAF_SRC).convert("RGBA"), zaf_path)
+        print("Zaf portrait extracted")
+    elif not os.path.exists(zaf_path):
+        print("WARNING: no Zaf concept art and no committed zaf_portrait.png")
     print("placeholder art generated ->", out)
 
 
