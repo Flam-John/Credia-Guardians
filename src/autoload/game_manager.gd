@@ -60,6 +60,14 @@ var usb_keys: int = 0
 var _stage_running := false
 
 
+## Single point of mutation so the HUD counter can never drift from the
+## real value — pickups and gates must call this instead of writing
+## usb_keys directly.
+func add_usb_keys(delta: int) -> void:
+	usb_keys = maxi(0, usb_keys + delta)
+	EventBus.usb_keys_changed.emit(usb_keys)
+
+
 func is_stage_running() -> bool:
 	return _stage_running
 
@@ -133,7 +141,7 @@ func start_stage(new_stage_id: int, new_character: StringName) -> void:
 	hit_zero_lives = false
 	enemy_score = 0
 	coin_score = 0
-	usb_keys = 0
+	add_usb_keys(-usb_keys) # reset to 0 and tell the HUD immediately
 	_stage_running = true
 	set_process(true)
 	EventBus.score_changed.emit(score)

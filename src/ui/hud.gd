@@ -7,6 +7,12 @@ extends Control
 const PORTRAITS := preload("res://assets/art/characters/portraits.png")
 const COIN_SHEET := preload("res://assets/art/props/coin.png")
 const HUD_ATLAS := preload("res://assets/art/ui/hud_atlas.png")
+const PICKUPS_SHEET := preload("res://assets/art/props/pickups.png")
+
+# pickups.png regions (see Pickup.Kind order in pickup.gd — FRAME=16)
+const REGION_SHIELD_ICON := Rect2(32, 0, 16, 16)
+const REGION_UPGRADE_ICON := Rect2(48, 0, 16, 16)
+const REGION_USB_ICON := Rect2(64, 0, 16, 16)
 
 # hud_atlas.png regions (see tools/artgen gen_hud_atlas)
 const REGION_FRAME := Rect2(0, 0, 24, 24)
@@ -30,6 +36,12 @@ var _coin_label: Label
 var _hi_label: Label
 var _lives_label: Label
 var _nodes_label: Label
+var _usb_icon: TextureRect
+var _usb_label: Label
+var _shield_icon: TextureRect
+var _upgrade_icon: TextureRect
+var _shield_icon2: TextureRect
+var _upgrade_icon2: TextureRect
 var _max_hp := 6
 
 
@@ -75,6 +87,22 @@ func _ready() -> void:
 	_lives_label = _make_label(Vector2(30, 18), 7, UIKit.GRAY)
 	add_child(_lives_label)
 
+	# per-player collected status (Firewall Shield bubble / Keyboard melee
+	# upgrade) — invisible until picked up, hidden again on death since a
+	# respawn is a fresh Player instance that never carries them over
+	_shield_icon = _make_status_icon(REGION_SHIELD_ICON, Vector2(57, 17))
+	_shield_icon.visible = false
+	add_child(_shield_icon)
+	_upgrade_icon = _make_status_icon(REGION_UPGRADE_ICON, Vector2(69, 17))
+	_upgrade_icon.visible = false
+	add_child(_upgrade_icon)
+	_shield_icon2 = _make_status_icon(REGION_SHIELD_ICON, Vector2(400, 17))
+	_shield_icon2.visible = false
+	add_child(_shield_icon2)
+	_upgrade_icon2 = _make_status_icon(REGION_UPGRADE_ICON, Vector2(412, 17))
+	_upgrade_icon2.visible = false
+	add_child(_upgrade_icon2)
+
 	_timer_label = _make_label(Vector2.ZERO, 8, UIKit.CYAN)
 	_timer_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	# offsets, not position: position is parent-origin-relative and would
@@ -109,6 +137,23 @@ func _ready() -> void:
 	_nodes_label = _make_label(Vector2(6, 52), 8, UIKit.CYAN)
 	_nodes_label.visible = false
 	add_child(_nodes_label)
+
+	# USB keys: a team-shared resource (any player standing at a firewall
+	# gate consumes from the same pool), so one counter, not per-player
+	_usb_icon = TextureRect.new()
+	var usb_atlas := AtlasTexture.new()
+	usb_atlas.atlas = PICKUPS_SHEET
+	usb_atlas.region = REGION_USB_ICON
+	_usb_icon.texture = usb_atlas
+	_usb_icon.position = Vector2(6, 62)
+	_usb_icon.size = Vector2(12, 12)
+	_usb_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+	_usb_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_usb_icon.visible = false
+	add_child(_usb_icon)
+	_usb_label = _make_label(Vector2(20, 64), 8, UIKit.GOLD)
+	_usb_label.visible = false
+	add_child(_usb_label)
 
 	# HI-SCORE sits on a beveled panel backing (key-art physical UI)
 	var hi_panel := NinePatchRect.new()
@@ -159,6 +204,9 @@ func _ready() -> void:
 	EventBus.boss_died.connect(_on_boss_died)
 	EventBus.nodes_total.connect(_on_nodes_total)
 	EventBus.node_activated.connect(_on_node_activated)
+	EventBus.usb_keys_changed.connect(_on_usb_keys_changed)
+	EventBus.player_shield_changed.connect(_on_player_shield_changed)
+	EventBus.player_upgrade_changed.connect(_on_player_upgrade_changed)
 
 
 var _timer_accum := 0.0
@@ -201,6 +249,11 @@ func _on_player_spawned(player: Node2D) -> void:
 	if not is_p2:
 		_max_hp = typed.stats.max_hp
 	_refresh_meta()
+	# a fresh Player instance never carries a shield/upgrade over from a
+	# previous life (docs/GDD.md §8: lost on death) — reset the icons here
+	# rather than trusting a "cleared" event from the OLD instance
+	(_shield_icon2 if is_p2 else _shield_icon).visible = false
+	(_upgrade_icon2 if is_p2 else _upgrade_icon).visible = false
 
 
 func _on_hp_signal(player_index: int, hp: int, max_hp: int) -> void:
@@ -271,6 +324,20 @@ func _on_node_activated(_id: StringName, count: int, total: int) -> void:
 	_nodes_label.text = tr("NODES %d/%d") % [count, total]
 
 
+func _on_usb_keys_changed(count: int) -> void:
+	_usb_icon.visible = count > 0
+	_usb_label.visible = count > 0
+	_usb_label.text = "×%d" % count
+
+
+func _on_player_shield_changed(player_index: int, active: bool) -> void:
+	(_shield_icon2 if player_index == 2 else _shield_icon).visible = active
+
+
+func _on_player_upgrade_changed(player_index: int, active: bool) -> void:
+	(_upgrade_icon2 if player_index == 2 else _upgrade_icon).visible = active
+
+
 func _make_pill(region: Rect2, pill_size: Vector2) -> TextureRect:
 	# each pill owns its AtlasTexture — regions are flipped per-segment
 	var seg := TextureRect.new()
@@ -281,6 +348,20 @@ func _make_pill(region: Rect2, pill_size: Vector2) -> TextureRect:
 	seg.custom_minimum_size = pill_size
 	seg.stretch_mode = TextureRect.STRETCH_KEEP
 	return seg
+
+
+func _make_status_icon(region: Rect2, pos: Vector2) -> TextureRect:
+	var icon := TextureRect.new()
+	var atlas := AtlasTexture.new()
+	atlas.atlas = PICKUPS_SHEET
+	atlas.region = region
+	icon.texture = atlas
+	icon.position = pos
+	icon.size = Vector2(10, 10)
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return icon
 
 
 func _make_portrait_frame(pos: Vector2) -> TextureRect:

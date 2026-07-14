@@ -230,6 +230,7 @@ func take_hit(damage: int, from_global_pos: Vector2) -> void:
 	if firewall_shield:
 		firewall_shield = false
 		_bubble.visible = false
+		EventBus.player_shield_changed.emit(player_index, false)
 		hurtbox.start_invuln(0.5) # breathing room after the bubble pops
 		AudioManager.play_sfx("shield_break")
 		return
@@ -257,7 +258,9 @@ func heal(amount: int) -> void:
 func kill() -> void:
 	if health.is_dead():
 		return
-	firewall_shield = false
+	if firewall_shield:
+		firewall_shield = false
+		EventBus.player_shield_changed.emit(player_index, false)
 	if _bubble != null:
 		_bubble.visible = false
 	dash_iframes_active = false
@@ -302,6 +305,7 @@ func spawn_dash_ghost() -> void:
 
 func grant_firewall_shield() -> void:
 	firewall_shield = true
+	EventBus.player_shield_changed.emit(player_index, true)
 	if _bubble == null:
 		_bubble = Sprite2D.new()
 		var atlas := AtlasTexture.new()
