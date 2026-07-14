@@ -24,6 +24,12 @@ signal enemy_killed(score: int, world_pos: Vector2)
 
 # -- Level objectives --
 signal checkpoint_reached(id: StringName, respawn_pos: Vector2)
+## Emitted once when a stage loads, before any node is touched — lets the
+## HUD show "0/total" immediately instead of only after the first
+## activation. Deliberately separate from node_activated (below): that
+## signal drives GameManager's +500 score-per-activation, so reusing it
+## for a zero-count announcement would award free score.
+signal nodes_total(total: int)
 signal node_activated(id: StringName, count: int, total: int)
 signal hidden_room_found(id: StringName)
 signal stage_cleared(stats: Dictionary)

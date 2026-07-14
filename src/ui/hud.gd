@@ -29,15 +29,18 @@ var _score_label: Label
 var _coin_label: Label
 var _hi_label: Label
 var _lives_label: Label
+var _nodes_label: Label
 var _max_hp := 6
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
 	# CanvasLayer children don't stretch with anchors (project gotcha — same
 	# reason SceneManager sizes screens explicitly). Without this the HUD rect
 	# is 0x0 and every anchored child (HI-SCORE, boss bar, timer) collapses
-	# to the origin.
+	# to the origin. Explicit size WITHOUT an anchor preset (mixing both
+	# fires an engine warning every time — same fix as the pause/scanline/
+	# vignette overlays; the CanvasLayer parent never reads this Control's
+	# own anchors anyway, so the preset was inert).
 	size = get_viewport_rect().size
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -100,6 +103,13 @@ func _ready() -> void:
 	_coin_label = _make_label(Vector2(20, 42), 8, UIKit.GOLD)
 	add_child(_coin_label)
 
+	# security-node progress — was silently untracked on screen; a player
+	# who misses one has zero feedback that the exit gate is still locked
+	# on purpose (review: reported as "the portal didn't open" on stage 3)
+	_nodes_label = _make_label(Vector2(6, 52), 8, UIKit.CYAN)
+	_nodes_label.visible = false
+	add_child(_nodes_label)
+
 	# HI-SCORE sits on a beveled panel backing (key-art physical UI)
 	var hi_panel := NinePatchRect.new()
 	hi_panel.texture = HUD_ATLAS
@@ -147,6 +157,8 @@ func _ready() -> void:
 	EventBus.boss_spawned.connect(_on_boss_spawned)
 	EventBus.boss_hp_changed.connect(_set_boss_hp)
 	EventBus.boss_died.connect(_on_boss_died)
+	EventBus.nodes_total.connect(_on_nodes_total)
+	EventBus.node_activated.connect(_on_node_activated)
 
 
 var _timer_accum := 0.0
@@ -247,6 +259,16 @@ func _set_boss_hp(hp: int, max_hp: int) -> void:
 func _on_boss_died() -> void:
 	_boss_bar.visible = false
 	_boss_name.visible = false
+
+
+func _on_nodes_total(total: int) -> void:
+	_nodes_label.visible = total > 0
+	_nodes_label.text = tr("NODES %d/%d") % [0, total]
+
+
+func _on_node_activated(_id: StringName, count: int, total: int) -> void:
+	_nodes_label.visible = total > 0
+	_nodes_label.text = tr("NODES %d/%d") % [count, total]
 
 
 func _make_pill(region: Rect2, pill_size: Vector2) -> TextureRect:
