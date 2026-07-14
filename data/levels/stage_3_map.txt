@@ -11,7 +11,7 @@
 @                                |                S                                                               S                                            @
 @                                |                                                                                                                             @
 @                                |                                                                                                                             @
-@                                |                                                                           cUc c c c c c c cJc c e c N                       @
+@                                |                                                                           c c c c c c c c cJc c e cUN                       @
 @                                |                                                                          #############################   #            #     @
 @                                |               c    c    c    c                                                                           #            #     @
 @           m                    |             X    X    X    X                                                                             #   c     c  #     @

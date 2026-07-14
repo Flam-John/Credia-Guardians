@@ -52,11 +52,49 @@ func test_every_stage_exit_gate_is_reachable() -> void:
 					% [path, col, wall_px, max_reach])
 
 
+## Regression for a real reported bug: stage 3's USB key sat 25 tiles from
+## node 2 on the same isolated shelf (col110 vs col135) — reachable, but a
+## player who double-jumps up and beelines for the visible glowing node has
+## no reason to backtrack 25 tiles for a key they don't know exists, and
+## gets permanently stuck at the firewall gate guarding node 3 with no way
+## back to an earlier section. Locks the key within an unmissable distance
+## of its shelf-mate node.
+func test_stage3_usb_key_sits_beside_its_mandatory_node() -> void:
+	var raw := FileAccess.get_file_as_string("res://data/levels/stage_3_map.txt")
+	var parser := EntityMarkerParser.new()
+	parser.parse(raw)
+	var key := _find_type(parser.spawns, "U")
+	assert_true(key.has("x"), "stage 3 has a USB key")
+	var node := _find_nearest_of_type(parser.spawns, "N", key)
+	assert_true(node.has("x"), "stage 3 has a node near the key")
+	var tiles_apart: int = absi(key.x - node.x) + absi(key.y - node.y)
+	assert_true(tiles_apart <= 5,
+			"USB key is %d tiles from its shelf-mate node — too far to guarantee a player collecting the (mandatory) node also sees the key" \
+			% tiles_apart)
+
+
 func _find_gate(spawns: Array[Dictionary]) -> Dictionary:
+	return _find_type(spawns, "E")
+
+
+func _find_type(spawns: Array[Dictionary], type: String) -> Dictionary:
 	for spawn in spawns:
-		if spawn.type == "E":
+		if spawn.type == type:
 			return spawn
 	return {}
+
+
+func _find_nearest_of_type(spawns: Array[Dictionary], type: String, to: Dictionary) -> Dictionary:
+	var best := {}
+	var best_dist := INF
+	for spawn in spawns:
+		if spawn.type != type:
+			continue
+		var dist: float = absi(spawn.x - to.x) + absi(spawn.y - to.y)
+		if dist < best_dist:
+			best_dist = dist
+			best = spawn
+	return best
 
 
 ## Counts contiguous solid rows going UP from `floor_row` at `col` — the
