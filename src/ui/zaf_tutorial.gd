@@ -97,17 +97,27 @@ func _build_panel() -> void:
 	_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
-	var buttons := HBoxContainer.new()
-	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons.add_theme_constant_override(&"separation", 12)
-	buttons.add_child(UIKit.button(tr("NEXT ▶"), _on_next))
-	buttons.add_child(UIKit.button(tr("SKIP"), _depart))
-
-	var column := UIKit.menu_column([header, _text, buttons])
+	# stacked, not side-by-side: two UIKit.button()s at their standard 140px
+	# width don't fit next to each other beside Zaf's portrait on a 480px
+	# screen (review v1.11.1) — every other menu in the game stacks buttons
+	# vertically too, so this also matches the house style
+	var column := UIKit.menu_column([
+		header,
+		_text,
+		UIKit.button(tr("NEXT ▶"), _on_next),
+		UIKit.button(tr("SKIP"), _depart),
+	])
 	var framed := UIKit.framed_panel(column)
-	framed.position = Vector2(196, 42)
 	_panel = framed
 	add_child(_panel)
+	# center the framed panel in the space to the RIGHT of Zaf, sized
+	# after layout so it can never overflow the 480x270 screen regardless
+	# of locale (Greek strings run longer than English)
+	await get_tree().process_frame
+	var right_area_x := _sprite.position.x + _sprite.size.x
+	var available := size.x - right_area_x
+	framed.position.x = right_area_x + (available - framed.size.x) / 2.0
+	framed.position.y = (size.y - framed.size.y) / 2.0
 
 
 ## Controls page with the CURRENT key bindings (and P2's in co-op).
