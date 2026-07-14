@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/ui/zaf_tutorial.gd" id="1"]
+
+[node name="ZafTutorial" type="Control"]
+script = ExtResource("1")
