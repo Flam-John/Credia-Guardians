@@ -18,6 +18,12 @@ signal player_died(player: Node2D)
 signal coin_collected(value: int)
 signal pickup_collected(kind: StringName)
 signal score_changed(score: int)
+## Team-shared count (GameManager.usb_keys) — a firewall gate opens for
+## whichever player is standing in it, not a specific player's inventory.
+signal usb_keys_changed(count: int)
+## Per-player collected status the HUD surfaces individually in co-op.
+signal player_shield_changed(player_index: int, active: bool)
+signal player_upgrade_changed(player_index: int, active: bool)
 
 # -- Combat --
 signal enemy_killed(score: int, world_pos: Vector2)

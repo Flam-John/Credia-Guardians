@@ -58,5 +58,6 @@ func _apply(player: Player) -> void:
 			# +1 melee for the rest of the stage; lost on death because each
 			# respawn builds a fresh player (docs/GDD.md §8)
 			player.melee_hitbox.damage += 1
+			EventBus.player_upgrade_changed.emit(player.player_index, true)
 		Kind.USB_KEY:
-			GameManager.usb_keys += 1
+			GameManager.add_usb_keys(1)

@@ -37,7 +37,7 @@ func _physics_process(_delta: float) -> void:
 func _try_open() -> void:
 	if open or _players_inside <= 0 or GameManager.usb_keys <= 0:
 		return
-	GameManager.usb_keys -= 1
+	GameManager.add_usb_keys(-1)
 	open_gate()
 
 
