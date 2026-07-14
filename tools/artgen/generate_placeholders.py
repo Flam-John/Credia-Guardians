@@ -298,8 +298,11 @@ def gen_zaf_sheet(path: str):
                     continue
                 h = ((x * 31 + y * 17) % 97) / 97.0
                 if h < thresh:
-                    # newly-resolved pixels flash cyan before settling
-                    settled = h < thresh - 0.18
+                    # newly-resolved pixels flash cyan before settling; the
+                    # terminal frame (thresh=1.0) must be FULLY resolved —
+                    # a lingering flash there reads as a permanent glitch,
+                    # since this is Zaf's resting frame once he's talking
+                    settled = f == 5 or h < thresh - 0.18
                     sheet.putpixel((f * 32 + x, y),
                                    c if settled else (22, 224, 224, 255))
         if f < 5:
