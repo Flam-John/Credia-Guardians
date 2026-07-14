@@ -58,6 +58,7 @@ func _ready() -> void:
 	parser.parse(map)
 	total_coins = parser.coin_count
 	total_nodes = parser.node_count
+	EventBus.nodes_total.emit(total_nodes)
 
 	var builder := AsciiRoomBuilder.new()
 	builder.map = parser.terrain

@@ -79,11 +79,13 @@ def stage_5():
     G.put(132, 13, "N")
     G.put(136, 18, "F")                   # gate 3 guards the boss door
     G.put(137, 18, "k")                   # last checkpoint before the CEO
-    # CEO arena
-    G.vline(139, 13, 18, "#")
+    # CEO arena (walls match the vline(x, 14, 18) pattern used for every
+    # other stage's final pillars — this pair was one tile too tall,
+    # sealing the boss arena and exit gate behind an unjumpable 96px wall)
+    G.vline(139, 14, 18, "#")
     G.put(147, 18, "C")
     G.coins((143, 16), (151, 16))
-    G.vline(155, 13, 18, "#")
+    G.vline(155, 14, 18, "#")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 24)] + [(x, 18) for x in range(62, 90)]
              + [(x, 17) for x in range(26, 58)] + [(x, 16) for x in range(120, 134)])
