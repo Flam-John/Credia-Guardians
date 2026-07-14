@@ -198,9 +198,16 @@ def stage_3():
     G.put(124, 19, ".")
     G.coins((123, 21), (125, 21), (126, 21), (124, 20))
     G.put(122, 21, "o")
-    # USB key VISIBLE on the walkway — the F gate blocks the exit, and the
-    # critical path must never require finding a hidden room
-    G.put(110, 13, "U")
+    # USB key right next to node 3's shelf-mate (node 2, col135) — the F
+    # gate blocks the exit without it, and the critical path must never
+    # require finding a hidden room. Originally sat at col110, 25 tiles
+    # from node 2 on the same walkway: reachable, but a player who
+    # double-jumps up and beelines for the visible glowing node has no
+    # reason to walk back to the far end of the shelf first, and gets
+    # softlocked at the firewall gate with no way back to an earlier
+    # section. One tile from the node it can no longer be missed by
+    # anyone who collects the (mandatory) node itself.
+    G.put(134, 13, "U")
     # Regional Manager arena, node 3 behind a firewall gate
     G.put(138, 18, "k")
     G.vline(140, 14, 18, "#")
