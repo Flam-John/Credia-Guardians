@@ -192,6 +192,25 @@ def stage_3():
     G.put(126, 13, "J")
     G.put(131, 13, "e")
     G.put(135, 13, "N")
+    # Landing steps up to the node-2 shelf, built BESIDE it (cols103-107,
+    # left of the shelf's own 108-136 footprint), not underneath its
+    # overhang. A step placed under a wide shelf can't work at all: any
+    # jump from directly beneath it drives the player's head into the
+    # shelf's underside within a single physics tick, killing the jump
+    # almost instantly (confirmed by driving the live Player scene
+    # through the level — this is invisible to ASCII-map review, which
+    # only sees tile adjacency, not jump-arc-vs-ceiling collision).
+    # Climbing beside the shelf and stepping onto its left EDGE from the
+    # side avoids that entirely. Two 32px hops (open air above both, no
+    # overhang) plus a final 16px sidestep onto the shelf itself. step1
+    # and step2 must NOT share a column either — a shared column gives
+    # only 1 clear row (16px) between them, and the player capsule is
+    # 24px tall, reintroducing the exact same overhang bug on a smaller
+    # scale (an 8px deficit that only "worked" by ~2px of incidental
+    # horizontal-drift timing luck — caught by review, not by eye).
+    G.hline(101, 103, 17, "#")
+    G.hline(104, 107, 15, "#")
+    G.coins((102, 16), (105, 14))
 	# hidden vault 2 under offices
     G.rect(122, 20, 127, 22, ".")
     G.put(123, 19, ".")
@@ -259,6 +278,21 @@ def stage_4():
     G.coin_row(92, 104, 18, 3)
     G.hline(95, 99, 14, "#")
     G.put(97, 13, "U")
+    # Landing steps up to the key shelf, built BESIDE it (cols91-94, left
+    # of the shelf's own 95-99 footprint), not underneath its overhang —
+    # same bug class fixed in stage 3's node-2 shelf. A step placed under
+    # a wide shelf can't work: any jump from directly beneath it drives
+    # the player's head into the shelf's underside within a single
+    # physics tick (confirmed by driving the live Player scene through
+    # the level). Climbing beside the shelf and stepping onto its left
+    # EDGE from the side avoids that. Two 32px hops (open air above both)
+    # plus a final 16px sidestep onto the shelf itself. step1 and step2
+    # must NOT share a column either — see the stage-3 comment above for
+    # why (a shared column reintroduces the overhang bug on a smaller,
+    # easy-to-miss scale).
+    G.hline(90, 91, 17, "#")
+    G.hline(92, 94, 15, "#")
+    G.coins((90, 16), (93, 14))
     G.hline(94, 96, 18, "l")
     G.put(106, 18, "F")
     G.put(109, 18, "N")
