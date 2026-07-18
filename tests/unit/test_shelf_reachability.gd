@@ -1,34 +1,36 @@
 extends GutTest
 ## Regression for two real shipped bugs, same root cause: stage 3's node 2
 ## and stage 4's key vault (gating node 2 behind a firewall) each sat on a
-## shelf 5 tiles (80px) above the floor with no steps in between — reachable
-## only by pressing a double jump EARLY (well before the first jump's
-## apex), the opposite of the "wait, then double-jump" timing every other
-## platformer trains players to use, and which this game's own auto
-## Jump->Fall transition (AscentState) punishes hard. Real players
-## repeatedly reported the (mandatory, progression-gating) shelves as
-## unreachable.
+## shelf 5 tiles (80px) above the floor — reachable only by pressing a
+## double jump EARLY (well before the first jump's apex), the opposite of
+## the "wait, then double-jump" timing every other platformer trains
+## players to use, and which this game's own auto Jump->Fall transition
+## (AscentState) punishes hard. Real players repeatedly reported the
+## (mandatory, progression-gating) shelves as unreachable.
 ##
-## Fixed with a staircase built BESIDE each shelf (tools/levelgen/
-## stages_2_4_layout.py), not underneath its overhang: a step placed
-## directly under a wide shelf can't work at all, since jumping from
-## beneath it drives the player's capsule (24px tall) into the shelf's
-## underside within a single physics tick. Climbing beside the shelf and
-## stepping onto its left EDGE avoids that.
+## v1.13 first tried to keep the 80px shelves and add landing staircases
+## beside them — rejected on user feedback: the steps rendered as floating
+## crates, and their solid tiles sealed stage 3's hidden vault entrance
+## and stage 4's col-90 checkpoint (16px of clearance vs the 24px player
+## capsule). The shipped fix instead lowers both shelves one tile to 64px,
+## inside plain double-jump reach at ANY timing.
 ##
-## This is a LIVE physics test (real Player scene, real input, real
-## physics ticks) rather than a static ASCII-map scan on purpose: three
-## increasingly subtle variants of this exact bug (adjacent-row tile
-## embedding, insufficient capsule headroom under an overhang, jumping
-## into a ceiling from directly beneath a shelf) were only caught by
-## actually driving the Player through the level — none were visible to
-## tile-adjacency or reachability math alone.
+## These are LIVE physics tests (real Player scene, real input, real
+## physics ticks) on purpose: this bug class (jump-arc vs terrain) is
+## invisible to tile-adjacency or reachability math alone. The climb test
+## deliberately uses the WORST-case double jump — second press only after
+## the first jump's apex has passed — so the shelf stays reachable for
+## every player timing, not just trained ones.
 
 const STAGE_3_SCENE := preload("res://scenes/levels/stage_3.tscn")
 const STAGE_4_SCENE := preload("res://scenes/levels/stage_4.tscn")
-## Shelf top in both stages is row 14 (y=224). Comfortably below that
+## Shelf top in both stages is row 15 (y=240). Comfortably below that
 ## confirms the climb, without demanding pixel-exact landing.
-const SHELF_Y := 232.0
+const SHELF_Y := 248.0
+
+
+func before_all() -> void:
+	SaveManager.redirect_for_tests("user://test_saves", "user://test_settings.cfg")
 
 
 func _find_player(root: Node) -> Player:
@@ -41,21 +43,7 @@ func _find_player(root: Node) -> Player:
 	return null
 
 
-## Holds jump for `hold_frames` physics ticks (long enough to clear a
-## single ordinary hop without triggering AscentState's short-hop cut),
-## then lets a few more frames pass for the landing to settle.
-func _hop(player: Player, hold_frames: int, settle_frames: int) -> void:
-	Input.action_press("jump")
-	for i in hold_frames + 6:
-		await wait_physics_frames(1)
-		if i == hold_frames:
-			Input.action_release("jump")
-	await wait_physics_frames(settle_frames)
-
-
-## Walks/jumps the real Player from `start` up a 3-hop staircase (ground ->
-## step -> step -> shelf) using ONLY ordinary single jumps, no double jump.
-func _climb_staircase(scene: PackedScene, start: Vector2, test_name: String) -> void:
+func _boot_with_player(scene: PackedScene, start: Vector2, test_name: String) -> Player:
 	var level: Node = scene.instantiate()
 	add_child_autofree(level)
 	await wait_physics_frames(5)
@@ -68,55 +56,72 @@ func _climb_staircase(scene: PackedScene, start: Vector2, test_name: String) -> 
 	await wait_physics_frames(15)
 	for action in ["jump", "move_right", "move_left"]:
 		Input.action_release(action)
+	return player
+
+
+## Holds the first jump all the way through its apex (a player reaching
+## for a high shelf holds jump — releasing early triggers AscentState's
+## 0.45x short-hop cut and is not the scenario under test), waits until
+## the ascent has clearly ENDED (velocity.y no longer upward, plus 2 extra
+## falling frames — the worst possible double-jump moment), then presses
+## jump again and holds that too. If this reaches the shelf, any player
+## timing does, because DoubleJumpState hard-overwrites velocity.y: a
+## later press only loses the height fallen while waiting.
+func _worst_case_double_jump(player: Player) -> void:
+	Input.action_press("jump")
+	await wait_physics_frames(2) # jump starts; velocity.y is now upward
+	var guard := 0
+	while player.velocity.y < 0.0 and guard < 60:
+		await wait_physics_frames(1)
+		guard += 1
+	Input.action_release("jump")
+	await wait_physics_frames(2)
+	Input.action_press("jump")
+	await wait_physics_frames(15)
+	Input.action_release("jump")
+
+
+## Jumps straight at the shelf's left face while holding move_right: the
+## player hugs the face during the ascent (horizontal-only block — rising
+## beside a wall is free, unlike rising into an overhang) and slides onto
+## the top the moment the double jump lifts the capsule past it. Hugging
+## makes the landing self-aligning, so the test needs no walk-up timing.
+func _climb_shelf(scene: PackedScene, start: Vector2, test_name: String) -> void:
+	var player: Player = await _boot_with_player(scene, start, test_name)
 
 	Input.action_press("move_right")
-	await wait_physics_frames(10) # walk up to the base of the staircase
-
-	await _hop(player, 8, 5) # ground -> step 1
-	await _hop(player, 8, 5) # step 1 -> step 2
-	await _hop(player, 8, 5) # step 2 -> shelf
-
+	await _worst_case_double_jump(player)
+	await wait_physics_frames(40) # drift over the edge, land, settle
 	Input.action_release("move_right")
 	await wait_physics_frames(10)
 
 	assert_true(player.position.y < SHELF_Y,
-			"%s: player should have reached the shelf (row14, y=224) via ordinary jumps (y=%.1f, x=%.1f)" \
+			"%s: player should reach the shelf (row15, y=240) with a worst-case-timed double jump (y=%.1f, x=%.1f)" \
 			% [test_name, player.position.y, player.position.x])
 
 
-func test_stage3_node2_shelf_reachable_via_ordinary_jumps() -> void:
-	# Start on col 102 (tile 102 * 16 + 8 = 1640), the single ground tile
-	# between hidden vault 1's entrance holes (cols 100-101) and the first
-	# step (col 103) — the staircase's real base. Starting further left
-	# would walk the player into the vault holes.
-	await _climb_staircase(STAGE_3_SCENE, Vector2(1640, 296), "stage3 node2")
+func test_stage3_node2_shelf_reachable_via_worst_case_double_jump() -> void:
+	# Ground left of the shelf edge (col 108): col 105 = tile 105 * 16 + 8 = 1688.
+	await _climb_shelf(STAGE_3_SCENE, Vector2(1688, 296), "stage3 node2")
 
 
-func test_stage4_key_vault_shelf_reachable_via_ordinary_jumps() -> void:
-	# Start just left of the staircase, on the ground (row19 starts at col89). Tile 89 * 16 + 8 = 1432.
-	await _climb_staircase(STAGE_4_SCENE, Vector2(1432, 296), "stage4 key vault")
+func test_stage4_key_vault_shelf_reachable_via_worst_case_double_jump() -> void:
+	# Ground left of the shelf edge (col 95), BEFORE the ankle lasers at
+	# cols 94-96: col 92 = tile 92 * 16 + 8 = 1480. Jumping immediately
+	# (no ground walk-up) crosses the laser columns airborne, well above
+	# their hitbox, so the laser phase can't make the test flaky.
+	await _climb_shelf(STAGE_4_SCENE, Vector2(1480, 296), "stage4 key vault")
 
 
-## Regression for the staircase fix's own regression: the first step was
-## drawn 2 cols left of its comment's stated position, landing ON hidden
-## vault 1's floor-entrance holes and sealing the vault completely (16px
-## of clearance under the step vs the 24px capsule, and no drop-in from
-## above either). A player simply walking right along the corridor must
-## still fall through the entrance holes (cols 100-101) into the vault.
+## Regression for the v1.13 staircase regression: solid step tiles drawn
+## over hidden vault 1's floor-entrance holes (cols 101-102) sealed the
+## vault completely — 16px of clearance under the step vs the 24px capsule,
+## and no drop-in from above either. A player simply walking right along
+## the corridor must fall through the entrance holes into the vault.
 func test_stage3_hidden_vault_still_enterable_by_walking_in() -> void:
-	var level: Node = STAGE_3_SCENE.instantiate()
-	add_child_autofree(level)
-	await wait_physics_frames(5)
-
-	var player := _find_player(level)
-	assert_not_null(player, "stage3 vault: found a live Player in the booted scene")
-
 	# Ground just left of the holes: col 97 (tile 97 * 16 + 8 = 1560).
-	player.position = Vector2(1560, 296)
-	player.velocity = Vector2.ZERO
-	await wait_physics_frames(15)
-	for action in ["jump", "move_right", "move_left"]:
-		Input.action_release(action)
+	var player: Player = await _boot_with_player(
+			STAGE_3_SCENE, Vector2(1560, 296), "stage3 vault")
 
 	Input.action_press("move_right")
 	await wait_physics_frames(90) # walk over the holes and drop in

@@ -176,51 +176,35 @@ def stage_3():
     G.put(93, 18, "L")
     G.put(97, 18, "k")
     G.put(99, 18, "m")
-    # hidden vault 1 under the corridor. Entrance holes sit at cols100-101
-    # (not 101-102) so one solid floor tile remains at col102 between the
-    # holes and the staircase's first step at col103 — the base the player
-    # jumps from. With holes at 101-102 there is no ground tile left of the
-    # step at all, and the v1.13 staircase (drawn 2 cols left of its own
-    # comment's stated cols103-107) even sat ON the holes, sealing the
-    # vault outright: 16px of clearance under the step vs the 24px player
-    # capsule, and no way to drop in from above either.
+    # hidden vault 1 under the corridor. Entrance holes at cols101-102:
+    # NOTHING solid may ever be drawn in the two rows above them (the
+    # v1.13 staircase did exactly that and sealed the vault — 16px of
+    # clearance vs the 24px capsule, and no drop-in from above either;
+    # test_stage_completability now guards every vault entrance).
     G.rect(100, 20, 105, 22, ".")
-    G.put(100, 19, ".")
     G.put(101, 19, ".")
+    G.put(102, 19, ".")
     G.coin_row(101, 104, 21, 1)
     G.put(103, 20, "W")
     # office two-level block
     G.coin_row(107, 121, 18, 3)
     G.put(112, 18, "A")
     G.put(119, 18, "J")
-    G.hline(108, 136, 14, "#")
-    G.coin_row(109, 133, 13, 2)
+    # Shelf sits at row15 — 64px above the floor, reachable with a plain
+    # double jump at ANY timing. Its original row14 (80px) needed an
+    # unintuitive early-press double jump (players reported the node
+    # unreachable), and the v1.13 attempt to keep 80px by adding a
+    # staircase read as ugly floating crates in-game AND sealed hidden
+    # vault 1's entrance holes below (user feedback: remove the stairs).
+    # Nothing solid may ever be drawn above cols101-102 (the vault holes)
+    # or in the approach air left of col108 — test_stage_completability
+    # and test_shelf_reachability guard both.
+    G.hline(108, 136, 15, "#")
+    G.coin_row(109, 133, 14, 2)
     G.put(114, 10, "S")
-    G.put(126, 13, "J")
-    G.put(131, 13, "e")
-    G.put(135, 13, "N")
-    # Landing steps up to the node-2 shelf, built BESIDE it (cols103-107,
-    # left of the shelf's own 108-136 footprint), not underneath its
-    # overhang. A step placed under a wide shelf can't work at all: any
-    # jump from directly beneath it drives the player's head into the
-    # shelf's underside within a single physics tick, killing the jump
-    # almost instantly (confirmed by driving the live Player scene
-    # through the level — this is invisible to ASCII-map review, which
-    # only sees tile adjacency, not jump-arc-vs-ceiling collision).
-    # Climbing beside the shelf and stepping onto its left EDGE from the
-    # side avoids that entirely. Two 32px hops (open air above both, no
-    # overhang) plus a final 16px sidestep onto the shelf itself. step1
-    # and step2 must NOT share a column either — a shared column gives
-    # only 1 clear row (16px) between them, and the player capsule is
-    # 24px tall, reintroducing the exact same overhang bug on a smaller
-    # scale (an 8px deficit that only "worked" by ~2px of incidental
-    # horizontal-drift timing luck — caught by review, not by eye).
-    # The steps must also stay OFF cols100-102: 100-101 are hidden vault
-    # 1's entrance holes (a step above them seals the vault — the v1.13.0
-    # regression) and 102 is the single ground tile the climb starts from.
-    G.hline(103, 105, 17, "#")
-    G.hline(106, 107, 15, "#")
-    G.coins((104, 16), (106, 14))
+    G.put(126, 14, "J")
+    G.put(131, 14, "e")
+    G.put(135, 14, "N")
 	# hidden vault 2 under offices
     G.rect(122, 20, 127, 22, ".")
     G.put(123, 19, ".")
@@ -236,15 +220,20 @@ def stage_3():
     # softlocked at the firewall gate with no way back to an earlier
     # section. One tile from the node it can no longer be missed by
     # anyone who collects the (mandatory) node itself.
-    G.put(134, 13, "U")
-    # Regional Manager arena, node 3 behind a firewall gate
+    G.put(134, 14, "U")
+    # Regional Manager arena. Node 3 stands IN the arena (col151), clearly
+    # visible — it originally sat at col156, squeezed between the firewall
+    # gate (col155) and exit gate (col157): both gate props are 64px-wide
+    # discs, so the two overlapped each other and buried the node behind
+    # their art. Players saw no third node anywhere (user screenshot).
+    # The firewall gate now guards only the exit, like stage 5's.
     G.put(138, 18, "k")
     G.vline(140, 14, 18, "#")
     G.put(147, 18, "R")
     G.coins((144, 16), (150, 16))
+    G.put(151, 18, "N")
     G.vline(153, 14, 18, "#")
     G.put(155, 18, "F")
-    G.put(156, 18, "N")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 27)] + [(x, 18) for x in range(72, 96)]
              + [(x, 7) for x in range(37, 59)] + [(x, 17) for x in range(107, 133)]
@@ -284,28 +273,16 @@ def stage_4():
     G.hline(89, 158, 19, "#")
     G.rect(89, 20, 158, 22, "@")
     G.put(90, 18, "k")
-    # key vault: U behind lasers, F gates N2 + treasure
+    # key vault: U behind lasers, F gates N2 + treasure. Shelf at row15 —
+    # 64px above the floor, a plain any-timing double jump (same reason as
+    # stage 3's node-2 shelf: 80px needed an early-press trick, and the
+    # v1.13 staircase workaround looked like floating crates in-game,
+    # sealed the col-90 checkpoint, and trapped the (92,18) coin — user
+    # feedback: no stairs). Keep cols 90-94 free of solid tiles: the
+    # checkpoint lives at col90 and the shelf approach jump needs the air.
     G.coin_row(92, 104, 18, 3)
-    G.hline(95, 99, 14, "#")
-    G.put(97, 13, "U")
-    # Landing steps up to the key shelf, built BESIDE it (cols91-94, left
-    # of the shelf's own 95-99 footprint), not underneath its overhang —
-    # same bug class fixed in stage 3's node-2 shelf. A step placed under
-    # a wide shelf can't work: any jump from directly beneath it drives
-    # the player's head into the shelf's underside within a single
-    # physics tick (confirmed by driving the live Player scene through
-    # the level). Climbing beside the shelf and stepping onto its left
-    # EDGE from the side avoids that. Two 32px hops (open air above both)
-    # plus a final 16px sidestep onto the shelf itself. step1 and step2
-    # must NOT share a column either — see the stage-3 comment above for
-    # why (a shared column reintroduces the overhang bug on a smaller,
-    # easy-to-miss scale). And the steps must stay OFF col90: the
-    # checkpoint lives there, and a step above it leaves 16px of clearance
-    # vs the 24px player capsule — nobody could ever touch it (the v1.13.0
-    # regression, drawn 1 col left of this comment's stated cols91-94).
-    G.hline(91, 92, 17, "#")
-    G.hline(93, 94, 15, "#")
-    G.coins((91, 16), (93, 14))
+    G.hline(95, 99, 15, "#")
+    G.put(97, 14, "U")
     G.hline(94, 96, 18, "l")
     G.put(106, 18, "F")
     G.put(109, 18, "N")
