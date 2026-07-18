@@ -85,10 +85,47 @@ func _climb_staircase(scene: PackedScene, start: Vector2, test_name: String) -> 
 
 
 func test_stage3_node2_shelf_reachable_via_ordinary_jumps() -> void:
-	# Start just left of the staircase, on the ground (row19). Tile 100 * 16 + 8 = 1608.
-	await _climb_staircase(STAGE_3_SCENE, Vector2(1608, 296), "stage3 node2")
+	# Start on col 102 (tile 102 * 16 + 8 = 1640), the single ground tile
+	# between hidden vault 1's entrance holes (cols 100-101) and the first
+	# step (col 103) — the staircase's real base. Starting further left
+	# would walk the player into the vault holes.
+	await _climb_staircase(STAGE_3_SCENE, Vector2(1640, 296), "stage3 node2")
 
 
 func test_stage4_key_vault_shelf_reachable_via_ordinary_jumps() -> void:
 	# Start just left of the staircase, on the ground (row19 starts at col89). Tile 89 * 16 + 8 = 1432.
 	await _climb_staircase(STAGE_4_SCENE, Vector2(1432, 296), "stage4 key vault")
+
+
+## Regression for the staircase fix's own regression: the first step was
+## drawn 2 cols left of its comment's stated position, landing ON hidden
+## vault 1's floor-entrance holes and sealing the vault completely (16px
+## of clearance under the step vs the 24px capsule, and no drop-in from
+## above either). A player simply walking right along the corridor must
+## still fall through the entrance holes (cols 100-101) into the vault.
+func test_stage3_hidden_vault_still_enterable_by_walking_in() -> void:
+	var level: Node = STAGE_3_SCENE.instantiate()
+	add_child_autofree(level)
+	await wait_physics_frames(5)
+
+	var player := _find_player(level)
+	assert_not_null(player, "stage3 vault: found a live Player in the booted scene")
+
+	# Ground just left of the holes: col 97 (tile 97 * 16 + 8 = 1560).
+	player.position = Vector2(1560, 296)
+	player.velocity = Vector2.ZERO
+	await wait_physics_frames(15)
+	for action in ["jump", "move_right", "move_left"]:
+		Input.action_release(action)
+
+	Input.action_press("move_right")
+	await wait_physics_frames(90) # walk over the holes and drop in
+	Input.action_release("move_right")
+	await wait_physics_frames(10)
+
+	# Vault interior: cols 100-105 (x 1600-1696), below the floor (y > 320).
+	assert_true(player.position.y > 320.0,
+			"stage3 vault: walking right over the entrance holes should drop the player below the corridor floor (y=%.1f, x=%.1f)" \
+			% [player.position.y, player.position.x])
+	assert_between(player.position.x, 1600.0, 1700.0,
+			"stage3 vault: player should have landed inside the vault interior")

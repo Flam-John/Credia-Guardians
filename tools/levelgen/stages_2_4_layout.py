@@ -176,10 +176,17 @@ def stage_3():
     G.put(93, 18, "L")
     G.put(97, 18, "k")
     G.put(99, 18, "m")
-    # hidden vault 1 under the corridor
+    # hidden vault 1 under the corridor. Entrance holes sit at cols100-101
+    # (not 101-102) so one solid floor tile remains at col102 between the
+    # holes and the staircase's first step at col103 — the base the player
+    # jumps from. With holes at 101-102 there is no ground tile left of the
+    # step at all, and the v1.13 staircase (drawn 2 cols left of its own
+    # comment's stated cols103-107) even sat ON the holes, sealing the
+    # vault outright: 16px of clearance under the step vs the 24px player
+    # capsule, and no way to drop in from above either.
     G.rect(100, 20, 105, 22, ".")
+    G.put(100, 19, ".")
     G.put(101, 19, ".")
-    G.put(102, 19, ".")
     G.coin_row(101, 104, 21, 1)
     G.put(103, 20, "W")
     # office two-level block
@@ -208,9 +215,12 @@ def stage_3():
     # 24px tall, reintroducing the exact same overhang bug on a smaller
     # scale (an 8px deficit that only "worked" by ~2px of incidental
     # horizontal-drift timing luck — caught by review, not by eye).
-    G.hline(101, 103, 17, "#")
-    G.hline(104, 107, 15, "#")
-    G.coins((102, 16), (105, 14))
+    # The steps must also stay OFF cols100-102: 100-101 are hidden vault
+    # 1's entrance holes (a step above them seals the vault — the v1.13.0
+    # regression) and 102 is the single ground tile the climb starts from.
+    G.hline(103, 105, 17, "#")
+    G.hline(106, 107, 15, "#")
+    G.coins((104, 16), (106, 14))
 	# hidden vault 2 under offices
     G.rect(122, 20, 127, 22, ".")
     G.put(123, 19, ".")
@@ -289,10 +299,13 @@ def stage_4():
     # plus a final 16px sidestep onto the shelf itself. step1 and step2
     # must NOT share a column either — see the stage-3 comment above for
     # why (a shared column reintroduces the overhang bug on a smaller,
-    # easy-to-miss scale).
-    G.hline(90, 91, 17, "#")
-    G.hline(92, 94, 15, "#")
-    G.coins((90, 16), (93, 14))
+    # easy-to-miss scale). And the steps must stay OFF col90: the
+    # checkpoint lives there, and a step above it leaves 16px of clearance
+    # vs the 24px player capsule — nobody could ever touch it (the v1.13.0
+    # regression, drawn 1 col left of this comment's stated cols91-94).
+    G.hline(91, 92, 17, "#")
+    G.hline(93, 94, 15, "#")
+    G.coins((91, 16), (93, 14))
     G.hline(94, 96, 18, "l")
     G.put(106, 18, "F")
     G.put(109, 18, "N")

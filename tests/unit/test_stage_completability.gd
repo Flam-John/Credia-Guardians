@@ -73,6 +73,62 @@ func test_stage3_usb_key_sits_beside_its_mandatory_node() -> void:
 			% tiles_apart)
 
 
+## Regression for a real shipped bug (v1.13 staircases): new solid terrain
+## drawn over a hidden vault's floor-entrance holes sealed the vault (a
+## '#' 2 rows above the hole leaves 16px of clearance vs the 24px player
+## capsule, and blocks dropping in from above too). Raw map text is used
+## on purpose: '.' appears ONLY as vault cells there, while the parser's
+## terrain output also blanks consumed markers to '.'.
+func test_every_vault_entrance_hole_has_headroom() -> void:
+	for path in STAGE_PATHS:
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for y in lines.size():
+			var line: String = lines[y]
+			for x in line.length():
+				if line[x] != ".":
+					continue
+				# An entrance hole is a '.' cut into a '#' floor run. Vault
+				# INTERIOR cells border the '@' shell instead, never '#'.
+				if not (_char(lines, x - 1, y) == "#" or _char(lines, x + 1, y) == "#"):
+					continue
+				for dy in [1, 2]:
+					assert_false(_solid(lines, x, y - dy),
+							"%s: vault entrance hole at col %d row %d is sealed by solid terrain %d row(s) above" \
+							% [path, x, y, dy])
+
+
+## Same bug class, other victim: stage 4's first step was drawn over the
+## col-90 checkpoint, leaving 16px of clearance where the 24px capsule
+## needs to stand — the checkpoint could never be touched again. Every
+## progression marker (checkpoint, node, key, gate) needs a clear tile
+## above the one it stands in.
+func test_every_progression_marker_has_headroom() -> void:
+	for path in STAGE_PATHS:
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for y in lines.size():
+			var line: String = lines[y]
+			for x in line.length():
+				if not line[x] in ["k", "N", "U", "E", "F"]:
+					continue
+				assert_false(_solid(lines, x, y - 1),
+						"%s: marker '%s' at col %d row %d has solid terrain directly above — the 24px player capsule cannot stand there to touch it" \
+						% [path, line[x], x, y])
+
+
+func _char(lines: Array, x: int, y: int) -> String:
+	if y < 0 or y >= lines.size():
+		return ""
+	var line: String = lines[y]
+	if x < 0 or x >= line.length():
+		return ""
+	return line[x]
+
+
+func _solid(lines: Array, x: int, y: int) -> bool:
+	var ch := _char(lines, x, y)
+	return ch == "#" or ch == "@"
+
+
 func _find_gate(spawns: Array[Dictionary]) -> Dictionary:
 	return _find_type(spawns, "E")
 
