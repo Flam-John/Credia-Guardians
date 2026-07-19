@@ -39,9 +39,7 @@ def stage_5():
     # vertical steam climb with vents, key 2
     G.hline(61, 92, 19, "#")
     G.rect(61, 20, 92, 22, "@")
-    G.vline(66, 9, 18, "~")
     G.vline(76, 9, 18, "V")
-    G.vline(86, 9, 18, "~")
     G.hline(63, 69, 8, "#")
     G.hline(73, 79, 8, "#")
     G.hline(83, 89, 8, "#")
@@ -49,8 +47,22 @@ def stage_5():
     G.put(76, 7, "U")                     # key 2 (atop the vent column)
     G.put(64, 7, "N")
     G.coin_row(63, 91, 15, 4)
+    # Steam columns rise BESIDE the decks (col 62 = node deck's left edge,
+    # col 82 = third deck's left edge) and top out one row ABOVE the deck
+    # surface (row 6 vs standing row 7): ride up, drift one tile right,
+    # land beside the node / on the third deck. The key deck (73-79) is
+    # then a plain 4-col hop from either neighbor. The old spots (66/86,
+    # topping out at row 9) sat directly UNDER the decks — risers bonked
+    # the underside forever, leaving the mandatory node AND USB key
+    # unreachable: stage 5 could never be finished. Drawn after the coin
+    # rows so the col-82 column stays contiguous where it crosses
+    # coin_row(64,88,7)'s col-82 slot (top_up refills the coin count).
+    # A '~' cell may never be capped by solid terrain — guarded by
+    # test_stage_completability + live climbs in test_updraft_reachability.
+    G.vline(62, 6, 18, "~")
+    G.vline(82, 6, 18, "~")
     G.put(70, 18, "L")
-    G.put(82, 18, "o")
+    G.put(84, 18, "o")                    # coffee (moved off the col-82 riser)
     G.put(90, 18, "k")
     G.put(91, 18, "F")                    # gate 2
     # fading bridges over corruption pit + key 3

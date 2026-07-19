@@ -115,6 +115,33 @@ func test_every_progression_marker_has_headroom() -> void:
 						% [path, line[x], x, y])
 
 
+## Regression for a real shipped bug (v1.13.x): every '~' steam column in
+## stages 1 and 5 topped out DIRECTLY against the underside of the deck it
+## was meant to reach — risers bonked the deck forever, the 14px zone plus
+## deck overhang made rounding the lip impossible, and stage 5's mandatory
+## node + USB key were unreachable (the stage could not be finished). An
+## updraft must always have open air above it: the rider needs to clear
+## the adjacent deck's lip, so the two cells above the column's topmost
+## '~' must be non-solid. Raw map text is used on purpose — the parser
+## blanks vertical-run cells out of its terrain output. Coins/markers may
+## split a column into several '~' runs (they overwrite single cells), so
+## the rule checks the topmost '~' of each column, which is the stack top.
+func test_no_updraft_column_is_capped_by_solid_terrain() -> void:
+	for path in STAGE_PATHS:
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		var checked_cols := {}
+		for y in lines.size():
+			var line: String = lines[y]
+			for x in line.length():
+				if line[x] != "~" or checked_cols.has(x):
+					continue
+				checked_cols[x] = true # first '~' found per column = topmost
+				for dy in [1, 2]:
+					assert_false(_solid(lines, x, y - dy),
+							"%s: updraft column at col %d tops out at row %d but solid terrain sits %d row(s) above — risers get pinned under it" \
+							% [path, x, y, dy])
+
+
 func _char(lines: Array, x: int, y: int) -> String:
 	if y < 0 or y >= lines.size():
 		return ""

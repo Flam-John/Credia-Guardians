@@ -72,14 +72,22 @@ put(57, 18, "N")                                 # node 1
 # ---- section 3: coffee steam shafts (cols 60-84) ----
 rect(60, 22, 84, 22, "#")                        # pit floor
 put(60, 21, "#")                                 # step down edge
-hline(64, 67, 21, "^")
-hline(73, 76, 21, "^")
-for col in (62, 70, 78):                         # steam columns
-    vline(col, 9, 18, "~")
-    coins((col, 15), (col, 12))
+hline(65, 67, 21, "^")                           # trimmed from 64-67: col 64
+hline(73, 76, 21, "^")                           # is now a steam-column entry
 hline(60, 63, 8, "#")
 hline(68, 71, 8, "#")
 hline(76, 79, 8, "#")
+# Steam columns rise BESIDE each deck's right edge (cols 64/72/80) and
+# top out one row ABOVE the deck surface (row 6 vs standing row 7): ride
+# up, drift one tile left, land. Their old spots (62/70/78, topping out
+# at row 9) sat directly UNDER the decks — risers bonked the underside
+# forever, and the 14px-wide zone plus the deck overhang made rounding
+# the lip impossible, so the deck coins were uncollectable (v1.13.x).
+# A '~' cell may never be capped by solid terrain — guarded by
+# test_stage_completability + live climbs in test_updraft_reachability.
+for col in (64, 72, 80):                         # steam columns
+    vline(col, 6, 18, "~")
+    coins((col, 15), (col, 12))
 coins((61, 7), (62, 7), (69, 7), (70, 7), (77, 7), (78, 7),
       (65, 6), (66, 6), (73, 6), (74, 6), (69, 3), (70, 3))
 
