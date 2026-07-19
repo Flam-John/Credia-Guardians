@@ -12,7 +12,7 @@
 @                                                                                                     c  c                           V                         @
 @                                                            c                                      ========                         V              Q          @
 @                                                           c c                                                    c c c c c cJc cec V N                       @
-@                           V       V       V               ####                            c  c                  ########################   #             #   @
+@                           V       V       V               ####                            c  c                  ########################                     @
 @                           V       V       V                             c               ========                                           #             #   @
 @                           V   c   V   c   V   c        gggggg c     c                                                                      #             #   @
 @                         ccVcccccccVcccccccVccccccc           ###   ###      cccc                                                           #   c     c   #   @

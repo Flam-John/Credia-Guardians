@@ -122,12 +122,14 @@ def stage_2():
     G.vline(133, 10, 13, "V")
     G.put(135, 13, "N")
     G.hline(133, 137, 14, "#")
-    # mid-boss arena: AI Banker MK-II
+    # mid-boss arena: AI Banker MK-II. Walls vline(x, 15, 18) = 64px, the
+    # stage-1 pattern: the old 80px pair put the mandatory arena EXIT
+    # behind an early-press-trick climb (see stage 5's CEO arena note).
     G.put(139, 18, "k")
-    G.vline(141, 14, 18, "#")
+    G.vline(141, 15, 18, "#")
     G.put(148, 12, "Q")
     G.coins((145, 17), (151, 17))
-    G.vline(155, 14, 18, "#")
+    G.vline(155, 15, 18, "#")
     G.put(153, 18, "m")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 24)] + [(x, 18) for x in range(112, 133)]
@@ -228,11 +230,12 @@ def stage_3():
     # their art. Players saw no third node anywhere (user screenshot).
     # The firewall gate now guards only the exit, like stage 5's.
     G.put(138, 18, "k")
-    G.vline(140, 14, 18, "#")
+    # Arena walls 64px (stage-1 pattern) — 80px exit climbs are trick-only.
+    G.vline(140, 15, 18, "#")
     G.put(147, 18, "R")
     G.coins((144, 16), (150, 16))
     G.put(151, 18, "N")
-    G.vline(153, 14, 18, "#")
+    G.vline(153, 15, 18, "#")
     G.put(155, 18, "F")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 27)] + [(x, 18) for x in range(72, 96)]
@@ -257,8 +260,8 @@ def stage_4():
     G.hline(26, 31, 18, "l")
     G.hline(35, 40, 18, "l")
     G.hline(44, 49, 18, "l")
-    G.hline(30, 36, 14, "#")             # hop-over shelf
-    G.coin_row(30, 36, 13, 2)
+    G.hline(30, 36, 15, "#")             # hop-over shelf (row15 = 64px:
+    G.coin_row(30, 36, 14, 2)            #   80px made its coins trick-only)
     G.coin_row(24, 54, 17, 4)
     G.put(52, 18, "k")
     G.put(54, 18, "N")
@@ -308,16 +311,20 @@ def stage_4():
     G.put(137, 19, ".")
     G.coins((136, 21), (137, 21), (138, 21))
     G.put(135, 21, "W")
-    G.put(136, 13, "N")
-    G.hline(135, 138, 14, "#")
-    # wave gauntlet arena
+    # Node 3 shelf at row15 — 64px casual reach (was row14/80px: mandatory
+    # node, trick-only from the floor; stomp-bouncing the wave-arena
+    # Managers was the only untaught alternative). The row-13 elite shelf
+    # (118-134) stays enterable from here: rise 2, one column over.
+    G.put(136, 14, "N")
+    G.hline(135, 138, 15, "#")
+    # wave gauntlet arena. Walls 64px (stage-1 pattern), see stage 5 note.
     G.put(140, 18, "k")
-    G.vline(142, 14, 18, "#")
+    G.vline(142, 15, 18, "#")
     G.put(146, 18, "M")
     G.put(150, 18, "M")
     G.put(148, 18, "J")
     G.coins((145, 16), (149, 16), (152, 16))
-    G.vline(154, 14, 18, "#")
+    G.vline(154, 15, 18, "#")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 21)] + [(x, 17) for x in range(24, 54)]
              + [(x, 18) for x in range(117, 133)] + [(x, 17) for x in range(90, 105)]

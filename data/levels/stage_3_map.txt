@@ -12,7 +12,7 @@
 @                                |                                                                                                                             @
 @                                |                                                                                                                             @
 @                                |                                                                                                                             @
-@                                |                                                                           c c c c c c c c cJc c e cUN    #            #     @
+@                                |                                                                           c c c c c c c c cJc c e cUN                       @
 @                                |               c    c    c    c                                           #############################   #            #     @
 @           m                    |             X    X    X    X                                                                             #   c     c  #     @
 @                                |                                      c  c  c  c  c  c  c  c  c          cccccc                           #            #     @

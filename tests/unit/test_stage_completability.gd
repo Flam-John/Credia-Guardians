@@ -4,11 +4,15 @@ extends GutTest
 ## exceeding max jump+double-jump reach and sealing the boss + exit gate
 ## behind an unclimbable wall. This scans every real stage map for any
 ## solid column standing between the player's floor row and the exit gate
-## that exceeds the ACTUAL reachable rise (computed from CharacterStats,
-## not a hardcoded guess, so it can't silently drift out of sync with
-## physics tuning).
+## that exceeds the CASUAL reachable rise. The bound is the empirically
+## measured 64px (4 tiles) any-timing double jump — NOT the analytic
+## v^2/2g formula (~84px+), which only holds with an unintuitive
+## early-press trick that mandatory paths must never require (that
+## formula silently blessed the 80px arena walls fixed alongside this).
+## If jump physics are retuned, the live probes in
+## test_shelf_reachability / test_updraft_reachability catch the drift.
 
-const CHRIS := preload("res://data/characters/chris.tres")
+const CASUAL_REACH_PX := 64.0
 const STAGE_PATHS := [
 	"res://data/levels/stage_1_map.txt",
 	"res://data/levels/stage_2_map.txt",
@@ -21,18 +25,8 @@ const T := 16
 const SCAN_WINDOW := 40
 
 
-## Max additional rise above the jump's start point, chaining a double
-## jump at the first jump's exact apex (the worst-case — and best-case —
-## a player can do): v^2 / (2*g) per jump, summed.
-func _max_reach_px() -> float:
-	var g: float = CHRIS.gravity_rise
-	return (CHRIS.jump_velocity ** 2) / (2.0 * g) \
-			+ (CHRIS.double_jump_velocity ** 2) / (2.0 * g)
-
-
 func test_every_stage_exit_gate_is_reachable() -> void:
-	var max_reach := _max_reach_px()
-	assert_gt(max_reach, 0.0, "sanity: jump physics produced a positive reach")
+	var max_reach := CASUAL_REACH_PX
 	for path in STAGE_PATHS:
 		var raw := FileAccess.get_file_as_string(path)
 		assert_false(raw.is_empty(), "%s must be readable" % path)

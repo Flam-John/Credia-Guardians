@@ -32,8 +32,11 @@ def stage_5():
     G.coin_row(26, 58, 17, 3)
     G.put(36, 18, "A")
     G.put(48, 18, "R")                    # elite recolor roams free
-    G.hline(50, 54, 14, "#")
-    G.put(52, 13, "U")                    # key 1 (visible shelf)
+    # Key 1 shelf at row15 — 64px, plain any-timing double jump (same rule
+    # as the stage-3/4 shelves lowered in this branch: 80px mandatory
+    # climbs need the early-press trick and key 1 gates ALL progress).
+    G.hline(50, 54, 15, "#")
+    G.put(52, 14, "U")                    # key 1 (visible shelf)
     G.put(57, 18, "k")
     G.put(59, 18, "F")                    # gate 1
     # vertical steam climb with vents, key 2
@@ -69,7 +72,10 @@ def stage_5():
     G.rect(93, 22, 118, 22, "#")
     G.hline(95, 113, 21, "^")
     G.hline(93, 100, 14, "b")
-    G.hline(104, 111, 11, "b")
+    # Bridge 2 starts at col103 (was 104): bridge1->bridge2 is a rise-3
+    # hop and 4 columns across was too demanding for the mandatory key-3
+    # path on FADING bridges — 3 across is the stage-4 bridge spacing.
+    G.hline(103, 110, 11, "b")
     G.coins((95, 13), (98, 13), (106, 10), (109, 10))
     G.hline(114, 118, 14, "#")
     G.put(116, 13, "U")                   # key 3
@@ -87,17 +93,22 @@ def stage_5():
     # elite gauntlet + node 3 + gate 3
     G.coin_row(123, 133, 18, 3)
     G.put(126, 18, "Q")
-    G.hline(130, 134, 14, "#")
-    G.put(132, 13, "N")
+    # Node 3 shelf at row15 — 64px casual reach (was row14/80px: trick-only
+    # and mandatory for the exit gate).
+    G.hline(130, 134, 15, "#")
+    G.put(132, 14, "N")
     G.put(136, 18, "F")                   # gate 3 guards the boss door
     G.put(137, 18, "k")                   # last checkpoint before the CEO
-    # CEO arena (walls match the vline(x, 14, 18) pattern used for every
-    # other stage's final pillars — this pair was one tile too tall,
-    # sealing the boss arena and exit gate behind an unjumpable 96px wall)
-    G.vline(139, 14, 18, "#")
+    # CEO arena. Walls at vline(x, 15, 18) = 64px, the stage-1 pattern:
+    # clearable with a plain any-timing double jump. The previous
+    # vline(x, 14, 18)/80px "shared pattern" needed the early-press trick
+    # to EXIT the arena — and the CEO is not stompable, so after the
+    # mandatory kill there was no bounce source: the final room of the
+    # final stage was trick-or-nothing.
+    G.vline(139, 15, 18, "#")
     G.put(147, 18, "C")
     G.coins((143, 16), (151, 16))
-    G.vline(155, 14, 18, "#")
+    G.vline(155, 15, 18, "#")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 24)] + [(x, 18) for x in range(62, 90)]
              + [(x, 17) for x in range(26, 58)] + [(x, 16) for x in range(120, 134)])
