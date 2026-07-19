@@ -122,12 +122,14 @@ def stage_2():
     G.vline(133, 10, 13, "V")
     G.put(135, 13, "N")
     G.hline(133, 137, 14, "#")
-    # mid-boss arena: AI Banker MK-II
+    # mid-boss arena: AI Banker MK-II. Walls vline(x, 15, 18) = 64px, the
+    # stage-1 pattern: the old 80px pair put the mandatory arena EXIT
+    # behind an early-press-trick climb (see stage 5's CEO arena note).
     G.put(139, 18, "k")
-    G.vline(141, 14, 18, "#")
+    G.vline(141, 15, 18, "#")
     G.put(148, 12, "Q")
     G.coins((145, 17), (151, 17))
-    G.vline(155, 14, 18, "#")
+    G.vline(155, 15, 18, "#")
     G.put(153, 18, "m")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 24)] + [(x, 18) for x in range(112, 133)]
@@ -176,7 +178,11 @@ def stage_3():
     G.put(93, 18, "L")
     G.put(97, 18, "k")
     G.put(99, 18, "m")
-    # hidden vault 1 under the corridor
+    # hidden vault 1 under the corridor. Entrance holes at cols101-102:
+    # NOTHING solid may ever be drawn in the two rows above them (the
+    # v1.13 staircase did exactly that and sealed the vault — 16px of
+    # clearance vs the 24px capsule, and no drop-in from above either;
+    # test_stage_completability now guards every vault entrance).
     G.rect(100, 20, 105, 22, ".")
     G.put(101, 19, ".")
     G.put(102, 19, ".")
@@ -186,12 +192,21 @@ def stage_3():
     G.coin_row(107, 121, 18, 3)
     G.put(112, 18, "A")
     G.put(119, 18, "J")
-    G.hline(108, 136, 14, "#")
-    G.coin_row(109, 133, 13, 2)
+    # Shelf sits at row15 — 64px above the floor, reachable with a plain
+    # double jump at ANY timing. Its original row14 (80px) needed an
+    # unintuitive early-press double jump (players reported the node
+    # unreachable), and the v1.13 attempt to keep 80px by adding a
+    # staircase read as ugly floating crates in-game AND sealed hidden
+    # vault 1's entrance holes below (user feedback: remove the stairs).
+    # Nothing solid may ever be drawn above cols101-102 (the vault holes)
+    # or in the approach air left of col108 — test_stage_completability
+    # and test_shelf_reachability guard both.
+    G.hline(108, 136, 15, "#")
+    G.coin_row(109, 133, 14, 2)
     G.put(114, 10, "S")
-    G.put(126, 13, "J")
-    G.put(131, 13, "e")
-    G.put(135, 13, "N")
+    G.put(126, 14, "J")
+    G.put(131, 14, "e")
+    G.put(135, 14, "N")
 	# hidden vault 2 under offices
     G.rect(122, 20, 127, 22, ".")
     G.put(123, 19, ".")
@@ -207,15 +222,21 @@ def stage_3():
     # softlocked at the firewall gate with no way back to an earlier
     # section. One tile from the node it can no longer be missed by
     # anyone who collects the (mandatory) node itself.
-    G.put(134, 13, "U")
-    # Regional Manager arena, node 3 behind a firewall gate
+    G.put(134, 14, "U")
+    # Regional Manager arena. Node 3 stands IN the arena (col151), clearly
+    # visible — it originally sat at col156, squeezed between the firewall
+    # gate (col155) and exit gate (col157): both gate props are 64px-wide
+    # discs, so the two overlapped each other and buried the node behind
+    # their art. Players saw no third node anywhere (user screenshot).
+    # The firewall gate now guards only the exit, like stage 5's.
     G.put(138, 18, "k")
-    G.vline(140, 14, 18, "#")
+    # Arena walls 64px (stage-1 pattern) — 80px exit climbs are trick-only.
+    G.vline(140, 15, 18, "#")
     G.put(147, 18, "R")
     G.coins((144, 16), (150, 16))
-    G.vline(153, 14, 18, "#")
+    G.put(151, 18, "N")
+    G.vline(153, 15, 18, "#")
     G.put(155, 18, "F")
-    G.put(156, 18, "N")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 27)] + [(x, 18) for x in range(72, 96)]
              + [(x, 7) for x in range(37, 59)] + [(x, 17) for x in range(107, 133)]
@@ -239,8 +260,8 @@ def stage_4():
     G.hline(26, 31, 18, "l")
     G.hline(35, 40, 18, "l")
     G.hline(44, 49, 18, "l")
-    G.hline(30, 36, 14, "#")             # hop-over shelf
-    G.coin_row(30, 36, 13, 2)
+    G.hline(30, 36, 15, "#")             # hop-over shelf (row15 = 64px:
+    G.coin_row(30, 36, 14, 2)            #   80px made its coins trick-only)
     G.coin_row(24, 54, 17, 4)
     G.put(52, 18, "k")
     G.put(54, 18, "N")
@@ -255,10 +276,16 @@ def stage_4():
     G.hline(89, 158, 19, "#")
     G.rect(89, 20, 158, 22, "@")
     G.put(90, 18, "k")
-    # key vault: U behind lasers, F gates N2 + treasure
+    # key vault: U behind lasers, F gates N2 + treasure. Shelf at row15 —
+    # 64px above the floor, a plain any-timing double jump (same reason as
+    # stage 3's node-2 shelf: 80px needed an early-press trick, and the
+    # v1.13 staircase workaround looked like floating crates in-game,
+    # sealed the col-90 checkpoint, and trapped the (92,18) coin — user
+    # feedback: no stairs). Keep cols 90-94 free of solid tiles: the
+    # checkpoint lives at col90 and the shelf approach jump needs the air.
     G.coin_row(92, 104, 18, 3)
-    G.hline(95, 99, 14, "#")
-    G.put(97, 13, "U")
+    G.hline(95, 99, 15, "#")
+    G.put(97, 14, "U")
     G.hline(94, 96, 18, "l")
     G.put(106, 18, "F")
     G.put(109, 18, "N")
@@ -284,16 +311,20 @@ def stage_4():
     G.put(137, 19, ".")
     G.coins((136, 21), (137, 21), (138, 21))
     G.put(135, 21, "W")
-    G.put(136, 13, "N")
-    G.hline(135, 138, 14, "#")
-    # wave gauntlet arena
+    # Node 3 shelf at row15 — 64px casual reach (was row14/80px: mandatory
+    # node, trick-only from the floor; stomp-bouncing the wave-arena
+    # Managers was the only untaught alternative). The row-13 elite shelf
+    # (118-134) stays enterable from here: rise 2, one column over.
+    G.put(136, 14, "N")
+    G.hline(135, 138, 15, "#")
+    # wave gauntlet arena. Walls 64px (stage-1 pattern), see stage 5 note.
     G.put(140, 18, "k")
-    G.vline(142, 14, 18, "#")
+    G.vline(142, 15, 18, "#")
     G.put(146, 18, "M")
     G.put(150, 18, "M")
     G.put(148, 18, "J")
     G.coins((145, 16), (149, 16), (152, 16))
-    G.vline(154, 14, 18, "#")
+    G.vline(154, 15, 18, "#")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 21)] + [(x, 17) for x in range(24, 54)]
              + [(x, 18) for x in range(117, 133)] + [(x, 17) for x in range(90, 105)]

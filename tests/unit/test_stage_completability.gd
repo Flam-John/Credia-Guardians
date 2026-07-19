@@ -4,11 +4,15 @@ extends GutTest
 ## exceeding max jump+double-jump reach and sealing the boss + exit gate
 ## behind an unclimbable wall. This scans every real stage map for any
 ## solid column standing between the player's floor row and the exit gate
-## that exceeds the ACTUAL reachable rise (computed from CharacterStats,
-## not a hardcoded guess, so it can't silently drift out of sync with
-## physics tuning).
+## that exceeds the CASUAL reachable rise. The bound is the empirically
+## measured 64px (4 tiles) any-timing double jump — NOT the analytic
+## v^2/2g formula (~84px+), which only holds with an unintuitive
+## early-press trick that mandatory paths must never require (that
+## formula silently blessed the 80px arena walls fixed alongside this).
+## If jump physics are retuned, the live probes in
+## test_shelf_reachability / test_updraft_reachability catch the drift.
 
-const CHRIS := preload("res://data/characters/chris.tres")
+const CASUAL_REACH_PX := 64.0
 const STAGE_PATHS := [
 	"res://data/levels/stage_1_map.txt",
 	"res://data/levels/stage_2_map.txt",
@@ -21,18 +25,8 @@ const T := 16
 const SCAN_WINDOW := 40
 
 
-## Max additional rise above the jump's start point, chaining a double
-## jump at the first jump's exact apex (the worst-case — and best-case —
-## a player can do): v^2 / (2*g) per jump, summed.
-func _max_reach_px() -> float:
-	var g: float = CHRIS.gravity_rise
-	return (CHRIS.jump_velocity ** 2) / (2.0 * g) \
-			+ (CHRIS.double_jump_velocity ** 2) / (2.0 * g)
-
-
 func test_every_stage_exit_gate_is_reachable() -> void:
-	var max_reach := _max_reach_px()
-	assert_gt(max_reach, 0.0, "sanity: jump physics produced a positive reach")
+	var max_reach := CASUAL_REACH_PX
 	for path in STAGE_PATHS:
 		var raw := FileAccess.get_file_as_string(path)
 		assert_false(raw.is_empty(), "%s must be readable" % path)
@@ -71,6 +65,89 @@ func test_stage3_usb_key_sits_beside_its_mandatory_node() -> void:
 	assert_true(tiles_apart <= 5,
 			"USB key is %d tiles from its shelf-mate node — too far to guarantee a player collecting the (mandatory) node also sees the key" \
 			% tiles_apart)
+
+
+## Regression for a real shipped bug (v1.13 staircases): new solid terrain
+## drawn over a hidden vault's floor-entrance holes sealed the vault (a
+## '#' 2 rows above the hole leaves 16px of clearance vs the 24px player
+## capsule, and blocks dropping in from above too). Raw map text is used
+## on purpose: '.' appears ONLY as vault cells there, while the parser's
+## terrain output also blanks consumed markers to '.'.
+func test_every_vault_entrance_hole_has_headroom() -> void:
+	for path in STAGE_PATHS:
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for y in lines.size():
+			var line: String = lines[y]
+			for x in line.length():
+				if line[x] != ".":
+					continue
+				# An entrance hole is a '.' cut into a '#' floor run. Vault
+				# INTERIOR cells border the '@' shell instead, never '#'.
+				if not (_char(lines, x - 1, y) == "#" or _char(lines, x + 1, y) == "#"):
+					continue
+				for dy in [1, 2]:
+					assert_false(_solid(lines, x, y - dy),
+							"%s: vault entrance hole at col %d row %d is sealed by solid terrain %d row(s) above" \
+							% [path, x, y, dy])
+
+
+## Same bug class, other victim: stage 4's first step was drawn over the
+## col-90 checkpoint, leaving 16px of clearance where the 24px capsule
+## needs to stand — the checkpoint could never be touched again. Every
+## progression marker (checkpoint, node, key, gate) needs a clear tile
+## above the one it stands in.
+func test_every_progression_marker_has_headroom() -> void:
+	for path in STAGE_PATHS:
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for y in lines.size():
+			var line: String = lines[y]
+			for x in line.length():
+				if not line[x] in ["k", "N", "U", "E", "F"]:
+					continue
+				assert_false(_solid(lines, x, y - 1),
+						"%s: marker '%s' at col %d row %d has solid terrain directly above — the 24px player capsule cannot stand there to touch it" \
+						% [path, line[x], x, y])
+
+
+## Regression for a real shipped bug (v1.13.x): every '~' steam column in
+## stages 1 and 5 topped out DIRECTLY against the underside of the deck it
+## was meant to reach — risers bonked the deck forever, the 14px zone plus
+## deck overhang made rounding the lip impossible, and stage 5's mandatory
+## node + USB key were unreachable (the stage could not be finished). An
+## updraft must always have open air above it: the rider needs to clear
+## the adjacent deck's lip, so the two cells above the column's topmost
+## '~' must be non-solid. Raw map text is used on purpose — the parser
+## blanks vertical-run cells out of its terrain output. Coins/markers may
+## split a column into several '~' runs (they overwrite single cells), so
+## the rule checks the topmost '~' of each column, which is the stack top.
+func test_no_updraft_column_is_capped_by_solid_terrain() -> void:
+	for path in STAGE_PATHS:
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		var checked_cols := {}
+		for y in lines.size():
+			var line: String = lines[y]
+			for x in line.length():
+				if line[x] != "~" or checked_cols.has(x):
+					continue
+				checked_cols[x] = true # first '~' found per column = topmost
+				for dy in [1, 2]:
+					assert_false(_solid(lines, x, y - dy),
+							"%s: updraft column at col %d tops out at row %d but solid terrain sits %d row(s) above — risers get pinned under it" \
+							% [path, x, y, dy])
+
+
+func _char(lines: Array, x: int, y: int) -> String:
+	if y < 0 or y >= lines.size():
+		return ""
+	var line: String = lines[y]
+	if x < 0 or x >= line.length():
+		return ""
+	return line[x]
+
+
+func _solid(lines: Array, x: int, y: int) -> bool:
+	var ch := _char(lines, x, y)
+	return ch == "#" or ch == "@"
 
 
 func _find_gate(spawns: Array[Dictionary]) -> Dictionary:
