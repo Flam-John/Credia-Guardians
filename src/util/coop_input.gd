@@ -8,7 +8,7 @@ class_name CoopInput
 
 const GAMEPLAY_ACTIONS: Array[StringName] = [
 	&"move_left", &"move_right", &"move_up", &"move_down",
-	&"jump", &"attack", &"dash", &"ability", &"interact",
+	&"jump", &"attack", &"dash", &"ability", &"interact", &"fire",
 ]
 
 ## P2 keyboard fallbacks (physical keycodes) when only one gamepad exists.
@@ -16,7 +16,7 @@ const P2_KEYS := {
 	&"move_left": KEY_LEFT, &"move_right": KEY_RIGHT,
 	&"move_up": KEY_UP, &"move_down": KEY_DOWN,
 	&"jump": KEY_KP_0, &"attack": KEY_KP_1, &"dash": KEY_KP_2,
-	&"ability": KEY_KP_3, &"interact": KEY_KP_ENTER,
+	&"ability": KEY_KP_3, &"interact": KEY_KP_ENTER, &"fire": KEY_KP_4,
 }
 
 static var _built := false

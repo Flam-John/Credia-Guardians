@@ -1,9 +1,10 @@
 class_name Projectile
 extends Area2D
-## Pooled enemy projectile. Two visuals (ledger page / plasma orb), optional
-## gravity arc. Damages the player hurtbox; dies on walls and after lifetime.
+## Pooled projectile, shared by enemies and the player's weapons. Five
+## visuals (ledger page / plasma orb / gold coin / packet bolt / ember),
+## optional gravity arc. Dies on walls and after lifetime.
 
-enum Visual { LEDGER, PLASMA, GOLD }
+enum Visual { LEDGER, PLASMA, GOLD, PACKET_BOLT, EMBER }
 
 const SHEET := preload("res://assets/art/props/projectiles.png")
 const LIFETIME := 2.5
@@ -11,7 +12,11 @@ const LIFETIME := 2.5
 var damage := 1
 var velocity := Vector2.ZERO
 var arc_gravity := 0.0
+## Player-fired bullets target enemies (ENEMY_HURTBOX); enemy projectiles
+## target the player (PLAYER_HURTBOX, the default).
+var friendly := false
 var _life := 0.0
+var _lifetime := LIFETIME
 var _sprite: Sprite2D
 var _atlas: AtlasTexture
 var _wall_query: PhysicsPointQueryParameters2D
@@ -37,12 +42,16 @@ func _ready() -> void:
 	_wall_query.collision_mask = PhysicsLayers.WORLD
 
 
-## Called by the spawner right after pool.acquire().
-func launch(from: Vector2, vel: Vector2, visual: Visual, dmg := 1, grav := 0.0) -> void:
+## Called by the spawner right after pool.acquire(). `life <= 0` keeps LIFETIME.
+func launch(from: Vector2, vel: Vector2, visual: Visual, dmg := 1, grav := 0.0,
+		is_friendly := false, life := 0.0) -> void:
 	global_position = from
 	velocity = vel
 	damage = dmg
 	arc_gravity = grav
+	friendly = is_friendly
+	collision_mask = PhysicsLayers.ENEMY_HURTBOX if friendly else PhysicsLayers.PLAYER_HURTBOX
+	_lifetime = life if life > 0.0 else LIFETIME
 	visible = true
 	_atlas.region = Rect2(int(visual) * 8, 0, 8, 8)
 	monitoring = true
@@ -57,7 +66,7 @@ func _physics_process(delta: float) -> void:
 	velocity.y += arc_gravity * delta
 	global_position += velocity * delta
 	_sprite.rotation += 8.0 * delta
-	if _life >= LIFETIME or _hit_wall():
+	if _life >= _lifetime or _hit_wall():
 		_despawn()
 
 
@@ -70,9 +79,14 @@ func _on_area_entered(area: Area2D) -> void:
 	var hurtbox := area as HurtboxComponent
 	if hurtbox == null:
 		return
-	var player := hurtbox.get_parent() as Player
-	if player != null:
-		player.take_hit(damage, global_position)
+	if friendly:
+		var enemy := hurtbox.get_parent() as EnemyBase
+		if enemy != null:
+			enemy.take_hit(damage, global_position)
+	else:
+		var player := hurtbox.get_parent() as Player
+		if player != null:
+			player.take_hit(damage, global_position)
 	_despawn()
 
 

@@ -38,9 +38,26 @@ extends Resource
 
 @export_group("Signature ability")
 @export var has_shield := false
+## BARRIER = hold to block frontal hits, meter drains (Chris). PARRY = tap to
+## open a short deflect window on its own cooldown (Flam) — docs/GDD.md §3.
+@export_enum("BARRIER", "PARRY") var shield_style := "BARRIER"
 @export var shield_capacity := 3.0
 @export var shield_regen_delay := 1.5
 @export var shield_regen_rate := 1.0
+## PARRY only: deflect window length and cooldown between attempts.
+@export var parry_window := 0.2
+@export var parry_cooldown := 0.8
+@export var shield_color := Color(0.086, 0.878, 0.878) # cyan
 
 @export_group("Combat")
 @export var attack_damage := 1
+
+@export_group("Weapon")
+@export var weapon_damage := 1
+## Minimum time between shots — the anti-spam gate (docs/GDD.md §4).
+@export var weapon_cooldown := 0.5
+@export var bullet_speed := 260.0
+@export_enum("PACKET_BOLT", "EMBER") var bullet_visual := "PACKET_BOLT"
+@export var bullet_lifetime := 1.4
+@export var bullet_gravity := 0.0
+@export var weapon_color := Color(0.086, 0.878, 0.878) # cyan
