@@ -24,7 +24,9 @@ static func find(tree: SceneTree) -> LevelServices:
 func _ready() -> void:
 	add_to_group(&"level_services")
 	var parent := get_parent()
-	projectile_pool = ObjectPool.new(PROJECTILE_SCENE, parent, 12, 32)
+	# Prewarm/max bumped from 12/32: player weapons now share this pool with
+	# enemy projectiles, and co-op doubles the shooters (review note).
+	projectile_pool = ObjectPool.new(PROJECTILE_SCENE, parent, 18, 48)
 	spark_pool = ObjectPool.new(HIT_SPARK_SCENE, parent, 8, 16)
 	popup_pool = ObjectPool.new(SCORE_POPUP_SCENE, parent, 6, 16)
 	EventBus.enemy_killed.connect(_on_enemy_killed)
@@ -34,9 +36,9 @@ func acquire_projectile() -> Projectile:
 	return projectile_pool.acquire()
 
 
-func spawn_hit_spark(at_global: Vector2) -> void:
+func spawn_hit_spark(at_global: Vector2, tint := Color.WHITE) -> void:
 	var spark: HitSpark = spark_pool.acquire()
-	spark.burst(at_global)
+	spark.burst(at_global, tint)
 
 
 func spawn_score_popup(at_global: Vector2, amount: int) -> void:

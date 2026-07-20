@@ -21,6 +21,11 @@ var dash_iframes_active := false
 ## Chris signature: drains while Shield state is active (docs/GDD.md §3).
 var shield_meter := 0.0
 var shield_regen_wait := 0.0
+## Flam signature: true only during the Parry state's short deflect window.
+var parry_active := false
+var parry_cooldown_timer := 0.0
+## Weapon: the anti-spam gate (docs/GDD.md §4), ticked every physics frame.
+var weapon_cooldown_timer := 0.0
 ## Energy Drink (docs/GDD.md §8): multiplies run speed while boosted.
 var speed_boost := 1.0
 var _boost_left := 0.0
@@ -47,6 +52,12 @@ var melee_shape: CollisionShape2D
 var flash: FlashComponent
 var _hazard_detector: Area2D
 var _dust: CPUParticles2D
+## Held-weapon sprite: hidden except during the Fire state (states set
+## position/flip_h to track facing — see FireState).
+var weapon_sprite: Sprite2D
+## Shield/Parry sprite: hidden except while the ability is active (style —
+## BARRIER hex bubble or PARRY buckler — picked once in _build_combat_nodes).
+var shield_sprite: Sprite2D
 ## Ring of reusable dash afterimage sprites (docs/PERFORMANCE.md: pooled).
 var _ghosts: Array[Sprite2D] = []
 var _ghost_index := 0
@@ -162,6 +173,30 @@ func _build_combat_nodes() -> void:
 		add_child(ghost)
 		_ghosts.append(ghost)
 
+	# Weapon cell 0 = Packet Rifle (Chris), 1 = Ember Slinger (Flam) — picked
+	# by bullet_visual so the held sprite always matches what actually fires.
+	var weapon_cell := 0 if stats.bullet_visual == "PACKET_BOLT" else 1
+	weapon_sprite = Sprite2D.new()
+	var w_atlas := AtlasTexture.new()
+	w_atlas.atlas = preload("res://assets/art/props/weapons.png")
+	w_atlas.region = Rect2(weapon_cell * 16, 0, 16, 16)
+	weapon_sprite.texture = w_atlas
+	weapon_sprite.position = Vector2(-14, 0)
+	weapon_sprite.visible = false
+	add_child(weapon_sprite)
+
+	if stats.has_shield:
+		# Shield cell 0 = hex BARRIER (Chris), 1 = riot buckler PARRY (Flam).
+		var shield_cell := 0 if stats.shield_style == "BARRIER" else 1
+		shield_sprite = Sprite2D.new()
+		var s_atlas := AtlasTexture.new()
+		s_atlas.atlas = preload("res://assets/art/props/shields.png")
+		s_atlas.region = Rect2(shield_cell * 16, 0, 16, 16)
+		shield_sprite.texture = s_atlas
+		shield_sprite.position = Vector2(-14, 0)
+		shield_sprite.visible = false
+		add_child(shield_sprite)
+
 	# Hazard tiles/areas (spikes, lasers) — 2 dmg per GDD §4. POLLED in
 	# _physics_process, not edge-triggered: an *_entered-only design goes
 	# silent when the player stays overlapping after i-frames expire.
@@ -221,11 +256,20 @@ func is_invulnerable() -> bool:
 
 ## Central hit entry: hitboxes, contact damage, and hazards all land here.
 func take_hit(damage: int, from_global_pos: Vector2) -> void:
-	if is_invulnerable() or health.is_dead():
+	if health.is_dead():
+		return
+	# Checked before is_invulnerable(): a successful parry gets its own
+	# feedback (sfx/hitstop/spark) instead of silently no-opping like a
+	# generic i-frame would.
+	if parry_active:
+		_on_parry_success(from_global_pos)
+		return
+	if is_invulnerable():
 		return
 	if _shield_blocks(from_global_pos):
 		shield_meter = maxf(0.0, shield_meter - 1.0)
 		AudioManager.play_sfx("shield_break" if shield_meter <= 0.0 else "shield_on")
+		FxService.hit_spark(get_tree(), global_position.lerp(from_global_pos, 0.5), stats.shield_color)
 		return
 	if firewall_shield:
 		firewall_shield = false
@@ -324,6 +368,45 @@ func _on_hurtbox_hurt(hitbox: HitboxComponent) -> void:
 	take_hit(hitbox.damage, hitbox.global_position)
 
 
+## Flam's Parry: no damage taken, but distinct feedback so it reads as a
+## skill hit rather than the hit simply whiffing.
+func _on_parry_success(from_global_pos: Vector2) -> void:
+	AudioManager.play_sfx("shield_parry")
+	GameFeel.hitstop(get_tree(), 0.06)
+	FxService.hit_spark(get_tree(), global_position.lerp(from_global_pos, 0.5), stats.shield_color)
+
+
+# -- Weapon --------------------------------------------------------------------
+
+const PROJECTILE_SCENE := preload("res://scenes/entities/props/projectile.tscn")
+
+
+func can_fire() -> bool:
+	return weapon_cooldown_timer <= 0.0
+
+
+## Fired by FireState.enter(). Mirrors EnemyBase.spawn_projectile but targets
+## ENEMY_HURTBOX (Projectile.launch's `is_friendly` flag) — docs/GDD.md §4.
+func fire_weapon() -> void:
+	var visual := Projectile.Visual.PACKET_BOLT if stats.bullet_visual == "PACKET_BOLT" \
+			else Projectile.Visual.EMBER
+	var muzzle := global_position + Vector2(12 * facing, -14)
+	var vel := Vector2(facing * stats.bullet_speed, 0.0)
+	var services := LevelServices.find(get_tree())
+	var projectile: Projectile
+	if services != null:
+		projectile = services.acquire_projectile()
+	else:
+		projectile = PROJECTILE_SCENE.instantiate()
+		get_parent().add_child(projectile)
+	projectile.launch(muzzle, vel, visual, stats.weapon_damage, stats.bullet_gravity,
+			true, stats.bullet_lifetime)
+	FxService.hit_spark(get_tree(), muzzle, stats.weapon_color)
+	AudioManager.play_sfx("weapon_fire_chris" if stats.bullet_visual == "PACKET_BOLT" \
+			else "weapon_fire_flam")
+	GameFeel.rumble(maxi(0, player_index - 1), 0.15, 0.1, 0.08)
+
+
 ## Chris only: frontal ±60° block while Shield state is active with meter.
 func _shield_blocks(from_global_pos: Vector2) -> bool:
 	if not stats.has_shield or shield_meter <= 0.0:
@@ -418,12 +501,16 @@ func _tick_timers(delta: float) -> void:
 	coyote_timer = maxf(0.0, coyote_timer - delta)
 	jump_buffer_timer = maxf(0.0, jump_buffer_timer - delta)
 	dash_cooldown_timer = maxf(0.0, dash_cooldown_timer - delta)
+	weapon_cooldown_timer = maxf(0.0, weapon_cooldown_timer - delta)
+	parry_cooldown_timer = maxf(0.0, parry_cooldown_timer - delta)
 	if _boost_left > 0.0:
 		_boost_left -= delta
 		if _boost_left <= 0.0:
 			speed_boost = 1.0
-	# Shield regen: waits shield_regen_delay after last use, then refills.
-	if stats.has_shield and state_machine.current_name() != &"Shield":
+	# Shield regen (BARRIER only — PARRY has no meter, just its own cooldown):
+	# waits shield_regen_delay after last use, then refills.
+	if stats.has_shield and stats.shield_style == "BARRIER" \
+			and state_machine.current_name() != &"Shield":
 		if shield_regen_wait > 0.0:
 			shield_regen_wait -= delta
 		elif shield_meter < stats.shield_capacity:

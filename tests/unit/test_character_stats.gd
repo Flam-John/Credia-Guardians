@@ -19,7 +19,28 @@ func test_flam_is_the_speedster() -> void:
 	assert_lt(flam.dash_cooldown, chris.dash_cooldown)
 	assert_true(flam.dash_has_iframes)
 	assert_true(flam.dash_deals_damage)
-	assert_false(flam.has_shield)
+
+
+## Both get a shield now, but in mechanically distinct styles (docs/GDD.md
+## §3): Chris holds a meter-drained frontal block, Flam taps a short
+## cooldown-gated deflect window. Same silhouette weight, different rules.
+func test_both_have_shields_in_different_styles() -> void:
+	assert_true(chris.has_shield)
+	assert_true(flam.has_shield)
+	assert_eq(chris.shield_style, "BARRIER")
+	assert_eq(flam.shield_style, "PARRY")
+	assert_ne(chris.shield_color, flam.shield_color)
+
+
+## Both get a weapon now, distinct in speed/damage/cooldown to match their
+## kits: Chris trades power for a faster, more controlled bolt; Flam trades
+## rate of fire for a harder-hitting ember (docs/GDD.md §4).
+func test_both_have_distinct_weapons() -> void:
+	assert_ne(chris.bullet_visual, flam.bullet_visual)
+	assert_ne(chris.weapon_color, flam.weapon_color)
+	assert_gt(chris.bullet_speed, flam.bullet_speed, "Chris's bolt is faster")
+	assert_gt(flam.weapon_damage, chris.weapon_damage, "Flam's ember hits harder")
+	assert_lt(chris.weapon_cooldown, flam.weapon_cooldown, "Chris fires more often")
 
 
 func test_shared_jump_feel() -> void:

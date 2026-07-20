@@ -1,13 +1,18 @@
 extends PlayerState
-## Chris signature: hold ability to block frontal hits (±60°) while the
-## meter drains; walk at 30% speed. Blocking logic lives in
-## Player._shield_blocks — this state only manages meter, movement, and exit.
+## Chris signature (BARRIER style): hold ability to block frontal hits (±60°)
+## while the meter drains; walk at 30% speed. Blocking logic lives in
+## Player._shield_blocks — this state only manages meter, movement, the
+## visible hex-barrier sprite, and exit. Flam's PARRY style uses a separate
+## ParryState instead — different button feel (tap vs hold), not a reskin.
 
 const WALK_FACTOR := 0.3
 
 
 func enter(_prev: StringName) -> void:
 	player.play(&"ability")
+	player.shield_sprite.position.x = 10 * player.facing
+	player.shield_sprite.flip_h = player.facing < 0
+	player.shield_sprite.visible = true
 	AudioManager.play_sfx("shield_on")
 
 
@@ -27,6 +32,7 @@ func physics_update(delta: float) -> void:
 
 
 func exit() -> void:
+	player.shield_sprite.visible = false
 	player.shield_regen_wait = stats.shield_regen_delay
 	if player.shield_meter <= 0.0:
 		AudioManager.play_sfx("shield_break")

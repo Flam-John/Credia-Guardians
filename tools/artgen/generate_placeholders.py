@@ -750,14 +750,31 @@ def gen_special_enemy_sheets(out_dir):
 
 
 def gen_projectiles(path):
-    """8x8 x3: ledger (white page), plasma orb (red), gold coin (CEO)."""
-    img = Image.new("RGBA", (24, 8), P.TRANSPARENT)
+    """8x8 x5: ledger (white page), plasma orb (red), gold coin (CEO), then
+    the two player weapon bolts — packet bolt (Chris, cyan) and ember
+    (Flam, orange). Player cells stay READABLE at a glance as distinct from
+    the enemy set: bolt is angular/thin, ember is round/flickering."""
+    img = Image.new("RGBA", (40, 8), P.TRANSPARENT)
     d = ImageDraw.Draw(img)
     _outline_rect(d, 1, 1, 6, 6, P.WHITE)
     _px(d, 3, 3, P.GRAY_DARK)
     _px(d, 3, 4, P.GRAY_DARK)
     d.ellipse([9, 1, 14, 6], fill=P.RED, outline=(120, 10, 30, 255))
     d.ellipse([17, 1, 22, 6], fill=P.GOLD, outline=(140, 100, 20, 255))
+    # packet bolt: angular lightning-bolt sliver, cyan core + white-hot tip
+    bx = 24
+    d.polygon([(bx + 5, 1), (bx + 3, 4), (bx + 4, 4), (bx + 1, 7),
+               (bx + 4, 4), (bx + 3, 4)], fill=P.CYAN_RAMP[1])
+    d.line([(bx + 5, 1), (bx + 3, 4)], fill=P.WHITE)
+    d.line([(bx + 4, 4), (bx + 1, 7)], fill=P.CYAN_RAMP[2])
+    _px(d, bx + 4, 3, P.WHITE)
+    glow_disc(img, bx + 4, 4, 3, P.CYAN)  # r=3: halo stays inside this 8px cell
+    # ember: round flickering coal, dark core rim + hot center
+    ex = 32
+    d.ellipse([ex + 1, 1, ex + 6, 6], fill=P.RED_RAMP[1], outline=P.RED_RAMP[0])
+    d.ellipse([ex + 2, 2, ex + 5, 5], fill=P.GOLD)
+    _px(d, ex + 3, 3, P.WHITE)
+    glow_disc(img, ex + 4, 4, 4, P.RED)
     img.save(path)
 
 
@@ -1036,6 +1053,50 @@ def gen_pickups(path):
     # usb key: gold
     _outline_rect(d, 64 + 4, 6, 64 + 11, 10, P.GOLD)
     _rect(d, 64 + 11, 7, 64 + 13, 9, P.GRAY)
+    img.save(path)
+
+
+def gen_shields(path):
+    """16x16 x2 — the visible Shield-state sprite (docs/GDD.md §3). Chris's
+    hex energy BARRIER (translucent cyan panel, glowing rim) reads as
+    ethereal/tech; Flam's riot BUCKLER (solid orange disc, metal rim, boss)
+    reads as physical/kinetic — same silhouette weight, different material."""
+    img = Image.new("RGBA", (32, 16), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    cx, cy = 8, 8
+    hexagon = [(cx, cy - 7), (cx + 6, cy - 3), (cx + 6, cy + 3), (cx, cy + 7),
+               (cx - 6, cy + 3), (cx - 6, cy - 3)]
+    d.polygon(hexagon, fill=(22, 224, 224, 70), outline=P.CYAN)
+    d.line([(cx - 3, cy - 4), (cx + 3, cy - 4)], fill=P.CYAN_RAMP[2])
+    d.line([(cx - 3, cy + 4), (cx + 3, cy + 4)], fill=P.CYAN_RAMP[2])
+    _px(d, cx, cy, P.WHITE)
+    glow_disc(img, cx, cy, 6, P.CYAN)
+    fx, fy = 24, 8
+    d.ellipse([fx - 7, fy - 7, fx + 7, fy + 7], fill=P.RED_RAMP[1], outline=P.OUTLINE)
+    d.ellipse([fx - 7, fy - 7, fx + 7, fy + 1], fill=P.RED_RAMP[2])
+    d.ellipse([fx - 2, fy - 2, fx + 2, fy + 2], fill=P.GOLD, outline=P.OUTLINE)
+    img.save(path)
+
+
+def gen_weapons(path):
+    """16x16 x2 — held weapon sprite, mounted at the hand while aiming/firing
+    (docs/GDD.md §4). Chris's Packet Rifle: thin, angular, cyan coil — precise
+    and controlled. Flam's Ember Slinger: short, wide, orange-hot muzzle —
+    blunt and aggressive. Silhouettes must read distinct even at a glance."""
+    img = Image.new("RGBA", (32, 16), P.TRANSPARENT)
+    d = ImageDraw.Draw(img)
+    shade_rect(d, 1, 7, 11, 9, P.SUIT_RAMP, outline=P.OUTLINE)
+    _rect(d, 9, 5, 12, 11, P.GRAY_DARK)
+    _px(d, 10, 6, P.CYAN)
+    _px(d, 11, 9, P.CYAN_RAMP[2])
+    _px(d, 12, 8, P.WHITE)
+    glow_disc(img, 13, 8, 2, P.CYAN)  # r=2: halo stays inside this 16px cell
+    ox = 16
+    shade_rect(d, ox + 1, 5, ox + 9, 11, P.ARMOR_RAMP, outline=P.OUTLINE)
+    d.ellipse([ox + 8, 4, ox + 14, 12], fill=P.RED_RAMP[1], outline=P.OUTLINE)
+    _px(d, ox + 11, 8, P.GOLD)
+    _px(d, ox + 12, 7, P.WHITE)
+    glow_disc(img, ox + 13, 8, 4, P.RED)
     img.save(path)
 
 
@@ -1320,6 +1381,8 @@ def main():
     gen_ceo_sheets(f"{out}/enemies")
     gen_enemy_sheets(f"{out}/enemies")
     gen_pickups(f"{out}/props/pickups.png")
+    gen_shields(f"{out}/props/shields.png")
+    gen_weapons(f"{out}/props/weapons.png")
     gen_checkpoint(f"{out}/props/checkpoint.png")
     gen_platforms(f"{out}/props/platforms.png")
     gen_fx(f"{out}/fx")

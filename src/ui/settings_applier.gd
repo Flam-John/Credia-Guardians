@@ -2,7 +2,7 @@ class_name SettingsApplier
 ## Pure "settings dict → engine state" functions. SaveManager persists the
 ## dict; this class applies it. Kept static so tests can call pieces directly.
 
-const REBINDABLE: Array[StringName] = [&"jump", &"attack", &"dash", &"ability", &"interact"]
+const REBINDABLE: Array[StringName] = [&"jump", &"attack", &"dash", &"ability", &"interact", &"fire"]
 
 
 static func defaults() -> Dictionary:

@@ -13,14 +13,18 @@ func _ready() -> void:
 	animation_finished.connect(_on_finished)
 
 
-func burst(at_global: Vector2) -> void:
+## tint: lets one shared effect double as a muzzle flash / parry spark in a
+## character's weapon/shield color (default white = the plain impact flash).
+func burst(at_global: Vector2, tint := Color.WHITE) -> void:
 	global_position = at_global
+	modulate = tint
 	visible = true
 	play(&"burst")
 
 
 func _pool_reset() -> void:
 	stop()
+	modulate = Color.WHITE
 
 
 func _on_finished() -> void:

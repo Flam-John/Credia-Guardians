@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://player_scene_cg"]
+[gd_scene load_steps=19 format=3 uid="uid://player_scene_cg"]
 
 [ext_resource type="Script" path="res://src/entities/player/player.gd" id="1_player"]
 [ext_resource type="Resource" path="res://data/characters/chris.tres" id="2_stats"]
@@ -15,6 +15,8 @@
 [ext_resource type="Script" path="res://src/entities/player/states/hurt_state.gd" id="13_hurt"]
 [ext_resource type="Script" path="res://src/entities/player/states/dead_state.gd" id="14_dead"]
 [ext_resource type="Script" path="res://src/entities/player/states/shield_state.gd" id="15_shield"]
+[ext_resource type="Script" path="res://src/entities/player/states/fire_state.gd" id="16_fire"]
+[ext_resource type="Script" path="res://src/entities/player/states/parry_state.gd" id="17_parry"]
 
 [sub_resource type="CapsuleShape2D" id="capsule_body"]
 radius = 5.0
@@ -69,6 +71,12 @@ script = ExtResource("14_dead")
 
 [node name="Shield" type="Node" parent="StateMachine"]
 script = ExtResource("15_shield")
+
+[node name="Fire" type="Node" parent="StateMachine"]
+script = ExtResource("16_fire")
+
+[node name="Parry" type="Node" parent="StateMachine"]
+script = ExtResource("17_parry")
 
 [node name="Camera" type="Camera2D" parent="."]
 script = ExtResource("10_cam")
