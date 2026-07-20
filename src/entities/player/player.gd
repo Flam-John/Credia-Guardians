@@ -181,7 +181,7 @@ func _build_combat_nodes() -> void:
 	w_atlas.atlas = preload("res://assets/art/props/weapons.png")
 	w_atlas.region = Rect2(weapon_cell * 16, 0, 16, 16)
 	weapon_sprite.texture = w_atlas
-	weapon_sprite.position = Vector2(-14, 0)
+	weapon_sprite.position = Vector2(-14, -12)  # hand height, matches melee_shape
 	weapon_sprite.visible = false
 	add_child(weapon_sprite)
 
@@ -193,7 +193,7 @@ func _build_combat_nodes() -> void:
 		s_atlas.atlas = preload("res://assets/art/props/shields.png")
 		s_atlas.region = Rect2(shield_cell * 16, 0, 16, 16)
 		shield_sprite.texture = s_atlas
-		shield_sprite.position = Vector2(-14, 0)
+		shield_sprite.position = Vector2(-14, -12)  # hand height, matches melee_shape
 		shield_sprite.visible = false
 		add_child(shield_sprite)
 
