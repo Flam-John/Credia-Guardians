@@ -148,6 +148,23 @@ func test_chris_barrier_still_blocks_frontal_hits() -> void:
 	assert_eq(_player.health.hp, hp_before, "BARRIER still blocks frontal hits")
 
 
+## User request: the shield must also stop actual enemy projectiles, not
+## just synthetic take_hit() calls from a plausible angle.
+func test_shield_blocks_a_real_enemy_projectile() -> void:
+	Input.action_press("ability")
+	await wait_physics_frames(3)
+	assert_eq(_state(), &"Shield")
+	var hp_before := _player.health.hp
+	var bullet := Projectile.new()
+	add_child(bullet)
+	await wait_physics_frames(1)
+	# non-friendly (enemy) bullet, launched to collide with the player
+	bullet.launch(_player.global_position + Vector2(20, -10),
+			Vector2(-200, 0), Projectile.Visual.PLASMA, 1, 0.0, false)
+	await wait_physics_frames(10)
+	assert_eq(_player.health.hp, hp_before, "an incoming enemy bullet is blocked while shielding")
+
+
 func test_parry_avoids_damage_in_window_then_expires() -> void:
 	var flam := _spawn(_parry_test_stats(), Vector2(200, 90))
 	await wait_physics_frames(30)

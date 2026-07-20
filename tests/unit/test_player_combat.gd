@@ -75,7 +75,9 @@ func test_lethal_hit_enters_dead_and_announces() -> void:
 	assert_signal_emit_count(EventBus, "player_died", 1)
 
 
-func test_shield_blocks_frontal_only() -> void:
+## Shield blocks from ANY direction now (user request: bullets/hits from
+## behind or above shouldn't slip past just because they're not frontal).
+func test_shield_blocks_any_direction() -> void:
 	Input.action_press("ability")
 	await wait_physics_frames(3)
 	assert_eq(_state(), &"Shield")
@@ -84,9 +86,12 @@ func test_shield_blocks_frontal_only() -> void:
 	_player.take_hit(1, _player.global_position + Vector2(30, 0))
 	assert_eq(_player.health.hp, hp_before, "frontal hit blocked")
 	assert_eq(_state(), &"Shield", "still holding — blocking never runs out")
-	# hit from behind — connects
+	# hit from behind — ALSO blocked now, not just frontal
 	_player.take_hit(1, _player.global_position + Vector2(-30, 0))
-	assert_eq(_player.health.hp, hp_before - 1, "rear hit lands")
+	assert_eq(_player.health.hp, hp_before, "rear hit blocked too")
+	# hit from directly above (e.g. a lobbed projectile) — also blocked
+	_player.take_hit(1, _player.global_position + Vector2(0, -30))
+	assert_eq(_player.health.hp, hp_before, "hit from above blocked too")
 
 
 func test_hazard_polling_damages_while_overlapping() -> void:

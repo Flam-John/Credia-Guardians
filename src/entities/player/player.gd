@@ -401,15 +401,11 @@ func fire_weapon() -> void:
 	GameFeel.rumble(maxi(0, player_index - 1), 0.15, 0.1, 0.08)
 
 
-## Chris only (BARRIER style): frontal ±60° block while Shield state is active.
-func _shield_blocks(from_global_pos: Vector2) -> bool:
-	if not stats.has_shield or state_machine.current_name() != &"Shield":
-		return false
-	var to_source := from_global_pos - global_position
-	if to_source.is_zero_approx():
-		return false
-	var frontal := Vector2(facing, 0.0)
-	return absf(frontal.angle_to(to_source.normalized())) <= deg_to_rad(60.0)
+## Blocks any hit — melee, contact, or projectile — while Shield is active
+## (user request: any direction, not just frontal, so it also covers bullets
+## arriving from an angle the old ±60° frontal cone would have missed).
+func _shield_blocks(_from_global_pos: Vector2) -> bool:
+	return stats.has_shield and state_machine.current_name() == &"Shield"
 
 
 # -- Helpers shared by states -------------------------------------------------
