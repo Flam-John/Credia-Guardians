@@ -1,9 +1,10 @@
 extends PlayerState
-## Chris signature (BARRIER style): hold ability to block frontal hits (±60°)
-## while the meter drains; walk at 30% speed. Blocking logic lives in
-## Player._shield_blocks — this state only manages meter, movement, the
-## visible hex-barrier sprite, and exit. Flam's PARRY style uses a separate
-## ParryState instead — different button feel (tap vs hold), not a reskin.
+## Chris signature (BARRIER style): hold ability to block frontal hits (±60°);
+## unlimited — no meter, no cooldown, hold it as long as you want — at 30%
+## walk speed. Blocking logic lives in Player._shield_blocks — this state
+## only manages movement, the visible hex-barrier sprite, and exit. Flam's
+## PARRY style uses a separate ParryState instead — different button feel
+## (tap vs hold), not a reskin.
 
 const WALK_FACTOR := 0.3
 
@@ -17,7 +18,6 @@ func enter(_prev: StringName) -> void:
 
 
 func physics_update(delta: float) -> void:
-	player.shield_meter = maxf(0.0, player.shield_meter - delta)
 	var axis := player.input_axis()
 	player.velocity.x = move_toward(
 		player.velocity.x, axis * stats.run_speed * WALK_FACTOR,
@@ -27,12 +27,9 @@ func physics_update(delta: float) -> void:
 		player.start_coyote()
 		machine.transition(&"Fall")
 		return
-	if not player.pressed(&"ability") or player.shield_meter <= 0.0:
+	if not player.pressed(&"ability"):
 		machine.transition(&"Run" if absf(axis) > 0.0 else &"Idle")
 
 
 func exit() -> void:
 	player.shield_sprite.visible = false
-	player.shield_regen_wait = stats.shield_regen_delay
-	if player.shield_meter <= 0.0:
-		AudioManager.play_sfx("shield_break")

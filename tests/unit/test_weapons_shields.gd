@@ -154,15 +154,28 @@ func test_flam_parry_avoids_damage_in_window_then_expires() -> void:
 	assert_eq(flam.health.hp, hp_before - 1, "hit after the window lands normally")
 
 
-func test_flam_parry_has_its_own_cooldown() -> void:
+func test_flam_parry_has_no_cooldown_and_retriggers_immediately() -> void:
 	var flam := _spawn(FLAM, Vector2(200, 90))
 	await wait_physics_frames(30)
 	Input.action_press("ability")
 	await wait_physics_frames(2)
 	Input.action_release("ability")
 	assert_eq(flam.state_machine.current_name(), &"Parry")
-	await wait_physics_frames(15) # window elapses, cooldown now armed
-	assert_gt(flam.parry_cooldown_timer, 0.0)
+	await wait_physics_frames(15) # window (0.18s) elapses, back to Idle/Run
+	assert_ne(flam.state_machine.current_name(), &"Parry")
+	# unlimited: a fresh press re-enters Parry immediately, no forced wait
 	Input.action_press("ability")
 	await wait_physics_frames(2)
-	assert_ne(flam.state_machine.current_name(), &"Parry", "cooldown blocks spamming parry")
+	assert_eq(flam.state_machine.current_name(), &"Parry", "no cooldown blocks re-parrying")
+
+
+func test_chris_barrier_holds_indefinitely_without_draining() -> void:
+	Input.action_press("ability")
+	await wait_physics_frames(3)
+	assert_eq(_state(), &"Shield")
+	# ride well past the old 3s meter capacity — still holding, still blocking
+	await wait_physics_frames(240)
+	assert_eq(_state(), &"Shield", "BARRIER no longer has a meter to run out")
+	var hp_before := _player.health.hp
+	_player.take_hit(1, _player.global_position + Vector2(30, 0))
+	assert_eq(_player.health.hp, hp_before, "still blocks after 4s of continuous hold")

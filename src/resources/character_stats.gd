@@ -38,15 +38,12 @@ extends Resource
 
 @export_group("Signature ability")
 @export var has_shield := false
-## BARRIER = hold to block frontal hits, meter drains (Chris). PARRY = tap to
-## open a short deflect window on its own cooldown (Flam) — docs/GDD.md §3.
+## Both styles are unlimited (no meter, no cooldown). BARRIER = hold to block
+## frontal hits (Chris). PARRY = tap to open a short deflect window, freely
+## retriggerable (Flam) — docs/GDD.md §3.
 @export_enum("BARRIER", "PARRY") var shield_style := "BARRIER"
-@export var shield_capacity := 3.0
-@export var shield_regen_delay := 1.5
-@export var shield_regen_rate := 1.0
-## PARRY only: deflect window length and cooldown between attempts.
+## PARRY only: deflect window length.
 @export var parry_window := 0.2
-@export var parry_cooldown := 0.8
 @export var shield_color := Color(0.086, 0.878, 0.878) # cyan
 
 @export_group("Combat")

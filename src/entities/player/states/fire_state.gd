@@ -8,7 +8,7 @@ extends PlayerState
 
 func enter(_prev: StringName) -> void:
 	player.play(&"attack_1")
-	player.weapon_sprite.position.x = 12 * player.facing
+	player.weapon_sprite.position.x = 7 * player.facing
 	player.weapon_sprite.flip_h = player.facing < 0
 	player.weapon_sprite.visible = true
 	player.fire_weapon()
@@ -22,7 +22,7 @@ func physics_update(_delta: float) -> void:
 	# Fire (unlike Attack/Shield) keeps full movement control, so facing can
 	# flip mid-pose — re-track it every tick or the held sprite desyncs from
 	# the body (review catch).
-	player.weapon_sprite.position.x = 12 * player.facing
+	player.weapon_sprite.position.x = 7 * player.facing
 	player.weapon_sprite.flip_h = player.facing < 0
 	if not player.sprite.is_playing():
 		_finish()

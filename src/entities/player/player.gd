@@ -18,12 +18,8 @@ var dash_charges_left := 1
 ## Owned exclusively by DashState. Hurt i-frames live on the hurtbox timer;
 ## the damage pipeline asks is_invulnerable().
 var dash_iframes_active := false
-## Chris signature: drains while Shield state is active (docs/GDD.md §3).
-var shield_meter := 0.0
-var shield_regen_wait := 0.0
 ## Flam signature: true only during the Parry state's short deflect window.
 var parry_active := false
-var parry_cooldown_timer := 0.0
 ## Weapon: the anti-spam gate (docs/GDD.md §4), ticked every physics frame.
 var weapon_cooldown_timer := 0.0
 ## Energy Drink (docs/GDD.md §8): multiplies run speed while boosted.
@@ -101,7 +97,6 @@ func _ready() -> void:
 	add_to_group(&"player")
 	alive.append(self)
 	sprite.sprite_frames = SpriteFramesBuilder.build_player_frames(stats.sheet)
-	shield_meter = stats.shield_capacity
 	_build_combat_nodes()
 	state_machine.setup(self, stats)
 	EventBus.player_spawned.emit(self)
@@ -267,8 +262,7 @@ func take_hit(damage: int, from_global_pos: Vector2) -> void:
 	if is_invulnerable():
 		return
 	if _shield_blocks(from_global_pos):
-		shield_meter = maxf(0.0, shield_meter - 1.0)
-		AudioManager.play_sfx("shield_break" if shield_meter <= 0.0 else "shield_on")
+		AudioManager.play_sfx("shield_on")
 		FxService.hit_spark(get_tree(), global_position.lerp(from_global_pos, 0.5), stats.shield_color)
 		return
 	if firewall_shield:
@@ -407,11 +401,9 @@ func fire_weapon() -> void:
 	GameFeel.rumble(maxi(0, player_index - 1), 0.15, 0.1, 0.08)
 
 
-## Chris only: frontal ±60° block while Shield state is active with meter.
+## Chris only (BARRIER style): frontal ±60° block while Shield state is active.
 func _shield_blocks(from_global_pos: Vector2) -> bool:
-	if not stats.has_shield or shield_meter <= 0.0:
-		return false
-	if state_machine.current_name() != &"Shield":
+	if not stats.has_shield or state_machine.current_name() != &"Shield":
 		return false
 	var to_source := from_global_pos - global_position
 	if to_source.is_zero_approx():
@@ -502,17 +494,7 @@ func _tick_timers(delta: float) -> void:
 	jump_buffer_timer = maxf(0.0, jump_buffer_timer - delta)
 	dash_cooldown_timer = maxf(0.0, dash_cooldown_timer - delta)
 	weapon_cooldown_timer = maxf(0.0, weapon_cooldown_timer - delta)
-	parry_cooldown_timer = maxf(0.0, parry_cooldown_timer - delta)
 	if _boost_left > 0.0:
 		_boost_left -= delta
 		if _boost_left <= 0.0:
 			speed_boost = 1.0
-	# Shield regen (BARRIER only — PARRY has no meter, just its own cooldown):
-	# waits shield_regen_delay after last use, then refills.
-	if stats.has_shield and stats.shield_style == "BARRIER" \
-			and state_machine.current_name() != &"Shield":
-		if shield_regen_wait > 0.0:
-			shield_regen_wait -= delta
-		elif shield_meter < stats.shield_capacity:
-			shield_meter = minf(stats.shield_capacity,
-					shield_meter + stats.shield_regen_rate * delta)

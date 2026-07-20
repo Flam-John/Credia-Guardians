@@ -29,18 +29,15 @@ func try_ground_transitions() -> bool:
 		return true
 	# Branches explicitly on shield_style (not a bare if/elif on has_shield)
 	# so a future third style can't silently fall through to Shield/Parry
-	# by coincidence (review catch).
+	# by coincidence (review catch). Both styles are unlimited — no meter,
+	# no cooldown — hold/tap as much as you want.
 	if stats.has_shield:
 		if stats.shield_style == "PARRY":
-			if player.just_pressed(&"ability") and player.parry_cooldown_timer <= 0.0:
+			if player.just_pressed(&"ability"):
 				machine.transition(&"Parry")
 				return true
 		elif stats.shield_style == "BARRIER":
-			# Minimum meter to raise the shield: without it, holding the
-			# button after depletion re-enters Shield the frame regen ticks
-			# past zero, draining it instantly and re-arming the regen
-			# delay forever (starvation loop).
-			if player.pressed(&"ability") and player.shield_meter >= 0.5:
+			if player.pressed(&"ability"):
 				machine.transition(&"Shield")
 				return true
 	if not player.is_on_floor():
@@ -72,8 +69,7 @@ func try_air_transitions() -> bool:
 		return true
 	# Parry (not Barrier) works airborne too — it's a tap, not a hold, so it
 	# can't be used to cheese infinite hover the way holding Shield would.
-	if stats.has_shield and stats.shield_style == "PARRY" \
-			and player.just_pressed(&"ability") and player.parry_cooldown_timer <= 0.0:
+	if stats.has_shield and stats.shield_style == "PARRY" and player.just_pressed(&"ability"):
 		machine.transition(&"Parry")
 		return true
 	return false

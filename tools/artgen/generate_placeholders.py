@@ -751,9 +751,12 @@ def gen_special_enemy_sheets(out_dir):
 
 def gen_projectiles(path):
     """8x8 x5: ledger (white page), plasma orb (red), gold coin (CEO), then
-    the two player weapon bolts — packet bolt (Chris, cyan) and ember
-    (Flam, orange). Player cells stay READABLE at a glance as distinct from
-    the enemy set: bolt is angular/thin, ember is round/flickering."""
+    the two player weapon bolts — packet bolt (Chris, cyan) and volt orb
+    (Flam, blue/cyan — recolored from an earlier red/orange "ember" pass
+    that broke the damage-only-red rule and didn't match her weapon/shield
+    icons, docs/SPRITE_LIST.md). Player cells stay READABLE at a glance as
+    distinct from the enemy set: bolt is angular/thin, volt orb is round
+    and flickers with a brighter core."""
     img = Image.new("RGBA", (40, 8), P.TRANSPARENT)
     d = ImageDraw.Draw(img)
     _outline_rect(d, 1, 1, 6, 6, P.WHITE)
@@ -769,12 +772,12 @@ def gen_projectiles(path):
     d.line([(bx + 4, 4), (bx + 1, 7)], fill=P.CYAN_RAMP[2])
     _px(d, bx + 4, 3, P.WHITE)
     glow_disc(img, bx + 4, 4, 3, P.CYAN)  # r=3: halo stays inside this 8px cell
-    # ember: round flickering coal, dark core rim + hot center
+    # volt orb: round flickering charge, dark rim + bright cyan-white core
     ex = 32
-    d.ellipse([ex + 1, 1, ex + 6, 6], fill=P.RED_RAMP[1], outline=P.RED_RAMP[0])
-    d.ellipse([ex + 2, 2, ex + 5, 5], fill=P.GOLD)
+    d.ellipse([ex + 1, 1, ex + 6, 6], fill=P.BLUE_RAMP[1], outline=P.BLUE_RAMP[0])
+    d.ellipse([ex + 2, 2, ex + 5, 5], fill=P.CYAN)
     _px(d, ex + 3, 3, P.WHITE)
-    glow_disc(img, ex + 4, 4, 4, P.RED)
+    glow_disc(img, ex + 4, 4, 3, P.BLUE)  # r=3: halo stays inside this 8px cell
     img.save(path)
 
 

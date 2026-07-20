@@ -78,7 +78,7 @@ Enemy states per archetype: ENEMY_AI.md.
 
 | Resource | Fields |
 |---|---|
-| `CharacterStats` | display_name, portrait, sprite_frames, max_hp, run_speed, accel, friction, air_control, jump_velocity, double_jump_velocity, gravity_rise, gravity_fall, max_fall, coyote_time, jump_buffer, dash_speed, dash_duration, dash_cooldown, air_dash_charges, dash_has_iframes, has_shield, shield_capacity, shield_regen_delay, shield_regen_rate, attack_damage |
+| `CharacterStats` | display_name, portrait, sprite_frames, max_hp, run_speed, accel, friction, air_control, jump_velocity, double_jump_velocity, gravity_rise, gravity_fall, max_fall, coyote_time, jump_buffer, dash_speed, dash_duration, dash_cooldown, air_dash_charges, dash_has_iframes, has_shield, shield_style (BARRIER/PARRY, both unlimited), parry_window, attack_damage, weapon_damage, weapon_cooldown, bullet_speed/visual/lifetime/gravity |
 | `EnemyStats` | display_name, sprite_frames, max_hp, contact_damage, score_value, move_speed, detection_range, attack_cooldown, stompable, loot_scene, loot_count |
 | `LevelData` | stage_id, display_name, scene_path, music, total_coins (100), node_count, par_time_sec, next_stage_id, tileset |
 | `SaveSlotData` (runtime struct, not .tres) | see SAVE_STRUCTURE.md |

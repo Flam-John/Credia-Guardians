@@ -80,11 +80,10 @@ func test_shield_blocks_frontal_only() -> void:
 	await wait_physics_frames(3)
 	assert_eq(_state(), &"Shield")
 	var hp_before := _player.health.hp
-	# frontal hit (facing right by default) — blocked, drains meter
-	var meter_before := _player.shield_meter
+	# frontal hit (facing right by default) — blocked, unlimited (no meter)
 	_player.take_hit(1, _player.global_position + Vector2(30, 0))
 	assert_eq(_player.health.hp, hp_before, "frontal hit blocked")
-	assert_lt(_player.shield_meter, meter_before)
+	assert_eq(_state(), &"Shield", "still holding — blocking never runs out")
 	# hit from behind — connects
 	_player.take_hit(1, _player.global_position + Vector2(-30, 0))
 	assert_eq(_player.health.hp, hp_before - 1, "rear hit lands")

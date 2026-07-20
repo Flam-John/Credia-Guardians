@@ -1,8 +1,9 @@
 extends PlayerState
 ## Flam signature: tap ability for a brief deflect window instead of holding
-## a meter-drained block (Chris's BARRIER/ShieldState). No damage taken
-## during the window (Player.parry_active, checked first in take_hit), full
-## movement kept, and it works in the air — a skill button, not a stance.
+## a block (Chris's BARRIER/ShieldState). Unlimited — no cooldown, retrigger
+## on every fresh press. No damage taken during the window (Player.parry_active,
+## checked first in take_hit), full movement kept, and it works in the air —
+## a skill button, not a stance.
 
 var _window_left := 0.0
 
@@ -34,7 +35,6 @@ func physics_update(delta: float) -> void:
 func exit() -> void:
 	player.parry_active = false
 	player.shield_sprite.visible = false
-	player.parry_cooldown_timer = stats.parry_cooldown
 
 
 func _finish() -> void:
