@@ -401,11 +401,20 @@ func fire_weapon() -> void:
 	GameFeel.rumble(maxi(0, player_index - 1), 0.15, 0.1, 0.08)
 
 
-## Blocks any hit — melee, contact, or projectile — while Shield is active
-## (user request: any direction, not just frontal, so it also covers bullets
-## arriving from an angle the old ±60° frontal cone would have missed).
-func _shield_blocks(_from_global_pos: Vector2) -> bool:
-	return stats.has_shield and state_machine.current_name() == &"Shield"
+## Blocks hits — melee, contact, or projectile — arriving from the ±60°
+## frontal arc the shield actually faces (user request: only the direction
+## the shield faces, not omnidirectional) while Shield is active.
+func _shield_blocks(from_global_pos: Vector2) -> bool:
+	if not stats.has_shield or state_machine.current_name() != &"Shield":
+		return false
+	# Measured from chest height (hurtbox/melee_shape center), not the feet
+	# (global_position) — a level, straight-on shot at hurtbox height would
+	# otherwise read as ~90° "from above" and slip past the frontal check.
+	var to_source := from_global_pos - (global_position + Vector2(0, -12))
+	if to_source.is_zero_approx():
+		return false
+	var frontal := Vector2(facing, 0.0)
+	return absf(frontal.angle_to(to_source.normalized())) <= deg_to_rad(60.0)
 
 
 # -- Helpers shared by states -------------------------------------------------

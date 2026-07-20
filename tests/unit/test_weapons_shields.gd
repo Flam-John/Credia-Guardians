@@ -149,7 +149,9 @@ func test_chris_barrier_still_blocks_frontal_hits() -> void:
 
 
 ## User request: the shield must also stop actual enemy projectiles, not
-## just synthetic take_hit() calls from a plausible angle.
+## just synthetic take_hit() calls — and specifically a level, straight-on
+## shot at hurtbox height, which is the realistic case (unlike a y=0 offset
+## from the player's feet, which no real attack actually uses).
 func test_shield_blocks_a_real_enemy_projectile() -> void:
 	Input.action_press("ability")
 	await wait_physics_frames(3)
@@ -158,11 +160,13 @@ func test_shield_blocks_a_real_enemy_projectile() -> void:
 	var bullet := Projectile.new()
 	add_child(bullet)
 	await wait_physics_frames(1)
-	# non-friendly (enemy) bullet, launched to collide with the player
-	bullet.launch(_player.global_position + Vector2(20, -10),
+	# non-friendly (enemy) bullet, level with the hurtbox/chest height
+	# (-12, matching melee_shape) and approaching from the front (Chris
+	# faces right by default) — a straight-on shot, squarely frontal
+	bullet.launch(_player.global_position + Vector2(30, -12),
 			Vector2(-200, 0), Projectile.Visual.PLASMA, 1, 0.0, false)
 	await wait_physics_frames(10)
-	assert_eq(_player.health.hp, hp_before, "an incoming enemy bullet is blocked while shielding")
+	assert_eq(_player.health.hp, hp_before, "a frontal enemy bullet is blocked while shielding")
 
 
 func test_parry_avoids_damage_in_window_then_expires() -> void:
