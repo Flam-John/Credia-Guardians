@@ -1,7 +1,9 @@
 extends GutTest
-## Ranged weapons (cooldown, friendly bullets, wall/lifetime despawn) and the
-## two Shield styles: Chris BARRIER (existing block, now sprite-backed) vs
-## Flam PARRY (new tap-deflect window) — docs/GDD.md §3-4.
+## Ranged weapons (cooldown, friendly bullets, wall/lifetime despawn) and
+## Shield (docs/GDD.md §3-4). Both Chris and Flam ship as BARRIER (hold to
+## block, unlimited) per user request — same behavior, different color.
+## PARRY (tap-to-deflect) still exists as infrastructure but no shipped
+## character currently uses it; covered here via a synthetic stats config.
 
 const PLAYER_SCENE := preload("res://scenes/entities/player/player.tscn")
 const CHRIS := preload("res://data/characters/chris.tres")
@@ -47,6 +49,15 @@ func _spawn(stats: CharacterStats, pos: Vector2) -> Player:
 	p.position = pos
 	add_child_autofree(p)
 	return p
+
+
+## PARRY has no shipped character right now (both ship as BARRIER) — this
+## keeps the FSM/take_hit branch covered via a synthetic config rather than
+## asserting anything false about Flam's actual (now BARRIER) stats.
+func _parry_test_stats() -> CharacterStats:
+	var s: CharacterStats = FLAM.duplicate()
+	s.shield_style = "PARRY"
+	return s
 
 
 # -- Weapon cooldown -----------------------------------------------------------
@@ -137,8 +148,8 @@ func test_chris_barrier_still_blocks_frontal_hits() -> void:
 	assert_eq(_player.health.hp, hp_before, "BARRIER still blocks frontal hits")
 
 
-func test_flam_parry_avoids_damage_in_window_then_expires() -> void:
-	var flam := _spawn(FLAM, Vector2(200, 90))
+func test_parry_avoids_damage_in_window_then_expires() -> void:
+	var flam := _spawn(_parry_test_stats(), Vector2(200, 90))
 	await wait_physics_frames(30)
 	Input.action_press("ability")
 	await wait_physics_frames(2)
@@ -154,8 +165,8 @@ func test_flam_parry_avoids_damage_in_window_then_expires() -> void:
 	assert_eq(flam.health.hp, hp_before - 1, "hit after the window lands normally")
 
 
-func test_flam_parry_has_no_cooldown_and_retriggers_immediately() -> void:
-	var flam := _spawn(FLAM, Vector2(200, 90))
+func test_parry_has_no_cooldown_and_retriggers_immediately() -> void:
+	var flam := _spawn(_parry_test_stats(), Vector2(200, 90))
 	await wait_physics_frames(30)
 	Input.action_press("ability")
 	await wait_physics_frames(2)
@@ -179,3 +190,18 @@ func test_chris_barrier_holds_indefinitely_without_draining() -> void:
 	var hp_before := _player.health.hp
 	_player.take_hit(1, _player.global_position + Vector2(30, 0))
 	assert_eq(_player.health.hp, hp_before, "still blocks after 4s of continuous hold")
+
+
+## User request: Flam's shield should behave exactly like Chris's — hold to
+## block continuously, no tap-window, no cooldown — just a different color.
+func test_flam_shield_is_barrier_style_like_chris() -> void:
+	var flam := _spawn(FLAM, Vector2(200, 90))
+	await wait_physics_frames(30)
+	Input.action_press("ability")
+	await wait_physics_frames(3)
+	assert_eq(flam.state_machine.current_name(), &"Shield", "Flam ships as BARRIER, not Parry")
+	await wait_physics_frames(240) # well past the old 3s meter capacity
+	assert_eq(flam.state_machine.current_name(), &"Shield", "holds indefinitely, same as Chris")
+	var hp_before := flam.health.hp
+	flam.take_hit(1, flam.global_position + Vector2(30, 0))
+	assert_eq(flam.health.hp, hp_before, "still blocks frontal hits after 4s of continuous hold")

@@ -21,14 +21,14 @@ func test_flam_is_the_speedster() -> void:
 	assert_true(flam.dash_deals_damage)
 
 
-## Both get a shield now, but in mechanically distinct styles (docs/GDD.md
-## §3): Chris holds a meter-drained frontal block, Flam taps a short
-## cooldown-gated deflect window. Same silhouette weight, different rules.
-func test_both_have_shields_in_different_styles() -> void:
+## Both get a shield now, same BARRIER style (hold to block, unlimited —
+## user request: Flam's shield should work continuously just like Chris's,
+## not the old tap-to-deflect PARRY), just recolored per character.
+func test_both_have_shields_same_style_different_color() -> void:
 	assert_true(chris.has_shield)
 	assert_true(flam.has_shield)
 	assert_eq(chris.shield_style, "BARRIER")
-	assert_eq(flam.shield_style, "PARRY")
+	assert_eq(flam.shield_style, "BARRIER")
 	assert_ne(chris.shield_color, flam.shield_color)
 
 
