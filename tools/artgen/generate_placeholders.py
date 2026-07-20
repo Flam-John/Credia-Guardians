@@ -1060,53 +1060,21 @@ def gen_pickups(path):
 
 
 def gen_shields(path):
-    """16x16 x2 — the visible Shield-state sprite (docs/GDD.md §3). Both
-    styles share the hero kit's dark ARMOR_RAMP housing/rivets (same
-    "manufacturer" read as the weapons below) but differ in energy signature
-    and material, matching each hero's ALREADY-established colors from
-    draw_hero_frame instead of an invented palette:
-    - Chris's hex BARRIER: translucent cyan energy pane (his forearm-emitter
-      color, docs/SPRITE_LIST.md) in a dark frame with green contact nodes
-      (his body-piping accent) — ethereal/tech.
-    - Flam's riot BUCKLER: solid blue/cyan "overclocked" kinetic disc (her
-      own cyan accent + Overclock Dash identity) — physical/kinetic. NOT
-      red/orange: docs/SPRITE_LIST.md reserves red for damage/corruption
-      only, and orange never appears anywhere else on a hero.
-    """
+    """16x16 x2 — the visible Shield-state sprite (docs/GDD.md §3). By
+    request: ONE simple design for both characters (not two different
+    materials/shapes like the earlier hex-barrier/riot-buckler pass) — a
+    plain translucent energy layer, recolored per character: cyan for
+    Chris (his forearm-emitter color, docs/SPRITE_LIST.md), blue for Flam
+    (her own accent + Overclock Dash identity, not red/orange)."""
     img = Image.new("RGBA", (32, 16), P.TRANSPARENT)
     d = ImageDraw.Draw(img)
-
-    # -- Chris: hex energy barrier --------------------------------------------------
-    cx, cy = 8, 8
-    outer = [(cx, cy - 7), (cx + 6, cy - 4), (cx + 6, cy + 4), (cx, cy + 7),
-             (cx - 6, cy + 4), (cx - 6, cy - 4)]
-    inner = [(cx, cy - 5), (cx + 4, cy - 3), (cx + 4, cy + 3), (cx, cy + 5),
-             (cx - 4, cy + 3), (cx - 4, cy - 3)]
-    d.polygon(outer, fill=P.ARMOR_RAMP[0], outline=P.OUTLINE)  # emitter housing
-    d.polygon(inner, fill=(22, 224, 224, 90))  # translucent energy pane
-    d.line([inner[4], inner[5], inner[0]], fill=P.CYAN_RAMP[2])  # top-left rim light
-    dither_row(d, cx - 3, cx + 3, cy, P.CYAN_RAMP[1])  # energy-static texture
-    _px(d, cx, cy, P.WHITE)
-    _px(d, cx, cy - 7, P.GREEN_DARK)  # emitter contact node (top)
-    _px(d, cx, cy + 7, P.GREEN_DARK)  # emitter contact node (bottom)
-    glow_disc(img, cx, cy, 5, P.CYAN)
-
-    # -- Flam: overclocked riot buckler ----------------------------------------------
-    # GRAY_RAMP, not ARMOR_RAMP: ARMOR_RAMP's light tone carries a faint
-    # green cast (fine on Chris, whose accent IS green) that muddied Flam's
-    # blue/cyan identity when used as her shell's top highlight (review-style
-    # visual pass caught this — a truly neutral steel reads cleaner here).
-    fx, fy = 24, 8
-    d.ellipse([fx - 7, fy - 7, fx + 7, fy + 7], fill=P.GRAY_RAMP[0], outline=P.OUTLINE)
-    d.ellipse([fx - 7, fy - 7, fx + 7, fy], fill=P.GRAY_RAMP[1])  # top-lit band
-    for rx, ry in ((fx - 5, fy - 4), (fx + 5, fy - 4), (fx - 5, fy + 4), (fx + 5, fy + 4)):
-        _px(d, rx, ry, P.OUTLINE)  # rivets
-    d.line([(fx - 3, fy - 5), (fx - 1, fy - 1), (fx + 1, fy - 1), (fx + 3, fy + 5)],
-           fill=P.CYAN)  # jagged "overclock" inset crack
-    d.ellipse([fx - 3, fy - 3, fx + 3, fy + 3], fill=P.BLUE_RAMP[1], outline=P.OUTLINE)
-    _px(d, fx - 1, fy - 1, P.WHITE)
-    _px(d, fx, fy + 5, P.GOLD)  # hardware rivet — shared neutral accent, not dominant
-    glow_disc(img, fx, fy, 4, P.BLUE)
+    for i, color in enumerate((P.CYAN, P.BLUE)):
+        cx, cy = 8 + i * 16, 8
+        d.ellipse([cx - 6, cy - 6, cx + 6, cy + 6],
+                  fill=(color[0], color[1], color[2], 70), outline=color)
+        d.line([(cx - 3, cy - 4), (cx + 3, cy - 4)], fill=P.WHITE)  # highlight arc
+        _px(d, cx, cy, P.WHITE)
+        glow_disc(img, cx, cy, 5, color)
     img.save(path)
 
 
