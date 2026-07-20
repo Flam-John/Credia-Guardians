@@ -1057,46 +1057,101 @@ def gen_pickups(path):
 
 
 def gen_shields(path):
-    """16x16 x2 — the visible Shield-state sprite (docs/GDD.md §3). Chris's
-    hex energy BARRIER (translucent cyan panel, glowing rim) reads as
-    ethereal/tech; Flam's riot BUCKLER (solid orange disc, metal rim, boss)
-    reads as physical/kinetic — same silhouette weight, different material."""
+    """16x16 x2 — the visible Shield-state sprite (docs/GDD.md §3). Both
+    styles share the hero kit's dark ARMOR_RAMP housing/rivets (same
+    "manufacturer" read as the weapons below) but differ in energy signature
+    and material, matching each hero's ALREADY-established colors from
+    draw_hero_frame instead of an invented palette:
+    - Chris's hex BARRIER: translucent cyan energy pane (his forearm-emitter
+      color, docs/SPRITE_LIST.md) in a dark frame with green contact nodes
+      (his body-piping accent) — ethereal/tech.
+    - Flam's riot BUCKLER: solid blue/cyan "overclocked" kinetic disc (her
+      own cyan accent + Overclock Dash identity) — physical/kinetic. NOT
+      red/orange: docs/SPRITE_LIST.md reserves red for damage/corruption
+      only, and orange never appears anywhere else on a hero.
+    """
     img = Image.new("RGBA", (32, 16), P.TRANSPARENT)
     d = ImageDraw.Draw(img)
+
+    # -- Chris: hex energy barrier --------------------------------------------------
     cx, cy = 8, 8
-    hexagon = [(cx, cy - 7), (cx + 6, cy - 3), (cx + 6, cy + 3), (cx, cy + 7),
-               (cx - 6, cy + 3), (cx - 6, cy - 3)]
-    d.polygon(hexagon, fill=(22, 224, 224, 70), outline=P.CYAN)
-    d.line([(cx - 3, cy - 4), (cx + 3, cy - 4)], fill=P.CYAN_RAMP[2])
-    d.line([(cx - 3, cy + 4), (cx + 3, cy + 4)], fill=P.CYAN_RAMP[2])
+    outer = [(cx, cy - 7), (cx + 6, cy - 4), (cx + 6, cy + 4), (cx, cy + 7),
+             (cx - 6, cy + 4), (cx - 6, cy - 4)]
+    inner = [(cx, cy - 5), (cx + 4, cy - 3), (cx + 4, cy + 3), (cx, cy + 5),
+             (cx - 4, cy + 3), (cx - 4, cy - 3)]
+    d.polygon(outer, fill=P.ARMOR_RAMP[0], outline=P.OUTLINE)  # emitter housing
+    d.polygon(inner, fill=(22, 224, 224, 90))  # translucent energy pane
+    d.line([inner[4], inner[5], inner[0]], fill=P.CYAN_RAMP[2])  # top-left rim light
+    dither_row(d, cx - 3, cx + 3, cy, P.CYAN_RAMP[1])  # energy-static texture
     _px(d, cx, cy, P.WHITE)
-    glow_disc(img, cx, cy, 6, P.CYAN)
+    _px(d, cx, cy - 7, P.GREEN_DARK)  # emitter contact node (top)
+    _px(d, cx, cy + 7, P.GREEN_DARK)  # emitter contact node (bottom)
+    glow_disc(img, cx, cy, 5, P.CYAN)
+
+    # -- Flam: overclocked riot buckler ----------------------------------------------
+    # GRAY_RAMP, not ARMOR_RAMP: ARMOR_RAMP's light tone carries a faint
+    # green cast (fine on Chris, whose accent IS green) that muddied Flam's
+    # blue/cyan identity when used as her shell's top highlight (review-style
+    # visual pass caught this — a truly neutral steel reads cleaner here).
     fx, fy = 24, 8
-    d.ellipse([fx - 7, fy - 7, fx + 7, fy + 7], fill=P.RED_RAMP[1], outline=P.OUTLINE)
-    d.ellipse([fx - 7, fy - 7, fx + 7, fy + 1], fill=P.RED_RAMP[2])
-    d.ellipse([fx - 2, fy - 2, fx + 2, fy + 2], fill=P.GOLD, outline=P.OUTLINE)
+    d.ellipse([fx - 7, fy - 7, fx + 7, fy + 7], fill=P.GRAY_RAMP[0], outline=P.OUTLINE)
+    d.ellipse([fx - 7, fy - 7, fx + 7, fy], fill=P.GRAY_RAMP[1])  # top-lit band
+    for rx, ry in ((fx - 5, fy - 4), (fx + 5, fy - 4), (fx - 5, fy + 4), (fx + 5, fy + 4)):
+        _px(d, rx, ry, P.OUTLINE)  # rivets
+    d.line([(fx - 3, fy - 5), (fx - 1, fy - 1), (fx + 1, fy - 1), (fx + 3, fy + 5)],
+           fill=P.CYAN)  # jagged "overclock" inset crack
+    d.ellipse([fx - 3, fy - 3, fx + 3, fy + 3], fill=P.BLUE_RAMP[1], outline=P.OUTLINE)
+    _px(d, fx - 1, fy - 1, P.WHITE)
+    _px(d, fx, fy + 5, P.GOLD)  # hardware rivet — shared neutral accent, not dominant
+    glow_disc(img, fx, fy, 4, P.BLUE)
     img.save(path)
 
 
 def gen_weapons(path):
     """16x16 x2 — held weapon sprite, mounted at the hand while aiming/firing
-    (docs/GDD.md §4). Chris's Packet Rifle: thin, angular, cyan coil — precise
-    and controlled. Flam's Ember Slinger: short, wide, orange-hot muzzle —
-    blunt and aggressive. Silhouettes must read distinct even at a glance."""
+    (docs/GDD.md §4). Shares the shields' ARMOR_RAMP/SUIT_RAMP housing
+    material (one visual "kit" across both props) and each hero's own
+    established accent instead of an invented palette:
+    - Chris's Packet Rifle: thin, angular, green piping seam (his body
+      accent) + cyan coil/muzzle (his forearm-emitter color) — precise.
+    - Flam's Volt Slinger: short, wide, blue/cyan "overclocked" capacitor
+      muzzle (her own accent + Overclock Dash identity) — blunt but no
+      longer red/orange "ember", which had no basis in the existing hero
+      art and broke the damage-only-red rule (docs/SPRITE_LIST.md).
+    """
     img = Image.new("RGBA", (32, 16), P.TRANSPARENT)
     d = ImageDraw.Draw(img)
-    shade_rect(d, 1, 7, 11, 9, P.SUIT_RAMP, outline=P.OUTLINE)
-    _rect(d, 9, 5, 12, 11, P.GRAY_DARK)
+
+    # -- Chris: Packet Rifle ----------------------------------------------------------
+    shade_rect(d, 1, 7, 11, 9, P.SUIT_RAMP, outline=P.OUTLINE)  # barrel
+    _px(d, 2, 8, P.GREEN_DARK)  # piping seam, matches his body accent
+    _rect(d, 3, 10, 6, 11, P.ARMOR_RAMP[0])  # grip
+    d.line([(3, 11), (3, 13)], fill=P.OUTLINE)  # trigger guard hint
+    shade_rect(d, 9, 5, 12, 11, P.ARMOR_RAMP, outline=P.OUTLINE)  # coil housing
     _px(d, 10, 6, P.CYAN)
-    _px(d, 11, 9, P.CYAN_RAMP[2])
-    _px(d, 12, 8, P.WHITE)
+    _px(d, 10, 8, P.CYAN_RAMP[2])
+    _px(d, 10, 10, P.CYAN)
+    _px(d, 12, 8, P.WHITE)  # muzzle hot-tip
     glow_disc(img, 13, 8, 2, P.CYAN)  # r=2: halo stays inside this 16px cell
+
+    # -- Flam: Volt Slinger -------------------------------------------------------------
+    # GRAY_RAMP body (not ARMOR_RAMP — its light tone's faint green cast
+    # clashed with her blue/cyan identity); capacitor kept SMALL relative to
+    # the body so the gun's silhouette reads first and the glow is an
+    # accent, not the whole shape (an earlier, bigger version read as just
+    # a blue blob — review-style visual pass).
     ox = 16
-    shade_rect(d, ox + 1, 5, ox + 9, 11, P.ARMOR_RAMP, outline=P.OUTLINE)
-    d.ellipse([ox + 8, 4, ox + 14, 12], fill=P.RED_RAMP[1], outline=P.OUTLINE)
-    _px(d, ox + 11, 8, P.GOLD)
-    _px(d, ox + 12, 7, P.WHITE)
-    glow_disc(img, ox + 13, 8, 4, P.RED)
+    shade_rect(d, ox + 1, 5, ox + 9, 11, P.GRAY_RAMP, outline=P.OUTLINE)  # body
+    _px(d, ox + 2, 6, P.CYAN)  # piping seam, matches her body accent
+    _rect(d, ox + 2, 10, ox + 5, 11, P.OUTLINE)  # grip
+    for vx in (ox + 5, ox + 7):
+        d.line([(vx, 4), (vx, 5)], fill=P.OUTLINE)  # vent fins
+    d.ellipse([ox + 9, 5, ox + 13, 11], fill=P.BLUE_RAMP[1], outline=P.OUTLINE)  # capacitor
+    d.ellipse([ox + 9, 5, ox + 13, 8], fill=P.BLUE_RAMP[2])  # top-lit band
+    d.line([(ox + 10, 6), (ox + 11, 8), (ox + 10, 8), (ox + 12, 9)], fill=P.CYAN)  # spark
+    _px(d, ox + 10, 6, P.WHITE)
+    _px(d, ox + 6, 11, P.GOLD)  # hardware rivet — shared neutral accent, not dominant
+    glow_disc(img, ox + 12, 8, 2, P.BLUE)  # r=2: halo stays inside this 16px cell
     img.save(path)
 
 
