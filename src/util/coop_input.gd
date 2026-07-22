@@ -5,6 +5,15 @@ class_name CoopInput
 ## "p1_*" (keyboard WASD/Space/JKL + gamepad device 0) and "p2_*" (arrows +
 ## RightCtrl/RightShift/Enter + gamepad device 1) action sets; each Player
 ## polls through its own prefix (Player.input_prefix).
+##
+## Gamepad button rebinding: P1's row in the options menu rebinds the BASE
+## action directly (SettingsApplier.apply_gamepad_binding), exactly like its
+## keyboard row — that's what makes it work in solo play too, not just co-op,
+## since solo polls the base action. P2 needs a genuinely different physical
+## button (same base action, different controller), so P2 gets its own
+## override layer instead (p2_gamepad_overrides) — mirrors how P2's keyboard
+## key is a separate override (p2_overrides) rather than editing the base
+## action. The device split (P1=0, P2=1) always stays fixed either way.
 
 const GAMEPLAY_ACTIONS: Array[StringName] = [
 	&"move_left", &"move_right", &"move_up", &"move_down",
@@ -26,10 +35,24 @@ static var _built := false
 ## P2_KEYS. SettingsApplier keeps this in sync and refreshes the sets.
 static var p2_overrides: Dictionary = {}
 
+## Per-action P2 gamepad BUTTON overrides (String action -> Godot JoyButton
+## index), persisted in settings under "input_gamepad_p2". Missing entries
+## fall back to whatever the base action already binds (same button as P1,
+## just on device 1). SettingsApplier keeps this in sync and refreshes the
+## sets. P1 has no equivalent dict — its gamepad button IS the base action's,
+## rebound via SettingsApplier.apply_gamepad_binding.
+static var p2_gamepad_overrides: Dictionary = {}
+
 
 ## Effective P2 keyboard key for a gameplay action (override or default).
 static func p2_key(base: StringName) -> int:
 	return int(p2_overrides.get(String(base), int(P2_KEYS.get(base, 0))))
+
+
+## Effective P2 gamepad button override for an action, or null if P2 hasn't
+## customized it (falls back to the base action's own binding, device 1).
+static func p2_gamepad_override(base: StringName) -> Variant:
+	return p2_gamepad_overrides.get(String(base))
 
 
 ## Rebinding edits BASE actions only; co-op sets are snapshots and must be
@@ -63,16 +86,45 @@ static func ensure_actions() -> void:
 			var device: int = player_index - 1 # gamepad 0 for P1, 1 for P2
 			var base_key_events: Array[InputEvent] = []
 			var p1_keys_added := 0
+			# P1 has no override layer — its gamepad button comes straight
+			# from the base action (rebound directly, see class doc above).
+			var override_button: Variant = p2_gamepad_override(base) if player_index == 2 else null
+			var joypad_button_added := false
 			for event in InputMap.action_get_events(base):
 				if event is InputEventKey and player_index == 1:
 					base_key_events.append(event)
 					if not p2_reserved.has((event as InputEventKey).physical_keycode):
 						InputMap.action_add_event(action, event.duplicate())
 						p1_keys_added += 1
-				elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
-					var pad_event: InputEvent = event.duplicate()
-					pad_event.device = device
-					InputMap.action_add_event(action, pad_event)
+				elif event is InputEventJoypadButton:
+					if override_button != null:
+						# collapse to exactly ONE event: some base actions
+						# (dash, ability) carry two alternate buttons, and
+						# duplicating both with the override's index would
+						# leave two identical redundant events (review catch)
+						if not joypad_button_added:
+							var override_event := InputEventJoypadButton.new()
+							override_event.device = device
+							override_event.button_index = int(override_button)
+							InputMap.action_add_event(action, override_event)
+							joypad_button_added = true
+					else:
+						var pad_event := event.duplicate() as InputEventJoypadButton
+						pad_event.device = device
+						InputMap.action_add_event(action, pad_event)
+						joypad_button_added = true
+				elif event is InputEventJoypadMotion:
+					var motion_event: InputEvent = event.duplicate()
+					motion_event.device = device
+					InputMap.action_add_event(action, motion_event)
+			# an override was set but the base action had no joypad button to
+			# anchor on (e.g. an action that's normally keyboard-only) — still
+			# honor it by adding a fresh event instead of silently dropping it
+			if override_button != null and not joypad_button_added:
+				var new_pad := InputEventJoypadButton.new()
+				new_pad.device = device
+				new_pad.button_index = int(override_button)
+				InputMap.action_add_event(action, new_pad)
 			# a rebind may have moved the ONLY base key onto a P2-reserved key;
 			# a shared key beats leaving P1 with no keyboard binding at all
 			if player_index == 1 and p1_keys_added == 0:
