@@ -17,6 +17,9 @@ func after_all() -> void:
 
 func after_each() -> void:
 	GameManager.character2 = &""
+	CoopInput.p2_gamepad_overrides = {}
+	InputMap.load_from_project_settings() # undo any base-action gamepad rebind
+	CoopInput.refresh_if_built()
 	for action in ["jump", "p1_jump", "p2_jump", "move_left", "move_right"]:
 		if InputMap.has_action(action):
 			Input.action_release(action)
@@ -84,6 +87,75 @@ func test_p1_and_p2_keyboard_keys_are_disjoint() -> void:
 			.map(func(e: InputEvent) -> int: return (e as InputEventKey).physical_keycode)
 	assert_has(codes, KEY_A, "P1 keeps WASD")
 	assert_does_not_have(codes, KEY_LEFT, "arrows stay exclusive to P2")
+
+
+## Bug fix (review catch): P1's gamepad rebind used to only write into a
+## p1-only override consulted by CoopInput — which solo play never builds
+## (Player.action() returns the bare BASE action for player_index 0), so the
+## rebind silently did nothing outside co-op. Rebinding P1 must mutate the
+## BASE action directly, exactly like keyboard rebinding already does.
+func test_p1_gamepad_rebind_changes_base_action_for_solo_play() -> void:
+	SettingsApplier.apply_gamepad_binding(&"jump", JOY_BUTTON_Y)
+	var base_pad := InputMap.action_get_events(&"jump").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_eq(base_pad.size(), 1, "collapsed to exactly one gamepad binding, like keyboard rebind")
+	assert_eq((base_pad[0] as InputEventJoypadButton).button_index, JOY_BUTTON_Y,
+			"solo play polls this BASE action directly, so it must see the rebind")
+	# co-op P1 inherits it too (device-reassigned copy of the same base event)
+	CoopInput.refresh_if_built()
+	var p1_pad := InputMap.action_get_events(&"p1_jump").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_eq((p1_pad[0] as InputEventJoypadButton).button_index, JOY_BUTTON_Y)
+	assert_eq((p1_pad[0] as InputEventJoypadButton).device, 0, "P1 stays on device 0")
+
+
+func test_p2_gamepad_override_applies_to_p2_only_not_p1() -> void:
+	CoopInput.p2_gamepad_overrides = {"fire": JOY_BUTTON_X}
+	CoopInput.refresh_if_built()
+	var p2_pad := InputMap.action_get_events(&"p2_fire").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_eq((p2_pad[0] as InputEventJoypadButton).button_index, JOY_BUTTON_X)
+	assert_eq((p2_pad[0] as InputEventJoypadButton).device, 1, "P2 stays on device 1")
+	var p1_pad := InputMap.action_get_events(&"p1_fire").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_ne((p1_pad[0] as InputEventJoypadButton).button_index, JOY_BUTTON_X,
+			"P2's override doesn't leak into P1")
+
+
+## Regression guard (review catch): "dash"/"ability" each carry TWO base
+## alternate gamepad buttons (project.godot) — a naive per-event override
+## loop would duplicate both into identical redundant events instead of
+## collapsing to the one the player actually picked.
+func test_p2_gamepad_override_collapses_multi_button_action_to_one() -> void:
+	CoopInput.p2_gamepad_overrides = {"dash": JOY_BUTTON_X}
+	CoopInput.refresh_if_built()
+	var p2_pad := InputMap.action_get_events(&"p2_dash").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_eq(p2_pad.size(), 1, "override collapses dash's two alt-buttons into one")
+	assert_eq((p2_pad[0] as InputEventJoypadButton).button_index, JOY_BUTTON_X)
+
+
+## Regression guard: with NO override, a multi-button base action keeps
+## BOTH its alternate buttons (this diff must not narrow default behavior).
+func test_no_gamepad_override_preserves_multi_button_action() -> void:
+	CoopInput.refresh_if_built()
+	var p1_pad := InputMap.action_get_events(&"p1_dash").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	var base_pad := InputMap.action_get_events(&"dash").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_eq(p1_pad.size(), base_pad.size(), "no override: all of dash's base buttons carry over")
+
+
+func test_p1_and_p2_gamepad_storage_are_fully_independent() -> void:
+	SettingsApplier.apply_gamepad_binding(&"attack", JOY_BUTTON_X)
+	CoopInput.p2_gamepad_overrides = {"attack": JOY_BUTTON_B}
+	CoopInput.refresh_if_built()
+	var p1_pad := InputMap.action_get_events(&"p1_attack").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	var p2_pad := InputMap.action_get_events(&"p2_attack").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_eq((p1_pad[0] as InputEventJoypadButton).button_index, JOY_BUTTON_X)
+	assert_eq((p2_pad[0] as InputEventJoypadButton).button_index, JOY_BUTTON_B)
 
 
 func test_slot_remembers_coop_mode() -> void:

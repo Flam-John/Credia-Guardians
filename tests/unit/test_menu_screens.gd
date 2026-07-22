@@ -60,3 +60,55 @@ func _collect_buttons(node: Node, out: Array[Node]) -> void:
 		if child is Button:
 			out.append(child)
 		_collect_buttons(child, out)
+
+
+func _make_pad_press(device: int, button_index: int) -> InputEventJoypadButton:
+	var pad := InputEventJoypadButton.new()
+	pad.device = device
+	pad.button_index = button_index
+	pad.pressed = true
+	return pad
+
+
+## Bug fix (review catch): P1 fiddling with their own controller (device 0)
+## while P2 is mid-rebind used to get captured into P2's slot — one
+## player's pad could hijack the other's listen. P2's row must ignore any
+## press that isn't from device 1.
+func test_options_p2_rebind_ignores_a_different_device() -> void:
+	var menu: Control = load("res://scenes/ui/options_menu.tscn").instantiate()
+	add_child_autofree(menu)
+	await wait_frames(2)
+	menu._start_listen_p2(&"jump")
+	menu._unhandled_input(_make_pad_press(0, JOY_BUTTON_X)) # P1's pad — wrong device
+	assert_eq(menu._listening_action, &"jump", "still listening — P1's press is ignored")
+	menu._unhandled_input(_make_pad_press(1, JOY_BUTTON_X)) # P2's own pad
+	assert_eq(menu._listening_action, &"", "P2's own device press is accepted")
+	assert_eq(int(CoopInput.p2_gamepad_overrides.get("jump")), JOY_BUTTON_X)
+	CoopInput.p2_gamepad_overrides = {}
+	CoopInput.refresh_if_built()
+
+
+## Escape cancels a listen without binding — including a gamepad listen —
+## rather than the generic ui_cancel action (which would also match a
+## gamepad's default cancel button and make it un-bindable, review catch).
+func test_options_escape_cancels_listen_without_binding() -> void:
+	var menu: Control = load("res://scenes/ui/options_menu.tscn").instantiate()
+	add_child_autofree(menu)
+	await wait_frames(2)
+	menu._start_listen(&"jump")
+	var esc := InputEventKey.new()
+	esc.physical_keycode = KEY_ESCAPE
+	esc.pressed = true
+	menu._unhandled_input(esc)
+	assert_eq(menu._listening_action, &"", "Escape ends the listen")
+	# the gamepad button matching ui_cancel's default (B) must still be
+	# bindable — it should NOT have been swallowed as a cancel
+	menu._start_listen(&"attack")
+	menu._unhandled_input(_make_pad_press(0, JOY_BUTTON_B))
+	assert_eq(menu._listening_action, &"", "listen finished — the button was bound, not treated as cancel")
+	var base_pad := InputMap.action_get_events(&"attack").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_eq((base_pad[0] as InputEventJoypadButton).button_index, JOY_BUTTON_B,
+			"B is bindable like any other button")
+	InputMap.load_from_project_settings()
+	CoopInput.refresh_if_built()

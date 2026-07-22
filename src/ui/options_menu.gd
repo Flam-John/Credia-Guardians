@@ -12,6 +12,10 @@ var _listening_action: StringName = &""
 var _listening_p2 := false
 var _bind_buttons: Dictionary = {}
 var _bind_buttons_p2: Dictionary = {}
+## Live "last gamepad button seen" readout — lets a player confirm exactly
+## which button/device their controller sends, independent of rebinding
+## (e.g. to check why a menu-confirm button isn't registering as expected).
+var _gamepad_diag_label: Label
 
 
 func _ready() -> void:
@@ -38,12 +42,15 @@ func _ready() -> void:
 	# from the main menu BEFORE a co-op run starts
 	items.append(UIKit.caption(tr("— P1 KEYS —"), 8, UIKit.GREEN))
 	items.append(UIKit.caption(tr("P1 MOVES WITH WASD"), 8, UIKit.GRAY))
+	items.append(UIKit.caption(tr("PRESS A KEY OR GAMEPAD BUTTON TO REBIND"), 8, UIKit.GRAY))
 	for action in SettingsApplier.REBINDABLE:
 		items.append(_bind_row(action))
 	items.append(UIKit.caption(tr("— P2 KEYS (CO-OP) —"), 8, UIKit.CYAN))
 	items.append(UIKit.caption(tr("P2 MOVES WITH THE ARROWS"), 8, UIKit.GRAY))
 	for action in SettingsApplier.REBINDABLE:
 		items.append(_bind_row_p2(action))
+	_gamepad_diag_label = UIKit.caption(tr("LAST GAMEPAD BUTTON: -"), 8, UIKit.GRAY)
+	items.append(_gamepad_diag_label)
 	items.append(UIKit.button(tr("RESET DEFAULTS"), _on_reset))
 	items.append(UIKit.button(tr("BACK"), _on_back))
 	# the column outgrew the 270px screen (audio + video + language + keys):
@@ -139,7 +146,7 @@ func _rebuild() -> void:
 func _bind_row(action: StringName) -> Control:
 	var row := HBoxContainer.new()
 	row.add_child(_row_label(String(action).to_upper()))
-	var btn := UIKit.button(SettingsApplier.key_label(action), _start_listen.bind(action))
+	var btn := UIKit.button(_bind_label(action), _start_listen.bind(action))
 	btn.custom_minimum_size = Vector2(90, 16)
 	_bind_buttons[action] = btn
 	row.add_child(btn)
@@ -149,7 +156,7 @@ func _bind_row(action: StringName) -> Control:
 func _bind_row_p2(action: StringName) -> Control:
 	var row := HBoxContainer.new()
 	row.add_child(_row_label(String(action).to_upper()))
-	var btn := UIKit.button(SettingsApplier.p2_key_label(action),
+	var btn := UIKit.button(_bind_label_p2(action),
 			_start_listen_p2.bind(action))
 	btn.custom_minimum_size = Vector2(90, 16)
 	_bind_buttons_p2[action] = btn
@@ -157,16 +164,46 @@ func _bind_row_p2(action: StringName) -> Control:
 	return row
 
 
+## "KEY / GAMEPAD" — both bindings shown side by side since either can fire
+## the action (they're additive, not exclusive — see CoopInput).
+func _bind_label(action: StringName) -> String:
+	return "%s / %s" % [SettingsApplier.key_label(action), SettingsApplier.gamepad_label(action, 1)]
+
+
+func _bind_label_p2(action: StringName) -> String:
+	return "%s / %s" % [SettingsApplier.p2_key_label(action), SettingsApplier.gamepad_label(action, 2)]
+
+
 func _start_listen(action: StringName) -> void:
 	_listening_action = action
 	_listening_p2 = false
-	_bind_buttons[action].text = tr("PRESS A KEY...")
+	_bind_buttons[action].text = tr("PRESS A KEY OR BUTTON...")
 
 
 func _start_listen_p2(action: StringName) -> void:
 	_listening_action = action
 	_listening_p2 = true
-	_bind_buttons_p2[action].text = tr("PRESS A KEY...")
+	_bind_buttons_p2[action].text = tr("PRESS A KEY OR BUTTON...")
+
+
+func _finish_listen() -> void:
+	if _listening_p2:
+		_bind_buttons_p2[_listening_action].text = _bind_label_p2(_listening_action)
+	else:
+		_bind_buttons[_listening_action].text = _bind_label(_listening_action)
+	_listening_action = &""
+	_listening_p2 = false
+
+
+## Passive readout, independent of rebind-listening: lets a player confirm
+## exactly what button/device their controller sends (e.g. to check why a
+## menu-confirm press isn't registering as expected) without needing to
+## enter a rebind flow at all.
+func _input(event: InputEvent) -> void:
+	var pad := event as InputEventJoypadButton
+	if pad != null and pad.pressed and is_instance_valid(_gamepad_diag_label):
+		_gamepad_diag_label.text = tr("LAST GAMEPAD BUTTON: %s (device %d)") % \
+				[SettingsApplier.gamepad_button_name(pad.button_index), pad.device]
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -174,6 +211,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		var key := event as InputEventKey
 		if key != null and key.pressed:
 			accept_event()
+			# Escape cancels without binding anything (matches the pre-gamepad
+			# behavior) — NOT a generic ui_cancel check, which would also
+			# match a gamepad's default cancel button and make it impossible
+			# to ever bind THAT button to an action (review catch)
 			if key.physical_keycode != KEY_ESCAPE:
 				if _listening_p2:
 					_settings.input_p2[String(_listening_action)] = int(key.physical_keycode)
@@ -182,14 +223,25 @@ func _unhandled_input(event: InputEvent) -> void:
 				else:
 					_settings.input[String(_listening_action)] = int(key.physical_keycode)
 					SettingsApplier.apply_key_binding(_listening_action, key.physical_keycode)
+			_finish_listen()
+			return
+		var pad := event as InputEventJoypadButton
+		# P2's slot is device-1-specific (mirrors CoopInput's fixed P1=0/P2=1
+		# split), so P1 fiddling with their own pad can't hijack P2's listen
+		# mid-session (review catch). P1's row rebinds the shared BASE action
+		# (like its keyboard row), so it isn't device-filtered — any pad can
+		# set it, same as solo play.
+		if pad != null and pad.pressed and (not _listening_p2 or pad.device == 1):
+			accept_event()
 			if _listening_p2:
-				_bind_buttons_p2[_listening_action].text = \
-						SettingsApplier.p2_key_label(_listening_action)
+				_settings.input_gamepad_p2[String(_listening_action)] = pad.button_index
+				CoopInput.p2_gamepad_overrides = _settings.input_gamepad_p2.duplicate()
+				CoopInput.refresh_if_built()
 			else:
-				_bind_buttons[_listening_action].text = \
-						SettingsApplier.key_label(_listening_action)
-			_listening_action = &""
-			_listening_p2 = false
+				_settings.input_gamepad_p1[String(_listening_action)] = pad.button_index
+				SettingsApplier.apply_gamepad_binding(_listening_action, pad.button_index)
+			_finish_listen()
+			return
 		return
 	if event.is_action_pressed(&"ui_cancel"):
 		# consume, or the same ESC press falls through to PauseMenu and
