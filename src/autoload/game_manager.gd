@@ -42,7 +42,11 @@ func continue_from_slot(data: Dictionary) -> void:
 
 var score: int = 0
 var coins: int = 0
-var lives: int = STARTING_LIVES
+## Player-scoped lives (docs/GDD.md §4): keyed by Player.player_index — solo
+## always uses key 0; co-op uses 1/2, one independent pool per Guardian, so
+## a death only spends THAT player's own life, never the partner's. Use
+## lives_for()/all_players_out_of_lives() rather than reading the dict raw.
+var lives: Dictionary = {0: STARTING_LIVES}
 var deaths_this_stage: int = 0
 var stage_time: float = 0.0
 var nodes_activated: int = 0
@@ -70,6 +74,29 @@ func add_usb_keys(delta: int) -> void:
 
 func is_stage_running() -> bool:
 	return _stage_running
+
+
+func lives_for(player_index: int) -> int:
+	return int(lives.get(player_index, 0))
+
+
+## True once every tracked player's pool is empty — RespawnController's
+## game-over gate. NOT the same question as hit_zero_lives, which taints
+## the stage rank the moment ANY single player's own pool empties, even if
+## the team's run continues on the partner's remaining lives.
+func all_players_out_of_lives() -> bool:
+	for count in lives.values():
+		if count > 0:
+			return false
+	return true
+
+
+## Solo always tracks player_index 0; co-op gives each Guardian (1/2) their
+## own independent pool, so one player's deaths never spend the other's.
+func _fresh_lives() -> Dictionary:
+	if is_coop():
+		return {1: STARTING_LIVES, 2: STARTING_LIVES}
+	return {0: STARTING_LIVES}
 
 
 func character_stats(id: StringName = character) -> CharacterStats:
@@ -134,7 +161,7 @@ func start_stage(new_stage_id: int, new_character: StringName) -> void:
 	character = new_character
 	score = 0
 	coins = 0
-	lives = STARTING_LIVES
+	lives = _fresh_lives()
 	deaths_this_stage = 0
 	stage_time = 0.0
 	nodes_activated = 0
@@ -247,8 +274,12 @@ func _on_node_activated(_id: StringName, count: int, _total: int) -> void:
 	add_score(500)
 
 
-func _on_player_died(_player: Node2D) -> void:
+func _on_player_died(player: Node2D) -> void:
 	deaths_this_stage += 1
-	lives -= 1
-	if lives <= 0:
+	var idx: int = (player as Player).player_index
+	lives[idx] = maxi(0, lives_for(idx) - 1)
+	# taints the rank the moment THIS player runs out, even if the team's
+	# run continues on the partner's remaining lives (all_players_out_of_
+	# lives is the separate, stricter question RespawnController asks)
+	if lives[idx] <= 0:
 		hit_zero_lives = true

@@ -73,7 +73,7 @@ All values live in `CharacterStats.tres` resources — tunable without code chan
 - **Checkpoints**: terminal props — flash green "COMMIT SAVED ✓" when touched; respawn there with full HP on death.
 - **Security nodes**: per-stage objectives (3–5 per stage). Activating one (interact key, 0.5 s hold) clears local corruption (background tint shifts red→blue), opens the gate to the next section, +500 pts.
 - **Hidden rooms**: fake walls / vents. Contain coin caches, a power-up, or a HP upgrade. 1–3 per stage. Subtle tells: cracked tiles, coin trails, off-pattern décor.
-- **Lives & death**: 3 lives per stage attempt; death → checkpoint; 0 lives → Game Over screen → retry stage (progress in save is kept).
+- **Lives & death**: 3 lives per stage attempt; death → checkpoint; 0 lives → Game Over screen → retry stage (progress in save is kept). Co-op: each Guardian tracks their OWN 3 lives (not a shared pool) — a player who runs out stays out for the rest of the stage while their partner keeps playing solo; Game Over only triggers once both Guardians are simultaneously out of lives.
 
 ---
 
@@ -149,7 +149,7 @@ Defeat → corruption dissolve FX → coins rain → Victory screen.
 | A | ≥ 90 % coins + all nodes + ≤ 1 death |
 | B | ≥ 70 % coins + all nodes |
 | C | Stage cleared |
-| D | Cleared with 0 lives remaining at any point |
+| D | Cleared with 0 lives remaining at any point (co-op: taints the whole run's rank the moment EITHER Guardian's own pool empties, even if the team's run continues on the partner's remaining lives) |
 
 Hi-score per stage persisted in save. Ranks shown on stage-select.
 
@@ -164,7 +164,7 @@ Splash (logos) → Main Menu → [New Game | Continue | Options | Quit]
 In-stage: Pause (Resume | Restart Stage | Options | Quit to Menu)
 Stage clear → Tally → next stage unlock → Stage Select
 Stage 5 clear → Victory screen → Credits → Main Menu
-0 lives → Game Over → [Retry Stage | Quit to Menu]
+0 lives (co-op: BOTH Guardians simultaneously) → Game Over → [Retry Stage | Quit to Menu]
 ```
 
 Character can be re-chosen per stage from Stage Select (supports experimenting; save records who cleared what).

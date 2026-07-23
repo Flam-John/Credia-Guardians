@@ -35,6 +35,7 @@ var _score_label: Label
 var _coin_label: Label
 var _hi_label: Label
 var _lives_label: Label
+var _lives_label2: Label
 var _nodes_label: Label
 var _usb_icon: TextureRect
 var _usb_label: Label
@@ -86,6 +87,12 @@ func _ready() -> void:
 
 	_lives_label = _make_label(Vector2(30, 18), 7, UIKit.GRAY)
 	add_child(_lives_label)
+	# per-player lives (co-op: independent pools, docs/GDD.md §4 — user
+	# request 2026-07-23). Placed clear of the P2 shield/upgrade icons
+	# (x=400/412, both width 10) rather than reflowing their positions.
+	_lives_label2 = _make_label(Vector2(424, 18), 7, UIKit.GRAY)
+	_lives_label2.visible = false
+	add_child(_lives_label2)
 
 	# per-player collected status (Firewall Shield bubble / Keyboard melee
 	# upgrade) — invisible until picked up, hidden again on death since a
@@ -195,6 +202,7 @@ func _ready() -> void:
 	add_child(_boss_name)
 
 	EventBus.player_spawned.connect(_on_player_spawned)
+	EventBus.player_died.connect(_on_player_died)
 	EventBus.player_damaged.connect(_on_hp_signal)
 	EventBus.player_healed.connect(_on_hp_signal)
 	EventBus.score_changed.connect(_on_score_changed)
@@ -245,6 +253,7 @@ func _on_player_spawned(player: Node2D) -> void:
 		_portrait2.visible = true
 		_portrait_frame2.visible = true
 		_hp_box2.visible = true
+		_lives_label2.visible = true
 	_set_hp(typed.health.hp, typed.stats.max_hp, is_p2)
 	if not is_p2:
 		_max_hp = typed.stats.max_hp
@@ -254,6 +263,15 @@ func _on_player_spawned(player: Node2D) -> void:
 	# rather than trusting a "cleared" event from the OLD instance
 	(_shield_icon2 if is_p2 else _shield_icon).visible = false
 	(_upgrade_icon2 if is_p2 else _upgrade_icon).visible = false
+
+
+## A death permanently out of lives has no follow-up spawn event to piggy-
+## back the refresh on (unlike a respawn, which naturally re-triggers
+## _on_player_spawned) — listen directly so the count updates immediately
+## either way. GameManager's own listener (connected earlier, so it runs
+## first) has already decremented the pool by the time this fires.
+func _on_player_died(_player: Node2D) -> void:
+	_refresh_meta()
 
 
 func _on_hp_signal(player_index: int, hp: int, max_hp: int) -> void:
@@ -285,7 +303,11 @@ func _on_coin(_value: int) -> void:
 
 
 func _refresh_meta() -> void:
-	_lives_label.text = "♥×%d" % maxi(0, GameManager.lives)
+	# P1's own pool (index 1 in co-op, 0 in solo) — separate from P2's, so
+	# one player's deaths never drain the other's lives (user request)
+	_lives_label.text = "♥×%d" % GameManager.lives_for(1 if GameManager.is_coop() else 0)
+	if GameManager.is_coop():
+		_lives_label2.text = "♥×%d" % GameManager.lives_for(2)
 	_score_label.text = "%08d" % GameManager.score
 	_coin_label.text = "×%d" % GameManager.coins
 	_hi_label.text = tr("HI-SCORE %d") % GameManager.hi_score
