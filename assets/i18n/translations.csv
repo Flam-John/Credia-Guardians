@@ -12,6 +12,7 @@ X: delete slot   ESC: back,X: delete slot   ESC: back,X: διαγραφή θέσ
 SLOT %d — EMPTY,SLOT %d — EMPTY,ΘΕΣΗ %d — ΚΕΝΗ
 SLOT %d — NEWER VERSION (locked),SLOT %d — NEWER VERSION (locked),ΘΕΣΗ %d — ΝΕΟΤΕΡΗ ΕΚΔΟΣΗ (κλειδωμένη)
 SLOT %d — PRESS X AGAIN TO DELETE,SLOT %d — PRESS X AGAIN TO DELETE,ΘΕΣΗ %d — ΞΑΝΑ X ΓΙΑ ΔΙΑΓΡΑΦΗ
+SLOT %d — PRESS AGAIN: NEW GAME (ERASES SAVE),SLOT %d — PRESS AGAIN: NEW GAME (ERASES SAVE),ΘΕΣΗ %d — ΠΑΤΑ ΞΑΝΑ: ΝΕΟ ΠΑΙΧΝΙΔΙ (ΔΙΑΓΡΑΦΕΙ ΤΟ SAVE)
 SELECT GUARDIAN,SELECT GUARDIAN,ΕΠΙΛΟΓΗ ΦΥΛΑΚΑ
 P1: SELECT GUARDIAN,P1: SELECT GUARDIAN,P1: ΕΠΙΛΟΓΗ ΦΥΛΑΚΑ
 P2: SELECT GUARDIAN,P2: SELECT GUARDIAN,P2: ΕΠΙΛΟΓΗ ΦΥΛΑΚΑ

@@ -70,10 +70,20 @@ func _on_pick(id: StringName) -> void:
 	var p1: StringName = _p1_pick if SlotSelectFlow.coop else id
 	var p2: StringName = id if SlotSelectFlow.coop else &""
 	var slot_data := SaveManager.load_slot(SaveManager.active_slot)
-	var returning := not slot_data.is_empty()
+	# force_new: slot_select armed a "NEW GAME on an occupied slot" confirm.
+	# The slot ISN'T actually touched until now (write_slot below overwrites
+	# it), so treat this pick as a fresh start, not a resume, even though
+	# the file on disk still has old data. Consumed immediately so it can't
+	# leak into an unrelated later pick.
+	var force_new := SlotSelectFlow.force_new
+	SlotSelectFlow.force_new = false
+	var returning := not slot_data.is_empty() and not force_new
 	if returning:
-		# arriving on an existing save (co-op re-pick): sync the HUD hi
-		# score to THIS slot, not whatever ran before (review v1.10-2)
+		# not reachable via any CURRENT UI path (NEW_GAME on an occupied
+		# slot always force_new-resets now; CONTINUE never enters character
+		# select; BOSS_RUSH returns earlier) — kept for a future flow that
+		# might land here with existing data. Syncs the HUD hi score to
+		# THIS slot, not whatever ran before (review v1.10-2).
 		GameManager.hi_score = int(slot_data.get("global_hi_score", 0))
 	else:
 		slot_data = SaveManager.new_slot_data(p1)
@@ -95,6 +105,12 @@ func _on_pick(id: StringName) -> void:
 
 
 func _back() -> void:
+	# defensive: an armed-but-abandoned "new game on occupied slot" confirm
+	# must not survive a BACK out of this screen (same leak class `coop` had
+	# before it was fixed) — belt-and-suspenders, since every live path that
+	# actually consumes force_new also re-arms it fresh right before landing
+	# here, but cheap insurance against a future path that doesn't
+	SlotSelectFlow.force_new = false
 	# boss rush enters straight from the main menu — return there, not to a
 	# slot screen the player never visited (review P3-21)
 	if SlotSelectFlow.mode == SlotSelectFlow.Mode.BOSS_RUSH:
