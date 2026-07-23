@@ -82,6 +82,28 @@ func test_apply_gamepad_binding_affects_base_action() -> void:
 	assert_eq((pads[0] as InputEventJoypadButton).button_index, JOY_BUTTON_X)
 
 
+## Godot 4.7's built-in ui_accept default has NO gamepad binding at all
+## (only Enter/Kp Enter/Space) — the actual root cause of "D-pad navigates
+## menus but the confirm button does nothing" for gamepad players. Made
+## explicit in project.godot: A (button 0) confirms, B (button 1) cancels/
+## goes back, alongside the original keyboard bindings (not replacing them).
+func test_ui_accept_and_cancel_have_explicit_gamepad_bindings() -> void:
+	var accept_pads := InputMap.action_get_events(&"ui_accept").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_eq(accept_pads.size(), 1)
+	assert_eq((accept_pads[0] as InputEventJoypadButton).button_index, JOY_BUTTON_A)
+	var accept_keys := InputMap.action_get_events(&"ui_accept").filter(
+		func(e: InputEvent) -> bool: return e is InputEventKey)
+	assert_eq(accept_keys.size(), 3, "Enter/Kp Enter/Space keyboard bindings kept")
+	var cancel_pads := InputMap.action_get_events(&"ui_cancel").filter(
+		func(e: InputEvent) -> bool: return e is InputEventJoypadButton)
+	assert_eq(cancel_pads.size(), 1)
+	assert_eq((cancel_pads[0] as InputEventJoypadButton).button_index, JOY_BUTTON_B)
+	var cancel_keys := InputMap.action_get_events(&"ui_cancel").filter(
+		func(e: InputEvent) -> bool: return e is InputEventKey)
+	assert_eq(cancel_keys.size(), 1, "Escape keyboard binding kept")
+
+
 func test_apply_propagates_gamepad_settings() -> void:
 	var settings := SettingsApplier.defaults()
 	settings.input_gamepad_p1 = {"jump": JOY_BUTTON_X}
