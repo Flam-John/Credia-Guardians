@@ -1,8 +1,16 @@
 extends Control
-## Three save slots. NEW_GAME mode: any slot (occupied warns of overwrite via
-## delete-first rule). CONTINUE mode: only occupied slots. X deletes.
+## Three save slots. NEW_GAME mode: any slot, but an OCCUPIED one needs a
+## second confirm press before it erases anything (SlotSelectFlow.force_new,
+## consumed by character_select — nothing is actually overwritten until a
+## character is picked there, so backing out here is always safe). CONTINUE
+## mode: only occupied slots, no confirm needed (never destructive). X deletes.
 
+## Two independent two-press confirms, at most one visible at a time (arming
+## either clears the other) — DELETE removes the save and stays on this
+## screen; the slot's own button (NEW_GAME + occupied) proceeds to character
+## select for a fresh start instead.
 var _confirm_delete_slot := -1
+var _confirm_new_slot := -1
 var _column: VBoxContainer
 
 
@@ -26,19 +34,22 @@ func _rebuild() -> void:
 	add_child(UIKit.center(_column))
 	# focus must FOLLOW the armed slot across rebuilds — resetting to the
 	# first button made X-mashing delete the WRONG save (review P0-2)
-	_focus_slot.call_deferred(_confirm_delete_slot)
+	_focus_slot.call_deferred(_confirm_delete_slot if _confirm_delete_slot > 0 else _confirm_new_slot)
 
 
 func _focus_slot(slot: int) -> void:
 	if slot > 0:
-		# an armed slot keeps focus on its DELETE button so the second
-		# press lands where the first did
+		# an armed slot keeps focus on the SAME button the player just
+		# pressed, or a habitual second press lands on the OTHER control and
+		# triggers the wrong action — delete-confirm keeps focus on DELETE,
+		# new-game-confirm keeps focus on the slot's own main button (review
+		# catch: this used to always prefer the DELETE button regardless of
+		# which confirm was actually armed, so confirming "new game" could
+		# silently redirect focus onto DELETE and the next press erased the
+		# save instead of starting fresh)
+		var meta_key := &"slot_delete" if _confirm_delete_slot == slot else &"slot"
 		for button in _slot_buttons():
-			if button.get_meta(&"slot_delete", -1) == slot:
-				button.grab_focus()
-				return
-		for button in _slot_buttons():
-			if button.get_meta(&"slot", -1) == slot:
+			if button.get_meta(meta_key, -1) == slot:
 				button.grab_focus()
 				return
 	UIKit.grab_first_focus(self)
@@ -71,6 +82,8 @@ func _slot_row(summary: Dictionary) -> Control:
 			summary.stages_cleared, summary.global_hi_score]
 	if _confirm_delete_slot == slot:
 		text = tr("SLOT %d — PRESS X AGAIN TO DELETE") % slot
+	elif _confirm_new_slot == slot:
+		text = tr("SLOT %d — PRESS AGAIN: NEW GAME (ERASES SAVE)") % slot
 	var btn := UIKit.button(text, _on_slot.bind(summary))
 	btn.custom_minimum_size = Vector2(280, 20)
 	if summary.get("incompatible", false) \
@@ -102,6 +115,7 @@ func _delete_slot(slot: int) -> void:
 		AudioManager.play_sfx("menu_back")
 	else:
 		_confirm_delete_slot = slot
+		_confirm_new_slot = -1 # only one prompt visible at a time
 	_rebuild()
 
 
@@ -111,15 +125,30 @@ func _on_slot(summary: Dictionary) -> void:
 	if summary.get("empty", true):
 		# fresh run: character select creates the save on confirm
 		SceneManager.change_scene("res://scenes/ui/character_select.tscn")
-	elif SlotSelectFlow.mode == SlotSelectFlow.Mode.NEW_GAME and SlotSelectFlow.coop:
-		# explicit CO-OP entry on an existing save: re-pick the pair
-		# (character select updates the slot's co-op record)
+		return
+	if SlotSelectFlow.mode == SlotSelectFlow.Mode.NEW_GAME:
+		if _confirm_new_slot != slot:
+			# first press: arm the confirm — nothing is touched yet, so
+			# backing out from here (or from character select afterward)
+			# leaves the existing save completely intact
+			_confirm_new_slot = slot
+			_confirm_delete_slot = -1 # only one prompt visible at a time
+			_rebuild()
+			return
+		# second press: proceed to a fresh start. The slot ISN'T actually
+		# overwritten here — character_select's write_slot() does that once
+		# a character is picked (force_new tells it not to treat this as
+		# resuming), so a BACK from character select still doesn't lose
+		# anything (review: NEW GAME used to silently resume/re-pick into
+		# an occupied slot with no confirmation and no real reset — fixed)
+		_confirm_new_slot = -1
+		SlotSelectFlow.force_new = true
 		SceneManager.change_scene("res://scenes/ui/character_select.tscn")
-	else:
-		var data := SaveManager.load_slot(slot)
-		# the slot remembers its mode: co-op saves resume as co-op
-		GameManager.continue_from_slot(data)
-		SceneManager.change_scene("res://scenes/ui/stage_select.tscn")
+		return
+	var data := SaveManager.load_slot(slot)
+	# the slot remembers its mode: co-op saves resume as co-op
+	GameManager.continue_from_slot(data)
+	SceneManager.change_scene("res://scenes/ui/stage_select.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:

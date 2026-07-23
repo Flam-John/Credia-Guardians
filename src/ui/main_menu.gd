@@ -28,26 +28,30 @@ func _ready() -> void:
 func _on_new_game() -> void:
 	SlotSelectFlow.mode = SlotSelectFlow.Mode.NEW_GAME
 	SlotSelectFlow.coop = false
+	SlotSelectFlow.force_new = false
 	SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
 
 
 func _on_coop() -> void:
 	SlotSelectFlow.mode = SlotSelectFlow.Mode.NEW_GAME
 	SlotSelectFlow.coop = true
+	SlotSelectFlow.force_new = false
 	SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
 
 
 func _on_boss_rush() -> void:
 	SlotSelectFlow.mode = SlotSelectFlow.Mode.BOSS_RUSH
 	SlotSelectFlow.coop = false
+	SlotSelectFlow.force_new = false
 	SceneManager.change_scene("res://scenes/ui/character_select.tscn")
 
 
 func _on_continue() -> void:
 	SlotSelectFlow.mode = SlotSelectFlow.Mode.CONTINUE
-	# static flag persists across scenes: without this, touching CO-OP GAME
+	# static flags persist across scenes: without this, touching CO-OP GAME
 	# earlier hijacks CONTINUE into the re-pick flow (review v1.10-1)
 	SlotSelectFlow.coop = false
+	SlotSelectFlow.force_new = false
 	SceneManager.change_scene("res://scenes/ui/slot_select.tscn")
 
 
