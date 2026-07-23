@@ -115,7 +115,7 @@ func test_firewall_gate_keeps_audit_geometry() -> void:
 func test_all_dead_at_zero_lives_routes_to_game_over() -> void:
 	_make_floor()
 	GameManager.start_stage(1, &"chris")
-	GameManager.lives = 1
+	GameManager.lives = {0: 1} # solo always tracks player_index 0
 	var respawner := RespawnController.new()
 	respawner.spawn_point = Vector2(0, 90)
 	respawner.camera_limits = Rect2(0, 0, 2000, 400)

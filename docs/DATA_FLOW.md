@@ -34,7 +34,7 @@ flowchart TD
     HP --> FLASH[FlashComponent] & KB[KnockbackComponent] & HS[hitstop 0.05 s]
     HP -->|hp > 0, owner=player| HURT[FSM → Hurt + 1 s invuln]
     HP -->|hp > 0, owner=enemy| EFLASH[stay in state, flash]
-    HP -->|died, player| PD[EventBus.player_died → lives-- → respawn or Game Over]
+    HP -->|died, player| PD[EventBus.player_died → that player's OWN lives-- → respawn/solo-continue/Game Over]
     HP -->|died, enemy| ED[LootComponent drops → EventBus.enemy_killed → score popup + FX]
 ```
 
@@ -70,7 +70,7 @@ flowchart TD
     RANK --> SAVE[SaveManager: unlock next, best rank/hi-score]
     SAVE --> CLEAR[StageClear screen count-up]
     CLEAR --> SEL
-    PLAY -->|lives == 0| GO[Game Over] -->|retry| LOAD
+    PLAY -->|every tracked player's lives == 0| GO[Game Over] -->|retry| LOAD
 ```
 
 **Contract summary:** gameplay objects write to `EventBus`; `GameManager` is the only aggregator; `SaveManager` is the only disk-toucher; UI only reads. No object polls another object's state across systems.
