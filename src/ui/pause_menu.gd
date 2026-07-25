@@ -70,6 +70,15 @@ func _on_scene_changed(_path: String) -> void:
 	if _options != null and is_instance_valid(_options):
 		_options.queue_free()
 		_options = null
+	# Every path that force-unpauses (RESTART STAGE, QUIT TO MENU, boss rush
+	# retry, a stage-clear scene swap) sets get_tree().paused = false directly
+	# and lands here via SceneManager.scene_changed WITHOUT going through
+	# _toggle() — so this is the one chokepoint that must also tell
+	# AudioManager to unfreeze, or a restart/quit taken from a paused stage
+	# leaves music/SFX silently frozen forever in the next scene (review:
+	# confirmed reproducible before this line existed). Emitting false when
+	# audio was never frozen is a harmless no-op.
+	EventBus.pause_toggled.emit(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -84,9 +93,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _toggle() -> void:
 	var paused := not get_tree().paused
+	if paused:
+		# guards the (very unlikely) case of pausing mid-hitstop: that timer
+		# ignores both pause and time_scale, so it self-resets shortly on its
+		# own, but there's no reason to risk resuming into slow-motion
+		Engine.time_scale = 1.0
 	get_tree().paused = paused
 	_root.visible = paused
-	AudioManager.play_sfx("pause_in" if paused else "pause_out")
+	AudioManager.play_sfx("pause_in" if paused else "pause_out", true, true)
 	EventBus.pause_toggled.emit(paused)
 	if paused:
 		_build_menu() # refresh the co-op key summaries after any rebind

@@ -6,6 +6,17 @@ extends Node
 const MUSIC_DIR := "res://assets/audio/music"
 const SFX_DIR := "res://assets/audio/sfx"
 const SFX_POOL_SIZE := 8
+## Small dedicated pool for menu-navigation blips (bus "UI") — deliberately
+## exempt from the gameplay pause-freeze below, since PauseMenu itself stays
+## PROCESS_MODE_ALWAYS and its own button hover/select feedback must keep
+## working while the tree is paused (user request 2026-07-23: pause should
+## freeze the game world, not go silent on its own menu). Routing is by
+## explicit caller intent (play_sfx's `ui` param), NOT by sfx name — several
+## gameplay one-shots (e.g. firewall_gate's locked-gate "denied" blip, the
+## CEO boss's invuln "clink") reuse the same audio file as a real menu sound
+## under a different meaning, so name-sniffing would misroute them into the
+## pause-exempt pool too.
+const UI_SFX_POOL_SIZE := 2
 const PITCH_JITTER := 0.05
 ## Two identical SFX within this window are merged (pool guard).
 const DUPLICATE_WINDOW_MS := 50
@@ -19,6 +30,8 @@ var _current_track: String = ""
 var _music_tween: Tween
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_next := 0
+var _ui_sfx_pool: Array[AudioStreamPlayer] = []
+var _ui_sfx_next := 0
 var _sfx_cache: Dictionary = {}
 var _sfx_last_played: Dictionary = {}
 
@@ -30,6 +43,25 @@ func _ready() -> void:
 	_active_music = _music_a
 	for i in SFX_POOL_SIZE:
 		_sfx_pool.append(_make_player(&"SFX"))
+	for i in UI_SFX_POOL_SIZE:
+		_ui_sfx_pool.append(_make_player(&"UI"))
+	EventBus.pause_toggled.connect(_on_pause_toggled)
+
+
+## Freezes gameplay music/SFX in place on pause, resumes them exactly where
+## they left off on unpause — the UI pool (menu blips) is untouched so the
+## pause menu itself stays fully responsive (review: don't silence PauseMenu
+## navigation feedback, which runs while the tree is already paused).
+func _on_pause_toggled(paused: bool) -> void:
+	_music_a.stream_paused = paused
+	_music_b.stream_paused = paused
+	if _music_tween != null and _music_tween.is_valid():
+		if paused:
+			_music_tween.pause()
+		else:
+			_music_tween.play()
+	for p in _sfx_pool:
+		p.stream_paused = paused
 
 
 func play_music(track: String, crossfade_sec: float = 1.0) -> void:
@@ -50,6 +82,7 @@ func play_music(track: String, crossfade_sec: float = 1.0) -> void:
 	_music_tween.tween_property(incoming, "volume_db", 0.0, crossfade_sec)
 	_music_tween.tween_property(_active_music, "volume_db", -40.0, crossfade_sec)
 	_music_tween.chain().tween_callback(_active_music.stop)
+	_forget_tween_when_finished(_music_tween)
 	_active_music = incoming
 
 
@@ -65,9 +98,23 @@ func stop_music(fade_sec: float = 0.5) -> void:
 	_music_tween.tween_property(_music_b, "volume_db", -40.0, fade_sec)
 	_music_tween.chain().tween_callback(_music_a.stop)
 	_music_tween.chain().tween_callback(_music_b.stop)
+	_forget_tween_when_finished(_music_tween)
 
 
-func play_sfx(name_: String, jitter: bool = true) -> void:
+## A Tween that has already finished throws on .play() ("Can't play finished
+## Tween") -- forgetting it here means _on_pause_toggled's `!= null` check
+## alone is enough to skip a dead tween instead of ever touching it again.
+func _forget_tween_when_finished(tween: Tween) -> void:
+	tween.finished.connect(func() -> void:
+		if _music_tween == tween:
+			_music_tween = null)
+
+
+## ui=true routes to the small pause-exempt pool (menu navigation feedback
+## that must keep playing while the tree is paused) instead of the gameplay
+## pool that freezes on pause -- callers opt in explicitly rather than this
+## being inferred from the sfx name (see UI_SFX_POOL_SIZE comment above).
+func play_sfx(name_: String, jitter: bool = true, ui: bool = false) -> void:
 	var now := Time.get_ticks_msec()
 	if now - int(_sfx_last_played.get(name_, -DUPLICATE_WINDOW_MS)) < DUPLICATE_WINDOW_MS:
 		return
@@ -78,8 +125,13 @@ func play_sfx(name_: String, jitter: bool = true) -> void:
 			return
 		_sfx_cache[name_] = stream
 	_sfx_last_played[name_] = now
-	var player := _sfx_pool[_sfx_next]
-	_sfx_next = (_sfx_next + 1) % SFX_POOL_SIZE
+	var player: AudioStreamPlayer
+	if ui:
+		player = _ui_sfx_pool[_ui_sfx_next]
+		_ui_sfx_next = (_ui_sfx_next + 1) % UI_SFX_POOL_SIZE
+	else:
+		player = _sfx_pool[_sfx_next]
+		_sfx_next = (_sfx_next + 1) % SFX_POOL_SIZE
 	player.stream = stream
 	player.pitch_scale = randf_range(1.0 - PITCH_JITTER, 1.0 + PITCH_JITTER) if jitter else 1.0
 	player.play()

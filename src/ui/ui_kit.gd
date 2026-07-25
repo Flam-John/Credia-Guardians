@@ -57,8 +57,8 @@ static func button(text: String, on_pressed: Callable) -> Button:
 	btn.add_theme_stylebox_override(&"focus", panel_style(BG_PANEL, GREEN))
 	btn.add_theme_stylebox_override(&"pressed", panel_style(GREEN_DARK, GREEN))
 	btn.pressed.connect(on_pressed)
-	btn.pressed.connect(func() -> void: AudioManager.play_sfx("menu_select"))
-	btn.focus_entered.connect(func() -> void: AudioManager.play_sfx("menu_move"))
+	btn.pressed.connect(func() -> void: AudioManager.play_sfx("menu_select", true, true))
+	btn.focus_entered.connect(func() -> void: AudioManager.play_sfx("menu_move", true, true))
 	return btn
 
 
