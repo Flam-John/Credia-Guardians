@@ -14,3 +14,8 @@ const COLLECTIBLE := 1 << 7
 const PLATFORM_ONEWAY := 1 << 8
 const HAZARD := 1 << 9
 const TRIGGER := 1 << 10
+## Isolated layers for full-screen gate minigames (Ticket Blitz): the paused
+## stage's colliders still exist underneath, so minigame entities get their
+## own bits rather than risk touching main-game layers.
+const MINIGAME_PLAYER := 1 << 11
+const MINIGAME_TARGET := 1 << 12

@@ -25,6 +25,7 @@ GameManager="*res://src/autoload/game_manager.gd"
 SaveManager="*res://src/autoload/save_manager.gd"
 AudioManager="*res://src/autoload/audio_manager.gd"
 SceneManager="*res://src/autoload/scene_manager.gd"
+MinigameLauncher="*res://src/autoload/minigame_launcher.gd"
 
 [display]
 
@@ -156,6 +157,8 @@ locale/translations=PackedStringArray("res://assets/i18n/translations.en.transla
 2d_physics/layer_9="platform_oneway"
 2d_physics/layer_10="hazard"
 2d_physics/layer_11="trigger"
+2d_physics/layer_12="minigame_player"
+2d_physics/layer_13="minigame_target"
 
 [physics]
 
