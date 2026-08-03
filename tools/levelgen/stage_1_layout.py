@@ -127,7 +127,7 @@ coins((122, 13), (123, 13), (125, 13), (127, 13), (129, 13), (131, 13),
       (133, 13), (135, 13))
 put(121, 13, "U")                                # USB key, start of walkway
 put(132, 13, "J")
-put(134, 13, "F")                                # firewall gate guards node 3
+put(134, 13, "D")                                # Code Review Rush gate guards node 3
 put(137, 13, "N")                                # node 3 (behind the gate)
 # hidden vault 2 under the maze floor
 rect(122, 20, 127, 22, ".")

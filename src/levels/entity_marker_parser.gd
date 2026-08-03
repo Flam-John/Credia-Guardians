@@ -11,6 +11,8 @@ extends RefCounted
 ##   k checkpoint        N security node     E exit gate     F firewall gate
 ##   W firewall shield   K keyboard upgrade  U usb key       S security camera
 ##   X crumbling platform (2 tiles)          m monitor
+##   D firewall gate + Code Review Rush minigame (docs/GDD.md gate minigames)
+##   T firewall gate + Ticket Blitz minigame
 ##   > / < conveyor run          f / g fan run (left/right)
 ##   = moving platform span      b fading bridge run         l laser run
 ##   ~ updraft column            V heat vent column          | elevator column
@@ -18,7 +20,7 @@ extends RefCounted
 ## Output spawn dicts: {type: String(marker), x: int, y: int, length: int}
 ## where length = run width (horizontal runs) or column height (vertical).
 
-const SINGLE_MARKERS := "PcoeJMALBQRCkNEFWKUSm"
+const SINGLE_MARKERS := "PcoeJMALBQRCkNEFWKUSmDT"
 const HORIZONTAL_RUNS := "><fg=bl"
 const VERTICAL_RUNS := "~V|"
 

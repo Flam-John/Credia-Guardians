@@ -102,7 +102,7 @@ func test_every_progression_marker_has_headroom() -> void:
 		for y in lines.size():
 			var line: String = lines[y]
 			for x in line.length():
-				if not line[x] in ["k", "N", "U", "E", "F"]:
+				if not line[x] in ["k", "N", "U", "E", "F", "D", "T"]:
 					continue
 				assert_false(_solid(lines, x, y - 1),
 						"%s: marker '%s' at col %d row %d has solid terrain directly above — the 24px player capsule cannot stand there to touch it" \

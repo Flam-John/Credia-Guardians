@@ -87,6 +87,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 		if SceneManager.is_busy():
 			return # pausing mid-fade desyncs overlay vs tree pause state
+		if MinigameLauncher.is_active():
+			return # a gate minigame owns the screen and its own pause state
 		_toggle()
 		get_viewport().set_input_as_handled()
 
