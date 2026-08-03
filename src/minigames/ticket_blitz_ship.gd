@@ -22,9 +22,13 @@ var _invuln := 0.0
 
 
 func _ready() -> void:
+	# NOT wired to area_entered — TicketBlitzMinigame._check_collisions()
+	# drives ticket contact via manual AABB overlap instead (area_entered
+	# never fires while the stage is paused, which it is for this whole
+	# minigame — see that class's doc comment).
 	collision_layer = PhysicsLayers.MINIGAME_PLAYER
 	collision_mask = PhysicsLayers.MINIGAME_TARGET
-	monitoring = true
+	monitoring = false
 	monitorable = false
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
@@ -35,7 +39,6 @@ func _ready() -> void:
 	sprite = AnimatedSprite2D.new()
 	sprite.position = Vector2(0, -16)
 	add_child(sprite)
-	area_entered.connect(_on_area_entered)
 
 
 ## Must be called AFTER add_child (mirrors TicketBlitzTicket.setup).

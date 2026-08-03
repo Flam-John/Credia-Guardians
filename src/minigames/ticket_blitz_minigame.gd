@@ -30,6 +30,24 @@ const WAVE_COUNT := 3
 const SPAWN_INTERVAL := 0.9
 const STRIKE_PENALTY := 150
 
+## Hit detection is manual AABB overlap, NOT Area2D area_entered signals —
+## real-bug discovery (user report "i shoot and the bullet pass by and
+## nothing hits", confirmed with a live-paused GUT probe): the whole stage
+## is paused for the entire time a gate minigame plays (MinigameLauncher),
+## and Godot's physics-server-driven area/body overlap signals simply never
+## fire while SceneTree.paused is true — NOT even for PROCESS_MODE_ALWAYS
+## nodes whose own _physics_process (and therefore .global_position) keeps
+## updating correctly. The bullet was visibly moving straight through
+## tickets the whole time; hp never changed. Manual position math has no
+## dependency on the physics server stepping at all, so it works
+## regardless of pause. The Area2D/CollisionShape2D setup on the ticket/
+## bullet/ship classes is otherwise-unused now — left in place only because
+## it still gives correct-looking shapes for any future debug visualization.
+const TICKET_HALF := Vector2(40.0, 7.0)
+const BULLET_HALF := Vector2(5.0, 5.0)
+const SHIP_HALF := Vector2(8.0, 8.0)
+const SHIP_HITBOX_OFFSET := Vector2(0.0, -8.0)
+
 ## Tests inject a fixed generator instead of RNG (same seam idea as
 ## CodeReviewMinigame.rng / RespawnController.scene_router).
 var rng := RandomNumberGenerator.new()
@@ -47,6 +65,10 @@ var _strikes := 0
 var _root: Control
 var _wave_label: Label
 var _hits_label: Label
+
+var _ships: Array[TicketBlitzShip] = []
+var _bullets: Array[TicketBlitzBullet] = []
+var _tickets: Array[TicketBlitzTicket] = []
 
 
 func _ready() -> void:
@@ -98,6 +120,7 @@ func _build_ships() -> void:
 		ship.global_position = Vector2(start_x, _bounds.end.y - 20)
 		ship.fire_requested.connect(_on_fire_requested)
 		ship.hit_by_ticket.connect(_on_ship_hit)
+		_ships.append(ship)
 
 
 func _on_fire_requested(from: Vector2, tint: Color, speed: float, damage: int) -> void:
@@ -105,6 +128,7 @@ func _on_fire_requested(from: Vector2, tint: Color, speed: float, damage: int) -
 	_root.add_child(bullet)
 	bullet.launch(from, Vector2(0, -speed), damage, tint,
 			Rect2(Vector2.ZERO, _root.size).grow(16))
+	_bullets.append(bullet)
 
 
 func _on_ship_hit() -> void:
@@ -169,6 +193,16 @@ func _start_boss() -> void:
 	boss.make_boss(_bounds)
 	boss.bottom_y = 1.0e6 # the boss never "reaches the bottom"
 	boss.died.connect(_on_boss_died)
+	_tickets.append(boss)
+
+
+## Bullets/tickets/ships all move in _physics_process, so the overlap check
+## belongs on the same tick cadence — checking from _process (idle) instead
+## was a real bug: idle and physics frames aren't guaranteed to interleave
+## 1:1, so collisions could go unchecked for stretches at a time.
+func _physics_process(_delta: float) -> void:
+	if not _won:
+		_check_collisions() # runs every physics tick incl. during the boss fight
 
 
 func _process(delta: float) -> void:
@@ -189,6 +223,44 @@ func _process(delta: float) -> void:
 		_spawn_next()
 
 
+## Manual overlap check, not Area2D signals — see the class doc comment on
+## why (TL;DR: area_entered never fires while the stage is paused, which it
+## is for this whole minigame).
+func _check_collisions() -> void:
+	# Array.filter() returns a plain untyped Array, not Array[T] — assigning
+	# it straight back into a typed member throws at runtime, so prune in
+	# place instead.
+	_prune_freed(_bullets)
+	_prune_freed(_tickets)
+	for bullet in _bullets:
+		for ticket in _tickets:
+			if _aabb_overlap(bullet.global_position, BULLET_HALF,
+					ticket.global_position, TICKET_HALF):
+				bullet._on_area_entered(ticket)
+				break # this bullet is spent — don't let it pierce a second ticket
+	for ship in _ships:
+		if not is_instance_valid(ship):
+			continue
+		var ship_pos := ship.global_position + SHIP_HITBOX_OFFSET
+		for ticket in _tickets:
+			if _aabb_overlap(ship_pos, SHIP_HALF, ticket.global_position, TICKET_HALF):
+				ship._on_area_entered(ticket)
+
+
+func _aabb_overlap(pos_a: Vector2, half_a: Vector2, pos_b: Vector2, half_b: Vector2) -> bool:
+	return absf(pos_a.x - pos_b.x) <= (half_a.x + half_b.x) \
+			and absf(pos_a.y - pos_b.y) <= (half_a.y + half_b.y)
+
+
+## Removes freed entries in place (backwards so erase() doesn't skip the
+## next index) — Array.filter() would need reassigning the whole typed
+## member from its untyped return value, which throws at runtime.
+func _prune_freed(arr: Array) -> void:
+	for i in range(arr.size() - 1, -1, -1):
+		if not is_instance_valid(arr[i]):
+			arr.remove_at(i)
+
+
 func _advance_wave() -> void:
 	if _wave + 1 < WAVE_COUNT:
 		_start_wave(_wave + 1)
@@ -206,6 +278,7 @@ func _spawn_next() -> void:
 	ticket.bottom_y = _bounds.end.y + 20.0
 	ticket.died.connect(_on_ticket_died)
 	ticket.reached_bottom.connect(_on_ticket_gone)
+	_tickets.append(ticket)
 
 
 func _on_ticket_died(_ticket: TicketBlitzTicket, score: int) -> void:

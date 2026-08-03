@@ -41,10 +41,14 @@ var _label: Label
 
 
 func _ready() -> void:
+	# Not actually queried via physics (TicketBlitzMinigame._check_collisions()
+	# does manual AABB overlap instead — area_entered never fires while the
+	# stage is paused, which it is for this whole minigame). collision_layer/
+	# shape kept only so a future debug overlay could still draw one.
 	collision_layer = PhysicsLayers.MINIGAME_TARGET
 	collision_mask = 0
 	monitoring = false
-	monitorable = true
+	monitorable = false
 	var shape := CollisionShape2D.new()
 	var rect := RectangleShape2D.new()
 	rect.size = Vector2(80, 14)

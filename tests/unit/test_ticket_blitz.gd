@@ -8,6 +8,7 @@ const FLAM := preload("res://data/characters/flam.tres")
 
 func after_each() -> void:
 	GameManager.character2 = &""
+	get_tree().paused = false
 
 
 # -- TicketBlitzTicket --------------------------------------------------------------
@@ -135,6 +136,49 @@ func test_contact_invulnerability_blocks_a_second_immediate_hit() -> void:
 	watch_signals(ship)
 	ship._on_area_entered(ticket) # same frame, still within the i-frame window
 	assert_signal_not_emitted(ship, "hit_by_ticket")
+
+
+# -- TicketBlitzMinigame end-to-end combat ---------------------------------------------
+
+func test_ship_fire_destroys_an_aligned_ticket_while_genuinely_paused() -> void:
+	# Regression for a real, user-reported bug: hit detection was wired to
+	# Area2D area_entered signals, but the WHOLE STAGE is paused for the
+	# entire time a gate minigame plays (MinigameLauncher.launch()) — and
+	# Godot's physics-server-driven area/body overlap signals never fire
+	# while SceneTree.paused is true, even for PROCESS_MODE_ALWAYS nodes
+	# whose own _physics_process (and .global_position) keeps updating
+	# correctly. Bullets were visibly flying straight through tickets with
+	# zero effect. Hit detection is now manual AABB overlap in
+	# TicketBlitzMinigame._check_collisions(), which has no dependency on
+	# the physics server stepping at all. This test must go through the
+	# REAL minigame class with the tree ACTUALLY paused — a test that skips
+	# either of those two conditions cannot catch this regression class.
+	var m := TicketBlitzMinigame.new()
+	add_child_autofree(m)
+	await wait_frames(2)
+	get_tree().paused = true
+
+	var ship: TicketBlitzShip = m._ships[0]
+	for t in m._tickets:
+		if is_instance_valid(t):
+			t.queue_free()
+	m._tickets.clear()
+	m._spawn_queue = [{"tier": TicketBlitzTicket.Tier.LOW, "text": "TEST"}]
+	m._spawn_next()
+	var ticket: TicketBlitzTicket = m._tickets[0]
+	ticket.global_position = ship.global_position + Vector2(0, -60)
+	ticket.bottom_y = 1.0e6 # isolate: this test is only about the bullet hit
+
+	var died := [false] # GDScript lambdas capture outer locals BY VALUE — a
+	                     # plain bool wouldn't actually update from inside one
+	ticket.died.connect(func(_t, _s): died[0] = true)
+	Input.action_press(ship._action(&"fire"))
+	for i in 90:
+		await wait_physics_frames(1)
+		if died[0]:
+			break
+	Input.action_release(ship._action(&"fire"))
+	assert_true(died[0], "a bullet must hit an aligned ticket even while the stage is paused")
 
 
 # -- TicketBlitzMinigame wave data ----------------------------------------------------

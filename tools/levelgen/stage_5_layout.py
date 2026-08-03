@@ -38,7 +38,7 @@ def stage_5():
     G.hline(50, 54, 15, "#")
     G.put(52, 14, "U")                    # key 1 (visible shelf)
     G.put(57, 18, "k")
-    G.put(59, 18, "F")                    # gate 1
+    G.put(59, 18, "T")                    # gate 1 — Ticket Blitz
     # vertical steam climb with vents, key 2
     G.hline(61, 92, 19, "#")
     G.rect(61, 20, 92, 22, "@")
@@ -97,7 +97,7 @@ def stage_5():
     # and mandatory for the exit gate).
     G.hline(130, 134, 15, "#")
     G.put(132, 14, "N")
-    G.put(136, 18, "T")                   # Ticket Blitz gate guards the boss door
+    G.put(136, 18, "F")                   # gate 3 guards the boss door
     G.put(137, 18, "k")                   # last checkpoint before the CEO
     # CEO arena. Walls at vline(x, 15, 18) = 64px, the stage-1 pattern:
     # clearable with a plain any-timing double jump. The previous
