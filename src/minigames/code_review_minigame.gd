@@ -105,13 +105,15 @@ func _ready() -> void:
 ## Layout budget for the 480x270 native screen (review catch: the previous
 ## numbers put the Zaf/portrait column's right edge at x≈548 — 68px past
 ## the actual screen edge, silently clipped by the viewport). RIGHT_COLUMN_X
-## + its content must fit within SCREEN_W with margin; measured against the
-## real font (Label.get_theme_default_font().get_string_size()), the widest
-## LINE_BANK entry incl. the "  [FIXED]" suffix is 206px at font size 8, so
-## TERMINAL_LABEL_W only needs a small margin above that, not 260.
+## + its content must fit within SCREEN_W with margin. Measured against the
+## real font (Label.get_theme_default_font().get_string_size()): the widest
+## LINE_BANK entry incl. gutter number + both-cursor marker + "  [FIXED]"
+## suffix is 208px at font size 7 (238px at size 8 — too wide for this
+## budget), which is why the terminal uses 7 while everything else stays 8.
 const SCREEN_W := 480.0
 const TERMINAL_X := 8.0
-const TERMINAL_LABEL_W := 215.0
+const TERMINAL_FONT_SIZE := 7
+const TERMINAL_LABEL_W := 220.0
 const RIGHT_COLUMN_X := 256.0
 const ZAF_TEXT_W := 135.0
 
@@ -125,14 +127,14 @@ func _build_layout() -> void:
 	_timer_label.position = Vector2(440, 8)
 	_root.add_child(_timer_label)
 
-	var terminal_column: Array[Control] = []
+	var terminal_column: Array[Control] = [_build_monitor_titlebar()]
 	for i in LINE_BANK.size():
-		var label := UIKit.caption("", 8, UIKit.WHITE)
+		var label := UIKit.caption("", TERMINAL_FONT_SIZE, UIKit.WHITE)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		label.custom_minimum_size = Vector2(TERMINAL_LABEL_W, 10)
 		terminal_column.append(label)
 		_line_labels.append(label)
-	var terminal := UIKit.framed_panel(UIKit.menu_column(terminal_column))
+	var terminal := _monitor_panel(UIKit.menu_column(terminal_column))
 	terminal.position = Vector2(TERMINAL_X, 30)
 	_root.add_child(terminal)
 
@@ -154,6 +156,37 @@ func _build_layout() -> void:
 	_root.add_child(zaf_panel)
 
 	_build_player_portraits()
+
+
+## Fake window chrome (traffic-light dots + a filename tab) so the code
+## reads as "a file open in an IDE" rather than plain text on a background
+## (user request).
+func _build_monitor_titlebar() -> Control:
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override(&"separation", 4)
+	for dot_color in [UIKit.RED, UIKit.GOLD, UIKit.GREEN]:
+		var dot := ColorRect.new()
+		dot.color = dot_color
+		dot.custom_minimum_size = Vector2(6, 6)
+		bar.add_child(dot)
+	var filename := UIKit.caption("CustomerAccount.java", 8, UIKit.GRAY)
+	filename.custom_minimum_size = Vector2(TERMINAL_LABEL_W - 30, 8)
+	filename.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bar.add_child(filename)
+	return bar
+
+
+## Same bordered-panel "physical UI" look as UIKit.framed_panel, but with a
+## cyan bezel/darker screen instead of the shared green — reads as a
+## separate monitor embedded in the scene rather than just another menu.
+func _monitor_panel(content: Control) -> PanelContainer:
+	var style := UIKit.panel_style(Color(0.02, 0.05, 0.08, 0.98), UIKit.CYAN)
+	style.set_content_margin_all(10)
+	style.set_border_width_all(2)
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override(&"panel", style)
+	panel.add_child(content)
+	return panel
 
 
 ## Small idle portrait(s) of whoever's actually playing — solo shows one,
@@ -218,7 +251,8 @@ func _refresh_line_labels() -> void:
 			marker += "2" if pi == 2 else "1"
 		var prefix := (marker + "> ") if not marker.is_empty() else "  "
 		var suffix := "  [FIXED]" if line.found else ""
-		label.text = prefix + String(line.text) + suffix
+		var gutter := "%2d|" % (i + 1) # line number, IDE-style
+		label.text = gutter + " " + prefix + String(line.text) + suffix
 		if line.found:
 			label.add_theme_color_override(&"font_color", UIKit.GREEN)
 		elif here.size() > 1:

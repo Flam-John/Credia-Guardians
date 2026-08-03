@@ -138,10 +138,24 @@ func _start_wave(wave_index: int) -> void:
 	_wave = wave_index
 	_wave_label.text = "WAVE %d / %d" % [wave_index + 1, WAVE_COUNT]
 	_spawn_queue = _wave_specs(wave_index)
+	# _wave_specs() builds each tier as a solid run (all LOW, then all MED,
+	# ...) so it stays simple/testable — shuffle the SPAWN order here instead
+	# (user request: tickets should come mixed, not in same-colour blocks).
+	_shuffle(_spawn_queue)
 	_spawn_timer = 0.0
 	_alive_count = _spawn_queue.size()
 	if _alive_count == 0:
 		_start_boss()
+
+
+## Fisher-Yates over the injectable `rng` (same seam as CodeReviewMinigame),
+## not Array.shuffle()'s global RNG, so a test can seed it deterministically.
+func _shuffle(arr: Array) -> void:
+	for i in range(arr.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var tmp = arr[i]
+		arr[i] = arr[j]
+		arr[j] = tmp
 
 
 func _start_boss() -> void:

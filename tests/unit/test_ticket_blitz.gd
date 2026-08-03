@@ -160,6 +160,35 @@ func test_final_wave_mixes_medium_and_dangerous_tickets() -> void:
 	assert_eq(high_count, 4, "the dangerous T24-style tickets belong to the last wave")
 
 
+func test_wave_spawn_order_is_shuffled_not_tier_blocked() -> void:
+	# Regression: _wave_specs() itself builds solid same-tier runs (that's
+	# fine, kept simple/testable on purpose) but _start_wave() must shuffle
+	# before spawning — user request: tickets should come mixed, not in
+	# same-colour blocks.
+	var m := TicketBlitzMinigame.new()
+	add_child_autofree(m)
+	m.rng.seed = 12345
+	m._start_wave(1) # 4 LOW then 4 MED, unshuffled
+	var tiers: Array = []
+	for spec in m._spawn_queue:
+		tiers.append(spec.tier)
+	var tier_blocked: Array = [
+		TicketBlitzTicket.Tier.LOW, TicketBlitzTicket.Tier.LOW,
+		TicketBlitzTicket.Tier.LOW, TicketBlitzTicket.Tier.LOW,
+		TicketBlitzTicket.Tier.MED, TicketBlitzTicket.Tier.MED,
+		TicketBlitzTicket.Tier.MED, TicketBlitzTicket.Tier.MED,
+	]
+	assert_ne(tiers, tier_blocked, "wave 1 must spawn mixed, not as two solid tier blocks")
+
+
+func test_ticket_death_bursts_and_plays_a_sound_without_erroring() -> void:
+	var t := _make_ticket(TicketBlitzTicket.Tier.LOW)
+	var parent_children_before := t.get_parent().get_child_count()
+	t.hit(1)
+	assert_eq(t.get_parent().get_child_count(), parent_children_before + 1,
+			"a death burst particle must be added to the parent (self is being freed)")
+
+
 func test_clearing_all_waves_starts_the_boss() -> void:
 	var m := TicketBlitzMinigame.new()
 	add_child_autofree(m)

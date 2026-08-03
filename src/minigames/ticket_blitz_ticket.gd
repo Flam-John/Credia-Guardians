@@ -116,4 +116,34 @@ func hit(damage: int) -> void:
 	hp -= damage
 	if hp <= 0:
 		died.emit(self, TIER_SCORE[tier])
+		# A hit that killed the ticket was previously silent — it just
+		# vanished instantly with no sound or flash, easy to read as "my
+		# shots aren't doing anything" in a screen full of falling tickets
+		# (review/user catch). Burst on the parent, not self — self is
+		# about to be queue_free()'d.
+		_burst(TIER_COLOR[tier])
+		AudioManager.play_sfx("enemy_death", true, true)
 		queue_free()
+	else:
+		AudioManager.play_sfx("enemy_hurt", true, true)
+
+
+func _burst(color: Color) -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+	var sparks := CPUParticles2D.new()
+	sparks.position = global_position
+	sparks.amount = 14
+	sparks.lifetime = 0.35
+	sparks.one_shot = true
+	sparks.explosiveness = 0.9
+	sparks.direction = Vector2.UP
+	sparks.spread = 180.0
+	sparks.initial_velocity_min = 30.0
+	sparks.initial_velocity_max = 90.0
+	sparks.gravity = Vector2(0, 60)
+	sparks.color = color
+	parent.add_child(sparks)
+	sparks.emitting = true
+	sparks.finished.connect(sparks.queue_free)
