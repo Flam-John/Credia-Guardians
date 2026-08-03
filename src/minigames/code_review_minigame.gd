@@ -102,6 +102,20 @@ func _ready() -> void:
 	_start_round()
 
 
+## Layout budget for the 480x270 native screen (review catch: the previous
+## numbers put the Zaf/portrait column's right edge at x≈548 — 68px past
+## the actual screen edge, silently clipped by the viewport). RIGHT_COLUMN_X
+## + its content must fit within SCREEN_W with margin; measured against the
+## real font (Label.get_theme_default_font().get_string_size()), the widest
+## LINE_BANK entry incl. the "  [FIXED]" suffix is 206px at font size 8, so
+## TERMINAL_LABEL_W only needs a small margin above that, not 260.
+const SCREEN_W := 480.0
+const TERMINAL_X := 8.0
+const TERMINAL_LABEL_W := 215.0
+const RIGHT_COLUMN_X := 256.0
+const ZAF_TEXT_W := 135.0
+
+
 func _build_layout() -> void:
 	var top := UIKit.title("CODE REVIEW", 16)
 	top.position = Vector2(12, 6)
@@ -115,11 +129,11 @@ func _build_layout() -> void:
 	for i in LINE_BANK.size():
 		var label := UIKit.caption("", 8, UIKit.WHITE)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		label.custom_minimum_size = Vector2(260, 10)
+		label.custom_minimum_size = Vector2(TERMINAL_LABEL_W, 10)
 		terminal_column.append(label)
 		_line_labels.append(label)
 	var terminal := UIKit.framed_panel(UIKit.menu_column(terminal_column))
-	terminal.position = Vector2(10, 30)
+	terminal.position = Vector2(TERMINAL_X, 30)
 	_root.add_child(terminal)
 
 	var portrait := TextureRect.new()
@@ -129,14 +143,14 @@ func _build_layout() -> void:
 	portrait.texture = atlas
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_zaf_text = UIKit.caption(ZAF_INTRO, 9, UIKit.CYAN)
-	_zaf_text.custom_minimum_size = Vector2(180, 48)
+	_zaf_text.custom_minimum_size = Vector2(ZAF_TEXT_W, 48)
 	_zaf_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var zaf_row := HBoxContainer.new()
 	zaf_row.add_theme_constant_override(&"separation", 8)
 	zaf_row.add_child(portrait)
 	zaf_row.add_child(_zaf_text)
 	var zaf_panel := UIKit.framed_panel(zaf_row)
-	zaf_panel.position = Vector2(288, 30)
+	zaf_panel.position = Vector2(RIGHT_COLUMN_X, 30)
 	_root.add_child(zaf_panel)
 
 	_build_player_portraits()
@@ -166,7 +180,7 @@ func _build_player_portraits() -> void:
 		column.add_child(UIKit.caption(stats.display_name.to_upper(), 8, UIKit.GRAY))
 		row.add_child(column)
 	var panel := UIKit.framed_panel(row)
-	panel.position = Vector2(288, 130)
+	panel.position = Vector2(RIGHT_COLUMN_X, 112)
 	_root.add_child(panel)
 
 
@@ -264,6 +278,18 @@ func _flag_current(player_index: int) -> void:
 		_mistakes += 1
 		AudioManager.play_sfx("menu_back", true, true)
 		_zaf_say(ZAF_WRONG[rng.randi_range(0, ZAF_WRONG.size() - 1)])
+		_flash_wrong(idx)
+
+
+## A wrong flag only changed Zaf's dialogue before (review catch: the line
+## itself gave no feedback at all, reading as if nothing happened) — flash
+## the actual line RED (this game's damage/corruption colour) so a mistake
+## is unmistakable, then let _refresh_line_labels restore its real state.
+func _flash_wrong(idx: int) -> void:
+	_line_labels[idx].add_theme_color_override(&"font_color", UIKit.RED)
+	var tween := create_tween()
+	tween.tween_interval(0.2)
+	tween.tween_callback(_refresh_line_labels)
 
 
 func _zaf_say(text: String) -> void:
