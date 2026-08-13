@@ -261,6 +261,43 @@ func test_winning_emits_finished_with_strikes_reducing_the_bonus() -> void:
 	assert_eq(params[1], 1000 - 2 * TicketBlitzMinigame.STRIKE_PENALTY)
 
 
+func test_ticket_reaching_bottom_unshot_counts_as_a_strike() -> void:
+	# User request: a ticket that's never dealt with should count against the
+	# player the same as getting hit by one, not just a free pass.
+	var m := TicketBlitzMinigame.new()
+	add_child_autofree(m)
+	var t := _make_ticket(TicketBlitzTicket.Tier.LOW)
+	m._on_ticket_gone(t)
+	assert_eq(m._strikes, 1, "an escaped ticket must count the same as a ship hit")
+
+
+func test_three_strikes_ends_the_run_in_a_loss() -> void:
+	var m := TicketBlitzMinigame.new()
+	add_child_autofree(m)
+	watch_signals(m)
+	m._register_strike()
+	m._register_strike()
+	m._register_strike()
+	await wait_seconds(1.1) # _lose()'s own short delay before emitting
+	assert_signal_emitted_with_parameters(m, "finished", [false, 0])
+
+
+func test_a_strike_past_the_loss_threshold_does_not_double_emit_finished() -> void:
+	# Regression class already seen elsewhere in this file (queue_free()'s
+	# deferred deletion letting two simultaneous hits double-fire `died`) —
+	# a straggler strike landing during _lose()'s own delay must not fire
+	# `finished` a second time.
+	var m := TicketBlitzMinigame.new()
+	add_child_autofree(m)
+	watch_signals(m)
+	m._register_strike()
+	m._register_strike()
+	m._register_strike()
+	m._register_strike()
+	await wait_seconds(1.1)
+	assert_signal_emit_count(m, "finished", 1)
+
+
 func test_coop_builds_two_ships_with_correct_per_player_stats() -> void:
 	GameManager.character2 = &"flam"
 	var m := TicketBlitzMinigame.new()

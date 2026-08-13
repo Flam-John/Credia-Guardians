@@ -4,9 +4,12 @@ extends CanvasLayer
 ## shooter reskinned as customer tickets flooding a bank's core system —
 ## error strings lifted from real Temenos T24 override/warning messages
 ## (Security Violation, Collateral Right not Found, etc.) for the dangerous
-## tier. Never hard-fails: strikes only shave the completion bonus, so a
-## rough run still finishes and opens the gate; only an explicit cancel
-## bails out and refunds the key (mirrors CodeReviewMinigame's contract).
+## tier. A strike is a dangerous-tier ticket touching the ship OR ANY ticket
+## reaching the bottom unshot (user request: a ticket you never dealt with
+## should count against you same as getting hit) — MAX_STRIKES of those and
+## the run fails outright (finished.emit(false, 0), same contract as an
+## explicit ui_cancel: MinigameLauncher/FirewallGate refund the key and
+## require a genuine exit+re-entry before another attempt).
 
 signal finished(success: bool, bonus: int)
 
@@ -29,6 +32,7 @@ const TIER3_TEXTS := [
 const WAVE_COUNT := 3
 const SPAWN_INTERVAL := 0.9
 const STRIKE_PENALTY := 150
+const MAX_STRIKES := 3
 
 ## Hit detection is manual AABB overlap, NOT Area2D area_entered signals —
 ## real-bug discovery (user report "i shoot and the bullet pass by and
@@ -59,6 +63,7 @@ var _spawn_timer := 0.0
 var _alive_count := 0
 var _boss_active := false
 var _won := false
+var _lost := false
 var _score_bonus := 0
 var _strikes := 0
 
@@ -100,7 +105,7 @@ func _build_ui() -> void:
 	_wave_label = UIKit.caption("WAVE 1 / %d" % WAVE_COUNT, 10, UIKit.GOLD)
 	_wave_label.position = Vector2(340, 8)
 	_root.add_child(_wave_label)
-	_hits_label = UIKit.caption("HITS: 0", 9, UIKit.RED)
+	_hits_label = UIKit.caption("HITS: 0/%d" % MAX_STRIKES, 9, UIKit.RED)
 	_hits_label.position = Vector2(12, 22)
 	_root.add_child(_hits_label)
 
@@ -132,9 +137,23 @@ func _on_fire_requested(from: Vector2, tint: Color, speed: float, damage: int) -
 
 
 func _on_ship_hit() -> void:
-	_strikes += 1
-	_hits_label.text = "HITS: %d" % _strikes
 	AudioManager.play_sfx("menu_back", true, true)
+	_register_strike()
+
+
+## Shared by ship contact and an unshot ticket reaching the bottom — both
+## count the same toward MAX_STRIKES (user request). Guarded against firing
+## after the run has already ended: a stray still-falling ticket can still
+## reach the bottom during _win()'s own short victory delay (every regular
+## wave is guaranteed empty before the boss starts, so this only matters for
+## boss-fight stragglers, but the guard costs nothing).
+func _register_strike() -> void:
+	if _won or _lost:
+		return
+	_strikes += 1
+	_hits_label.text = "HITS: %d/%d" % [_strikes, MAX_STRIKES]
+	if _strikes >= MAX_STRIKES:
+		_lose()
 
 
 func _wave_specs(wave: int) -> Array:
@@ -201,12 +220,12 @@ func _start_boss() -> void:
 ## was a real bug: idle and physics frames aren't guaranteed to interleave
 ## 1:1, so collisions could go unchecked for stretches at a time.
 func _physics_process(_delta: float) -> void:
-	if not _won:
+	if not _won and not _lost:
 		_check_collisions() # runs every physics tick incl. during the boss fight
 
 
 func _process(delta: float) -> void:
-	if _won:
+	if _won or _lost:
 		return
 	if Input.is_action_just_pressed(&"ui_cancel"):
 		finished.emit(false, 0)
@@ -288,6 +307,11 @@ func _on_ticket_died(_ticket: TicketBlitzTicket, score: int) -> void:
 
 func _on_ticket_gone(_ticket: TicketBlitzTicket) -> void:
 	_alive_count -= 1
+	# An unshot ticket reaching the bottom counts as a strike, same as ship
+	# contact (user request) — ui=true so it actually plays behind the
+	# minigame's paused tree (see _on_ship_hit's sfx call, same reasoning).
+	AudioManager.play_sfx("menu_back", true, true)
+	_register_strike()
 
 
 func _on_boss_died(_ticket: TicketBlitzTicket, score: int) -> void:
@@ -301,3 +325,13 @@ func _win() -> void:
 	var bonus := maxi(0, _score_bonus - _strikes * STRIKE_PENALTY)
 	await get_tree().create_timer(0.9).timeout
 	finished.emit(true, bonus)
+
+
+## MAX_STRIKES reached — a hard fail, same outcome contract as an explicit
+## ui_cancel (finished.emit(false, 0)): FirewallGate/MinigameLauncher refund
+## the spent key and require a genuine exit+re-entry before another attempt.
+func _lose() -> void:
+	_lost = true
+	_wave_label.text = "SYSTEM BREACHED"
+	await get_tree().create_timer(0.9).timeout
+	finished.emit(false, 0)

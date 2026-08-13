@@ -19,7 +19,9 @@ const TIER_COLOR := {
 	Tier.HIGH: Color(1.0, 0.19, 0.25),
 }
 const TIER_HP := {Tier.LOW: 1, Tier.MED: 1, Tier.HIGH: 2}
-const TIER_SPEED := {Tier.LOW: 40.0, Tier.MED: 65.0, Tier.HIGH: 55.0}
+## Slowed from an earlier 40/65/55 pass (user request, stage 5 gate felt too
+## fast) — kept the same relative ordering (MED still the fastest tier).
+const TIER_SPEED := {Tier.LOW: 30.0, Tier.MED: 48.0, Tier.HIGH: 41.0}
 const TIER_SCORE := {Tier.LOW: 50, Tier.MED: 100, Tier.HIGH: 200}
 
 const BOSS_VULN_TIME := 2.5
