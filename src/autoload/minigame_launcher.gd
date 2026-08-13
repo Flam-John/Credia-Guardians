@@ -11,6 +11,7 @@ extends Node
 var MINIGAMES := {
 	&"code_review": CodeReviewMinigame,
 	&"ticket_blitz": TicketBlitzMinigame,
+	&"presentation_pace": PresentationPaceMinigame,
 }
 
 const TELEPORT_SFX := "ai_teleport"

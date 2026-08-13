@@ -213,8 +213,8 @@ def stage_3():
     G.put(124, 19, ".")
     G.coins((123, 21), (125, 21), (126, 21), (124, 20))
     G.put(122, 21, "o")
-    # USB key right next to node 3's shelf-mate (node 2, col135) — the F
-    # gate blocks the exit without it, and the critical path must never
+    # USB key right next to node 3's shelf-mate (node 2, col135) — the
+    # firewall gate blocks the exit without it, and the critical path must never
     # require finding a hidden room. Originally sat at col110, 25 tiles
     # from node 2 on the same walkway: reachable, but a player who
     # double-jumps up and beelines for the visible glowing node has no
@@ -236,7 +236,10 @@ def stage_3():
     G.coins((144, 16), (150, 16))
     G.put(151, 18, "N")
     G.vline(153, 15, 18, "#")
-    G.put(155, 18, "F")
+    # Presentation Pace gate (docs/GDD.md gate minigames) — stage 3's own
+    # genre, mirroring stage 1's "D" (Code Review Rush) and stage 5's "T"
+    # (Ticket Blitz): each stage's gate routes through a different minigame.
+    G.put(155, 18, "H")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 27)] + [(x, 18) for x in range(72, 96)]
              + [(x, 7) for x in range(37, 59)] + [(x, 17) for x in range(107, 133)]

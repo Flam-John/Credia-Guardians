@@ -180,6 +180,11 @@ func test_unknown_minigame_id_calls_back_immediately_with_failure() -> void:
 	assert_false(MinigameLauncher.is_active())
 
 
+func test_presentation_pace_is_registered_with_the_launcher() -> void:
+	assert_true(MinigameLauncher.MINIGAMES.has(&"presentation_pace"))
+	assert_eq(MinigameLauncher.MINIGAMES[&"presentation_pace"], PresentationPaceMinigame)
+
+
 # -- CodeReviewMinigame -----------------------------------------------------------
 
 func _make_code_review() -> CodeReviewMinigame:
