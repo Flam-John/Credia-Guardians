@@ -15,6 +15,7 @@ extends RefCounted
 ##   T firewall gate + Ticket Blitz minigame
 ##   H firewall gate + Presentation Pace minigame
 ##   G firewall gate + Server Cooling minigame
+##   I firewall gate + Circuit Bypass minigame
 ##   > / < conveyor run          f / g fan run (left/right)
 ##   = moving platform span      b fading bridge run         l laser run
 ##   ~ updraft column            V heat vent column          | elevator column
@@ -22,7 +23,7 @@ extends RefCounted
 ## Output spawn dicts: {type: String(marker), x: int, y: int, length: int}
 ## where length = run width (horizontal runs) or column height (vertical).
 
-const SINGLE_MARKERS := "PcoeJMALBQRCkNEFWKUSmDTHG"
+const SINGLE_MARKERS := "PcoeJMALBQRCkNEFWKUSmDTHGI"
 const HORIZONTAL_RUNS := "><fg=bl"
 const VERTICAL_RUNS := "~V|"
 
