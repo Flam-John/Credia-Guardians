@@ -1,7 +1,7 @@
 extends GutTest
 ## Circuit Bypass (Stage 4 gate minigame, docs/GDD.md gate minigames):
-## bit-rotation math, board derivation/solving, strike rules, win/lose,
-## co-op cursors.
+## bit-rotation math, board derivation/solving, life-loss/restart rules,
+## win/lose, co-op cursors.
 
 func after_each() -> void:
 	GameManager.character2 = &""
@@ -152,9 +152,9 @@ func test_rotating_a_non_path_cell_is_a_no_op() -> void:
 	var m := _make()
 	m._start_board(0) # 3x3 board; (2,2) is not on this board's path
 	m._cursors[0] = 2 * 3 + 2
-	var strikes_before := m._strikes
+	var lives_before := m._lives_remaining
 	m._try_rotate(0)
-	assert_eq(m._strikes, strikes_before, "rotating empty floor must do nothing")
+	assert_eq(m._lives_remaining, lives_before, "rotating empty floor must do nothing")
 
 
 func test_rotating_the_last_wrong_tile_into_place_completes_the_board() -> void:
@@ -174,7 +174,7 @@ func test_rotating_the_last_wrong_tile_into_place_completes_the_board() -> void:
 	assert_eq(m._board, 1, "solving the board must advance to the next one")
 
 
-# -- strikes / win / lose -------------------------------------------------------------
+# -- lives / restart / win / lose -----------------------------------------------------
 
 ## Regression (review catch): _process() used to fall through to its own
 ## board-timer-expiry check in the SAME frame a solve already completed the
@@ -207,36 +207,38 @@ func test_solving_the_final_board_the_same_tick_it_times_out_does_not_double_emi
 	assert_signal_emit_count(m, "finished", 1)
 
 
-func test_timing_out_a_board_costs_a_strike_and_advances() -> void:
+## User request: failing a board must cost a life and restart the WHOLE run
+## from board 0, not just advance to the next (harder) board.
+func test_timing_out_a_board_costs_a_life_and_restarts_from_board_zero() -> void:
 	var m := _make()
-	m._start_board(0)
+	m._start_board(1) # start mid-run so the restart is actually observable
 	m._complete_board(false)
-	assert_eq(m._strikes, 1)
-	assert_eq(m._board, 1)
+	assert_eq(m._lives_remaining, CircuitBypassMinigame.MAX_LIVES - 1)
+	assert_eq(m._board, 0, "a failed board must restart from the beginning, not advance")
 
 
-func test_three_strikes_ends_the_run_in_a_loss() -> void:
+func test_three_lost_lives_ends_the_run_in_a_loss() -> void:
 	var m := _make()
 	watch_signals(m)
-	m._register_strike()
-	m._register_strike()
-	m._register_strike()
+	m._lose_a_life()
+	m._lose_a_life()
+	m._lose_a_life()
 	await wait_seconds(1.1) # _lose()'s own short delay before emitting
 	assert_signal_emitted_with_parameters(m, "finished", [false, 0])
 
 
-func test_a_strike_past_the_loss_threshold_does_not_double_emit_finished() -> void:
+func test_a_life_lost_past_the_loss_threshold_does_not_double_emit_finished() -> void:
 	var m := _make()
 	watch_signals(m)
-	m._register_strike()
-	m._register_strike()
-	m._register_strike()
-	m._register_strike()
+	m._lose_a_life()
+	m._lose_a_life()
+	m._lose_a_life()
+	m._lose_a_life()
 	await wait_seconds(1.1)
 	assert_signal_emit_count(m, "finished", 1)
 
 
-func test_completing_all_boards_wins_with_a_positive_bonus() -> void:
+func test_completing_all_boards_in_one_life_wins_with_a_positive_bonus() -> void:
 	var m := _make()
 	watch_signals(m)
 	m._complete_board(true) # board 0 -> 1
@@ -247,7 +249,24 @@ func test_completing_all_boards_wins_with_a_positive_bonus() -> void:
 	var params: Array = get_signal_parameters(m, "finished")
 	assert_true(params[0])
 	assert_eq(params[1],
-			CircuitBypassMinigame.BASE_BONUS + 3 * CircuitBypassMinigame.BOARD_BONUS)
+			CircuitBypassMinigame.BASE_BONUS + 3 * CircuitBypassMinigame.BOARD_BONUS,
+			"no lives lost -> no LIFE_LOST_PENALTY deduction")
+
+
+func test_surviving_a_lost_life_still_wins_but_shaves_the_bonus() -> void:
+	var m := _make()
+	watch_signals(m)
+	m._start_board(1)
+	m._complete_board(false) # restarts from board 0, 1 life down
+	m._complete_board(true) # board 0 -> 1
+	m._complete_board(true) # board 1 -> 2
+	m._complete_board(true) # board 2 solved -> win
+	await wait_seconds(1.1)
+	var params: Array = get_signal_parameters(m, "finished")
+	assert_true(params[0], "one lost life must not fail the run outright")
+	assert_eq(params[1],
+			CircuitBypassMinigame.BASE_BONUS + 3 * CircuitBypassMinigame.BOARD_BONUS
+			- CircuitBypassMinigame.LIFE_LOST_PENALTY)
 
 
 func test_ui_cancel_bails_out_with_no_bonus() -> void:

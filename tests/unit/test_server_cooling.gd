@@ -58,7 +58,7 @@ func test_a_rack_reaching_full_heat_overheats_and_costs_a_strike() -> void:
 	var m := _make()
 	m._active[2] = true
 	m._heat[2] = 99.0
-	m._tick_heat(1.0) # HEAT_RATE[0]=8.0, easily crosses 100 from 99
+	m._tick_heat(1.0) # HEAT_RATE[0]=12.0, easily crosses 100 from 99
 	assert_eq(m._strikes, 1)
 	assert_false(m._active[2], "an overheated rack must stop actively heating")
 	assert_eq(m._heat[2], ServerCoolingMinigame.OVERHEAT_RESET_HEAT,

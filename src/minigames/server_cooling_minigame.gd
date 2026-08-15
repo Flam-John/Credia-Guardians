@@ -31,7 +31,12 @@ const WAVE_COUNT := 3
 ## Per-wave: how fast an active rack's heat climbs (%/sec), how many racks
 ## may be actively heating at once, and how often (seconds) a new rack
 ## joins the active set while under that cap, plus how long the wave lasts.
-const HEAT_RATE := [8.0, 11.0, 15.0]
+## Heat rates raised from an earlier 8/11/15 pass (user request: the bars
+## filled too slowly, wasn't hard enough) — a rack now goes from 0 to
+## overheat in ~8.3s/6.25s/4.5s of continuous neglect per wave instead of
+## ~12.5s/9.1s/6.7s, tightening the reaction window without changing how
+## many racks can be active at once or how often new ones join.
+const HEAT_RATE := [12.0, 16.0, 22.0]
 const MAX_ACTIVE := [2, 3, 4]
 const ACTIVATE_INTERVAL := [2.2, 1.6, 1.1]
 const WAVE_DURATION := [12.0, 12.0, 12.0]

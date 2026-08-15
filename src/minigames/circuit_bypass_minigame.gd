@@ -22,13 +22,16 @@ extends CanvasLayer
 ## rotate any tile (own cursor per player, same as Code Review Rush/Server
 ## Cooling) — there's one shared circuit, not per-player content to split.
 ##
-## A board that times out unsolved is a strike, same as the other three
-## gates' rule; MAX_STRIKES (3) hard-fails via finished(false, 0) (same
-## contract as ui_cancel: FirewallGate/MinigameLauncher already refund the
-## spent key and require exit+re-entry to retry). Completing (solving OR
-## timing out on) all BOARD_COUNT boards without hitting MAX_STRIKES wins —
-## same "the run ends after N segments unless you've struck out" shape as
-## Presentation Pace's slides and Server Cooling's waves.
+## A board that times out unsolved costs a LIFE (user request) and restarts
+## the whole run from board 0 — deliberately DIFFERENT from the other four
+## gates' "a failure just advances to the next segment" rule, since a
+## puzzle you never finished shouldn't hand you a harder one immediately.
+## Any already-earned _score_bonus carries over across a restart (classic
+## arcade "keep your score, replay the level" convention) — only the board
+## index and per-board tile state reset. MAX_LIVES (3) reached hard-fails
+## via finished(false, 0), same contract as ui_cancel: FirewallGate/
+## MinigameLauncher already refund the spent key and require exit+re-entry
+## to retry. Completing (solving) all BOARD_COUNT boards in one life wins.
 
 signal finished(success: bool, bonus: int)
 
@@ -43,8 +46,8 @@ const DIR_VEC := {"N": Vector2i(0, -1), "E": Vector2i(1, 0), "S": Vector2i(0, 1)
 const DIR_OPPOSITE := {"N": "S", "S": "N", "E": "W", "W": "E"}
 const BASE_MASK := {TileType.STRAIGHT: BIT_N | BIT_S, TileType.CORNER: BIT_N | BIT_E}
 
-const MAX_STRIKES := 3
-const STRIKE_PENALTY := 150
+const MAX_LIVES := 3
+const LIFE_LOST_PENALTY := 150
 const BASE_BONUS := 900
 const BOARD_BONUS := 200
 
@@ -79,7 +82,7 @@ var rng := RandomNumberGenerator.new()
 
 var _board := 0
 var _board_timer := 0.0
-var _strikes := 0
+var _lives_remaining := MAX_LIVES
 var _score_bonus := 0
 var _won := false
 var _lost := false
@@ -96,7 +99,7 @@ var _tile_type: Array[int] = []
 
 var _root: Control
 var _board_label: Label
-var _hits_label: Label
+var _lives_label: Label
 var _timer_label: Label
 var _source_label: Label
 var _target_label: Label
@@ -140,9 +143,9 @@ func _build_ui() -> void:
 	_board_label.position = Vector2(300, 8)
 	_root.add_child(_board_label)
 
-	_hits_label = UIKit.caption("HITS: 0/%d" % MAX_STRIKES, 9, UIKit.RED)
-	_hits_label.position = Vector2(12, 22)
-	_root.add_child(_hits_label)
+	_lives_label = UIKit.caption("LIVES: %d/%d" % [MAX_LIVES, MAX_LIVES], 9, UIKit.RED)
+	_lives_label.position = Vector2(12, 22)
+	_root.add_child(_lives_label)
 
 	_timer_label = UIKit.caption("", 9, UIKit.GOLD)
 	_timer_label.position = Vector2(200, 22)
@@ -409,46 +412,56 @@ func _is_board_solved() -> bool:
 	return true
 
 
-## Guarded the same way _register_strike() is (review catch): defense in
-## depth against a future call path re-entering this after the run has
-## already ended, on top of _process()'s own same-frame guard above.
+## Guarded against being called again once the run has already ended
+## (review catch, defense in depth on top of _process()'s own same-frame
+## guard above): the two outcomes now genuinely diverge instead of sharing
+## a single "_board += 1" tail — solving advances forward, failing costs a
+## life and restarts from board 0 (user request), so they can't share that
+## tail path anymore without failing-then-still-advancing.
 func _complete_board(solved: bool) -> void:
 	if _won or _lost:
 		return
 	if solved:
 		_score_bonus += BOARD_BONUS
 		AudioManager.play_sfx("enemy_death", true, true) # reused "unlock" chime
+		_board += 1
+		if _board >= BOARD_COUNT:
+			_win()
+		else:
+			_start_board(_board)
 	else:
-		_register_strike()
-		if _lost:
-			return
-	_board += 1
-	if _board >= BOARD_COUNT:
-		_win()
-	else:
-		_start_board(_board)
+		_lose_a_life()
 
 
-## Guarded against being called again once the run has already ended, same
-## defensive parity as the other three gates' own _register_strike().
-func _register_strike() -> void:
+## A failed board (timed out unsolved) costs a life and restarts the WHOLE
+## run from board 0 (user request: "if I fail, start from the beginning")
+## — not the old strike-then-advance-to-the-next-board behavior. Any
+## _score_bonus already earned this attempt carries over; only the board
+## index and per-board tile state reset via _start_board(0). Guarded
+## against being called again once the run has already ended, same
+## defensive parity as the other four gates' own strike/life-loss guards.
+func _lose_a_life() -> void:
 	if _won or _lost:
 		return
-	_strikes += 1
-	_hits_label.text = "HITS: %d/%d" % [_strikes, MAX_STRIKES]
-	if _strikes >= MAX_STRIKES:
+	_lives_remaining -= 1
+	_lives_label.text = "LIVES: %d/%d" % [_lives_remaining, MAX_LIVES]
+	AudioManager.play_sfx("menu_back", true, true)
+	if _lives_remaining <= 0:
 		_lose()
+	else:
+		_start_board(0)
 
 
 func _win() -> void:
 	_won = true
 	_board_label.text = "CIRCUIT RESTORED"
-	var bonus := maxi(0, BASE_BONUS + _score_bonus - _strikes * STRIKE_PENALTY)
+	var lives_lost := MAX_LIVES - _lives_remaining
+	var bonus := maxi(0, BASE_BONUS + _score_bonus - lives_lost * LIFE_LOST_PENALTY)
 	await get_tree().create_timer(0.9).timeout
 	finished.emit(true, bonus)
 
 
-## MAX_STRIKES reached — a hard fail, same outcome contract as an explicit
+## MAX_LIVES exhausted — a hard fail, same outcome contract as an explicit
 ## ui_cancel (finished.emit(false, 0)): FirewallGate/MinigameLauncher refund
 ## the spent key and require a genuine exit+re-entry before another attempt.
 func _lose() -> void:
