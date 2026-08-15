@@ -154,6 +154,11 @@ func _instantiate_marker(spawn: Dictionary) -> void:
 			presentation_gate.position = _tile_bottom(x, y)
 			presentation_gate.minigame_id = &"presentation_pace"
 			add_child(presentation_gate)
+		"G":
+			var cooling_gate := FirewallGate.new()
+			cooling_gate.position = _tile_bottom(x, y)
+			cooling_gate.minigame_id = &"server_cooling"
+			add_child(cooling_gate)
 		"m":
 			var monitor := MonitorProp.new()
 			monitor.position = Vector2(x * T + 16, y * T + 12)

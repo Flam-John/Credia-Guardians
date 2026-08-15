@@ -122,15 +122,33 @@ def stage_2():
     G.vline(133, 10, 13, "V")
     G.put(135, 13, "N")
     G.hline(133, 137, 14, "#")
+    # USB key right next to node 3's shelf-mate (same lesson as stage 3's
+    # key placement: one tile from a mandatory node means it can't be
+    # missed by anyone who collects the node itself, no backtracking or
+    # hidden-room search required for a key that gates the only way out).
+    G.put(136, 13, "U")
     # mid-boss arena: AI Banker MK-II. Walls vline(x, 15, 18) = 64px, the
     # stage-1 pattern: the old 80px pair put the mandatory arena EXIT
     # behind an early-press-trick climb (see stage 5's CEO arena note).
+    # Arena narrowed from 14 to 12 tiles (was 141-155) to open room for the
+    # Server Cooling gate at col155 with the same 2-tile clearance on both
+    # sides that stage 3's gate uses (wall -> +2 -> gate -> +2 -> exit) —
+    # a single-tile gap risks the gate's trigger/blocker bleeding into a
+    # neighboring collider, the same failure class stage 3's original node
+    # placement hit (two gate-ish props too close together).
     G.put(139, 18, "k")
     G.vline(141, 15, 18, "#")
-    G.put(148, 12, "Q")
-    G.coins((145, 17), (151, 17))
-    G.vline(155, 15, 18, "#")
-    G.put(153, 18, "m")
+    # Recentered with the arena (was col148, dead center of the original
+    # 141-155 span) — narrowing the right wall to 153 without moving this
+    # would leave the boss's own teleport anchors (+-3.75 tiles, see
+    # ai_banker.gd) asymmetric: 7 tiles of clearance on the left, only 5 on
+    # the right (review catch). col147 is dead center of the new 141-153
+    # span, restoring the original symmetric clearance.
+    G.put(147, 12, "Q")
+    G.coins((144, 17), (150, 17))
+    G.vline(153, 15, 18, "#")
+    G.put(151, 18, "m")
+    G.put(155, 18, "G")
     G.put(157, 18, "E")
     G.top_up([(x, 18) for x in range(5, 24)] + [(x, 18) for x in range(112, 133)]
              + [(x, 17) for x in range(26, 52)] + [(x, 17) for x in range(78, 88)]

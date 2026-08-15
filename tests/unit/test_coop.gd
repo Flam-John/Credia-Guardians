@@ -66,6 +66,18 @@ func test_coop_actions_exist_and_are_scoped() -> void:
 			assert_eq(event.device, 1, "P2 pad events pinned to device 1")
 
 
+## Consolidated (review catch) from 3 verbatim copies of this exact ternary
+## across CodeReviewMinigame, TicketBlitzShip, and ServerCoolingMinigame —
+## each minigame's own _action() now just delegates here.
+func test_scoped_action_uses_the_base_action_for_solo() -> void:
+	assert_eq(CoopInput.scoped_action(&"jump", 0), &"jump")
+
+
+func test_scoped_action_prefixes_for_coop_players() -> void:
+	assert_eq(CoopInput.scoped_action(&"jump", 1), &"p1_jump")
+	assert_eq(CoopInput.scoped_action(&"jump", 2), &"p2_jump")
+
+
 func test_p1_and_p2_keyboard_keys_are_disjoint() -> void:
 	# regression (v1.8.3): base actions bind BOTH WASD and the arrows, and
 	# the arrows leaked into p1_* — both keyboards drove the same character

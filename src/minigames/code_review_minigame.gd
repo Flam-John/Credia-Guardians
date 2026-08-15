@@ -285,7 +285,7 @@ func _process(delta: float) -> void:
 
 
 func _action(base: StringName, player_index: int) -> StringName:
-	return base if player_index == 0 else StringName("p%d_%s" % [player_index, base])
+	return CoopInput.scoped_action(base, player_index)
 
 
 func _move_cursor(player_index: int, step: int) -> void:
