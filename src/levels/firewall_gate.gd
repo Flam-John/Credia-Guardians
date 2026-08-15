@@ -14,8 +14,8 @@ var _players_inside := 0
 
 ## Non-empty routes the unlock through a full-screen minigame (MinigameLauncher)
 ## instead of opening the instant a key is available. Set by the
-## "D"/"T"/"H"/"G" legend markers in level_base.gd — plain "F" gates leave
-## this empty and keep the original instant-unlock behavior untouched.
+## "D"/"T"/"H"/"G"/"I" legend markers in level_base.gd — plain "F" gates
+## leave this empty and keep the original instant-unlock behavior untouched.
 @export var minigame_id: StringName = &""
 
 ## After a cancelled minigame, _try_open() would otherwise fire again on the

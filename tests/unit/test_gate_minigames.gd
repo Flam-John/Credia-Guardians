@@ -190,6 +190,11 @@ func test_server_cooling_is_registered_with_the_launcher() -> void:
 	assert_eq(MinigameLauncher.MINIGAMES[&"server_cooling"], ServerCoolingMinigame)
 
 
+func test_circuit_bypass_is_registered_with_the_launcher() -> void:
+	assert_true(MinigameLauncher.MINIGAMES.has(&"circuit_bypass"))
+	assert_eq(MinigameLauncher.MINIGAMES[&"circuit_bypass"], CircuitBypassMinigame)
+
+
 # -- CodeReviewMinigame -----------------------------------------------------------
 
 func _make_code_review() -> CodeReviewMinigame:

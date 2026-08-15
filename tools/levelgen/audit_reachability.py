@@ -15,10 +15,10 @@ tests/unit/test_shelf_reachability.gd and the v1.12/v1.13 investigations):
   - updraft columns are one field per x even where coins split the '~'
     run, and can be JUMPED INTO from up to 3 tiles below their bottom
   - firewall gates 'F' (plus minigame variants 'D' Code Review, 'T' Ticket
-    Blitz, 'H' Presentation Pace, 'G' Server Cooling — same geometry/key
-    mechanic, just a different unlock screen) are SOLID 6-tile-tall
-    blockers until a USB key 'U' is collected (one key opens one gate) —
-    solid to jump arcs too, not just to landings
+    Blitz, 'H' Presentation Pace, 'G' Server Cooling, 'I' Circuit Bypass —
+    same geometry/key mechanic, just a different unlock screen) are SOLID
+    6-tile-tall blockers until a USB key 'U' is collected (one key opens
+    one gate) — solid to jump arcs too, not just to landings
   - spikes '^' are lethal: not standable, not passable
 
 Besides standing cells, the audit tracks every cell the capsule passes
@@ -76,7 +76,7 @@ class Audit:
                 ch = self.at(x, y)
                 if ch == "P":
                     self.spawn = (x, y)
-                elif ch in "NUEFkcoeWKDTHG":
+                elif ch in "NUEFkcoeWKDTHGI":
                     self.markers.append((ch, x, y))
                 elif ch == "~":
                     draft_cols.setdefault(x, []).append(y)
@@ -226,7 +226,7 @@ class Audit:
         # spawn may be drawn mid-air; settle to the floor
         while not self.is_standing(sx, sy) and sy < self.h - 1:
             sy += 1
-        gates = [(x, y) for ch, x, y in self.markers if ch in "FDTHG"]
+        gates = [(x, y) for ch, x, y in self.markers if ch in "FDTHGI"]
         keys = [(x, y) for ch, x, y in self.markers if ch == "U"]
         opened = set()
         reached = set()
@@ -282,8 +282,8 @@ class Audit:
         for ch, x, y in self.markers:
             if not self.reachable(x, y):
                 problems.append((ch, x, y))
-        mandatory = [p for p in problems if p[0] in "NUEFDTHG"]
-        minor = [p for p in problems if p[0] not in "NUEFDTHG"]
+        mandatory = [p for p in problems if p[0] in "NUEFDTHGI"]
+        minor = [p for p in problems if p[0] not in "NUEFDTHGI"]
         print(f"== {name}: {len(reached)} standing cells reached ==")
         if not problems:
             print("   all objectives, pickups and coins reachable")

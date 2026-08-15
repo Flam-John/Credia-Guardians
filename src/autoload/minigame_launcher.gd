@@ -13,6 +13,7 @@ var MINIGAMES := {
 	&"ticket_blitz": TicketBlitzMinigame,
 	&"presentation_pace": PresentationPaceMinigame,
 	&"server_cooling": ServerCoolingMinigame,
+	&"circuit_bypass": CircuitBypassMinigame,
 }
 
 const TELEPORT_SFX := "ai_teleport"

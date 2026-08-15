@@ -297,18 +297,22 @@ def stage_4():
     G.hline(89, 158, 19, "#")
     G.rect(89, 20, 158, 22, "@")
     G.put(90, 18, "k")
-    # key vault: U behind lasers, F gates N2 + treasure. Shelf at row15 —
-    # 64px above the floor, a plain any-timing double jump (same reason as
-    # stage 3's node-2 shelf: 80px needed an early-press trick, and the
-    # v1.13 staircase workaround looked like floating crates in-game,
-    # sealed the col-90 checkpoint, and trapped the (92,18) coin — user
-    # feedback: no stairs). Keep cols 90-94 free of solid tiles: the
-    # checkpoint lives at col90 and the shelf approach jump needs the air.
+    # key vault: U behind lasers, I gates N2 + treasure (Circuit Bypass
+    # minigame, docs/GDD.md gate minigames — this stage's own genre,
+    # mirroring stage 1's "D"/stage 3's "H"/stage 2's "G"; a straight
+    # reskin of a plain "F" already placed and audited here, same low-risk
+    # swap stage 3's "H" rollout was). Shelf at row15 — 64px above the
+    # floor, a plain any-timing double jump (same reason as stage 3's
+    # node-2 shelf: 80px needed an early-press trick, and the v1.13
+    # staircase workaround looked like floating crates in-game, sealed the
+    # col-90 checkpoint, and trapped the (92,18) coin — user feedback: no
+    # stairs). Keep cols 90-94 free of solid tiles: the checkpoint lives at
+    # col90 and the shelf approach jump needs the air.
     G.coin_row(92, 104, 18, 3)
     G.hline(95, 99, 15, "#")
     G.put(97, 14, "U")
     G.hline(94, 96, 18, "l")
-    G.put(106, 18, "F")
+    G.put(106, 18, "I")
     G.put(109, 18, "N")
     G.coins((111, 18), (112, 18), (113, 18))
     G.put(115, 18, "m")
