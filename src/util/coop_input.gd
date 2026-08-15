@@ -49,6 +49,18 @@ static func p2_key(base: StringName) -> int:
 	return int(p2_overrides.get(String(base), int(P2_KEYS.get(base, 0))))
 
 
+## The per-player action name for a base gameplay action — player_index 0
+## (solo) polls the base action directly (see the class doc above: solo
+## never builds p1_* actions), any other index gets its "pN_" prefix. This
+## exact ternary used to be copy-pasted into each gate minigame that needed
+## per-player action scoping (CodeReviewMinigame, ServerCoolingMinigame,
+## TicketBlitzShip) — consolidated here so the naming convention only has
+## one place to change (review catch: 3 copies is 3 places a future fix
+## could miss one).
+static func scoped_action(base: StringName, player_index: int) -> StringName:
+	return base if player_index == 0 else StringName("p%d_%s" % [player_index, base])
+
+
 ## Effective P2 gamepad button override for an action, or null if P2 hasn't
 ## customized it (falls back to the base action's own binding, device 1).
 static func p2_gamepad_override(base: StringName) -> Variant:

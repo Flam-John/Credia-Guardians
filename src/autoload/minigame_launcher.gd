@@ -12,6 +12,7 @@ var MINIGAMES := {
 	&"code_review": CodeReviewMinigame,
 	&"ticket_blitz": TicketBlitzMinigame,
 	&"presentation_pace": PresentationPaceMinigame,
+	&"server_cooling": ServerCoolingMinigame,
 }
 
 const TELEPORT_SFX := "ai_teleport"

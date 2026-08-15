@@ -51,7 +51,7 @@ func setup(p_index: int, p_stats: CharacterStats, p_bounds: Rect2) -> void:
 
 
 func _action(base: StringName) -> StringName:
-	return base if player_index == 0 else StringName("p%d_%s" % [player_index, base])
+	return CoopInput.scoped_action(base, player_index)
 
 
 func _physics_process(delta: float) -> void:
