@@ -38,6 +38,53 @@ func _assert_fits(node: Node, vp_size: Vector2) -> void:
 		_assert_fits(child, vp_size)
 
 
+# -- rack visuals (design polish: LEDs + fan) ------------------------------------------
+
+## Sanity check that every rack got its own LED pair + fan tween built —
+## this exact bug class (a typed Array declared with the WRONG element
+## type, e.g. Array[Label] for what are actually ColorRects) already bit
+## Code Review Rush's bug-dots row this same session: Godot's typed-array
+## append() silently FAILS (logs an engine error, returns false) rather
+## than throwing a script error, so a mistyped array quietly stays empty
+## instead of crashing — only a test that actually checks the array's
+## size would catch it.
+func test_every_rack_gets_its_own_led_pair_and_fan_tween() -> void:
+	var m := _make()
+	assert_eq(m._rack_leds.size(), ServerCoolingMinigame.RACK_COUNT)
+	for leds in m._rack_leds:
+		assert_eq(leds.size(), 2, "each rack must have exactly 2 status LEDs")
+	assert_eq(m._rack_fan_tweens.size(), ServerCoolingMinigame.RACK_COUNT)
+
+
+func test_an_active_racks_leds_follow_the_heat_color() -> void:
+	var m := _make()
+	m._active[0] = true
+	m._heat[0] = 90.0 # >= HOT_THRESHOLD
+	m._refresh_racks()
+	for led in m._rack_leds[0]:
+		assert_eq((led as ColorRect).color, UIKit.RED)
+
+
+func test_an_inactive_racks_leds_stay_dim() -> void:
+	var m := _make()
+	m._active[0] = false
+	m._refresh_racks()
+	for led in m._rack_leds[0]:
+		assert_eq((led as ColorRect).color, UIKit.GRAY)
+
+
+func test_the_fan_only_spins_while_the_rack_is_active() -> void:
+	var m := _make()
+	m._active[0] = true
+	m._refresh_racks()
+	assert_true(m._rack_fan_tweens[0].is_running(),
+			"an active rack's fan tween must be playing, not paused")
+	m._active[0] = false
+	m._refresh_racks()
+	assert_false(m._rack_fan_tweens[0].is_running(),
+			"an inactive rack's fan must stop spinning")
+
+
 # -- heat / overheat math -------------------------------------------------------------
 
 func test_an_active_rack_heats_up_over_time() -> void:

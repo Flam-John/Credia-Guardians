@@ -77,6 +77,8 @@ var _hits_label: Label
 var _rack_panels: Array[PanelContainer] = []
 var _rack_labels: Array[Label] = []
 var _rack_bars: Array[ColorRect] = []
+var _rack_leds: Array[Array] = [] # 2 ColorRects per rack
+var _rack_fan_tweens: Array[Tween] = []
 
 
 func _ready() -> void:
@@ -146,9 +148,12 @@ func _build_racks() -> void:
 		bar_fill.size = Vector2(0, 10)
 		bar_track.add_child(bar_fill)
 
+		var detail_row := _build_rack_details()
+
 		var column := VBoxContainer.new()
 		column.add_child(label)
 		column.add_child(bar_track)
+		column.add_child(detail_row)
 		var panel := UIKit.framed_panel(column)
 		panel.position = pos
 		panel.custom_minimum_size = RACK_SIZE
@@ -157,6 +162,63 @@ func _build_racks() -> void:
 		_rack_panels.append(panel)
 		_rack_labels.append(label)
 		_rack_bars.append(bar_fill)
+
+
+## Design polish (user request: "make the boxes look like racks") — a
+## small status-LED pair (color follows heat, refreshed in _refresh_racks)
+## plus a fan icon that only spins while the rack is actively heating.
+## Everything here is a child of the row/fan Controls themselves, never a
+## direct .size/.position write on something a Container manages (the
+## bar_track gotcha documented above) — the LEDs/fan blades live under
+## plain (non-Container) Control nodes, so writing their geometry directly
+## is safe.
+func _build_rack_details() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override(&"separation", 4)
+
+	var led_row := HBoxContainer.new()
+	led_row.add_theme_constant_override(&"separation", 3)
+	var leds: Array[ColorRect] = []
+	for j in 2:
+		var led := ColorRect.new()
+		led.custom_minimum_size = Vector2(5, 5)
+		led.color = UIKit.GRAY
+		var blink := create_tween().set_loops()
+		blink.tween_property(led, "modulate:a", 0.35, 0.5).set_trans(Tween.TRANS_SINE)
+		blink.tween_property(led, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE)
+		led_row.add_child(led)
+		leds.append(led)
+	_rack_leds.append(leds)
+	row.add_child(led_row)
+
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+
+	var fan := Control.new()
+	fan.custom_minimum_size = Vector2(14, 14)
+	fan.pivot_offset = Vector2(7, 7)
+	var blade_a := ColorRect.new()
+	blade_a.color = UIKit.GRAY
+	blade_a.position = Vector2(0, 5.5)
+	blade_a.size = Vector2(14, 3)
+	fan.add_child(blade_a)
+	var blade_b := ColorRect.new()
+	blade_b.color = UIKit.GRAY
+	blade_b.position = Vector2(5.5, 0)
+	blade_b.size = Vector2(3, 14)
+	fan.add_child(blade_b)
+	row.add_child(fan)
+
+	# Constant-speed spin, always running — only paused/resumed based on
+	# active state (see _refresh_racks), never rebuilt per-frame, so there's
+	# no risk of runaway tween creation while a rack heats for a while.
+	var spin := create_tween().set_loops()
+	spin.tween_property(fan, "rotation", TAU, 1.0).from(0.0).set_trans(Tween.TRANS_LINEAR)
+	spin.pause()
+	_rack_fan_tweens.append(spin)
+
+	return row
 
 
 func _start_wave(wave_index: int) -> void:
@@ -239,7 +301,33 @@ func _try_cool(player_index: int) -> void:
 	_heat[idx] = 0.0
 	_cool_count += 1
 	AudioManager.play_sfx("menu_select", true, true)
+	_burst(_rack_center(idx), UIKit.CYAN)
 	_refresh_racks()
+
+
+func _rack_center(idx: int) -> Vector2:
+	return _rack_panels[idx].position + RACK_SIZE / 2.0
+
+
+## Same one-shot pooled-particle pattern as TicketBlitzTicket._burst — a
+## cyan mist puff on a successful cool, orange sparks on an overheat
+## (design polish, user request), both reusing this one helper.
+func _burst(pos: Vector2, color: Color) -> void:
+	var sparks := CPUParticles2D.new()
+	sparks.position = pos
+	sparks.amount = 14
+	sparks.lifetime = 0.4
+	sparks.one_shot = true
+	sparks.explosiveness = 0.9
+	sparks.direction = Vector2.UP
+	sparks.spread = 180.0
+	sparks.initial_velocity_min = 25.0
+	sparks.initial_velocity_max = 70.0
+	sparks.gravity = Vector2(0, 50)
+	sparks.color = color
+	_root.add_child(sparks)
+	sparks.emitting = true
+	sparks.finished.connect(sparks.queue_free)
 
 
 func _activate_random_rack() -> void:
@@ -268,6 +356,7 @@ func _overheat(i: int) -> void:
 	_heat[i] = OVERHEAT_RESET_HEAT
 	_flash_timer[i] = OVERHEAT_FLASH_TIME
 	AudioManager.play_sfx("menu_back", true, true)
+	_burst(_rack_center(i), UIKit.RED)
 	_register_strike()
 
 
@@ -294,6 +383,13 @@ func _refresh_racks() -> void:
 		elif heat >= WARM_THRESHOLD:
 			heat_color = UIKit.GOLD
 		bar.color = heat_color
+
+		for led in _rack_leds[i]:
+			(led as ColorRect).color = heat_color if _active[i] else UIKit.GRAY
+		if _active[i]:
+			_rack_fan_tweens[i].play()
+		else:
+			_rack_fan_tweens[i].pause()
 
 		var border := UIKit.GRAY
 		var fill := Color(0.04, 0.08, 0.13, 0.96)
