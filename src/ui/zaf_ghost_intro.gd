@@ -158,6 +158,17 @@ func _unfreeze_gameplay() -> void:
 func _build_world_sprite() -> void:
 	_world_holder = Node2D.new()
 	_world_holder.position = world_position
+	# Bug fix (user screenshot: cyan blotches frozen on Zaf's head/chest):
+	# the tree pauses one frame after this node is built (see the class doc
+	# comment), and CPUParticles2D — unlike _sprite, whose frame is just a
+	# property set externally by the ALWAYS-mode ticker Timer — simulates
+	# its own burst/fade via internal per-frame processing. Under the
+	# default PROCESS_MODE_INHERIT that pause freezes the spark burst
+	# mid-animation, leaving its last-computed frame stuck on screen for as
+	# long as Zaf keeps talking. ALWAYS here lets the 0.7s burst actually
+	# finish and fade, same reasoning as Ticket Blitz's bullet-trail-ghost
+	# tween-freeze fix earlier this project.
+	_world_holder.process_mode = Node.PROCESS_MODE_ALWAYS
 	get_parent().add_child(_world_holder)
 
 	_sprite = Sprite2D.new()

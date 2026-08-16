@@ -111,6 +111,17 @@ func test_controls_page_adds_p2_keys_in_coop() -> void:
 	assert_string_contains(page, SettingsApplier.p2_key_label(&"jump"))
 
 
+## Regression: the materialize spark burst (CPUParticles2D) froze mid-
+## animation once the tree paused (default PROCESS_MODE_INHERIT), leaving
+## a permanent cluster of cyan blotches stuck on Zaf's head/chest for as
+## long as he kept talking — the world holder must stay ALWAYS so the
+## burst actually finishes its fade instead of freezing.
+func test_world_sprite_holder_stays_active_through_the_pause() -> void:
+	var zaf := _spawn()
+	assert_eq(zaf._world_holder.process_mode, Node.PROCESS_MODE_ALWAYS,
+			"the sparks must be able to finish their burst while the tree is paused")
+
+
 # -- freezing gameplay (bug fix: an enemy kept moving and hit the player) --------------
 
 ## Regression: SceneManager.change_scene() unconditionally unpauses right
