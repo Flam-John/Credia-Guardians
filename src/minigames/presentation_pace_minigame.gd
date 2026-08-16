@@ -3,7 +3,7 @@ extends CanvasLayer
 ## Stage 3 gate minigame (docs/GDD.md gate minigames): Chris/Flam deliver an
 ## educational security presentation. A pace bar fills across each slide's
 ## on-screen time with a highlighted "sweet spot" window near the end —
-## press ability while the marker is inside that window to advance cleanly;
+## press interact while the marker is inside that window to advance cleanly;
 ## pressing before it opens ("rushed") or never pressing before the slide
 ## times out ("awkward silence") both cost a strike, same as pressing after
 ## the window closes. Real educational content, not filler: real-estate
@@ -176,7 +176,7 @@ func _build_ui() -> void:
 	_marker_rect.position = TRACK_POS + Vector2(0, -3)
 	_root.add_child(_marker_rect)
 
-	var hint := UIKit.caption("HOLD THE ROOM — PRESS ABILITY IN THE GREEN ZONE", 8, UIKit.GRAY)
+	var hint := UIKit.caption("HOLD THE ROOM — PRESS INTERACT IN THE GREEN ZONE", 8, UIKit.GRAY)
 	hint.position = Vector2(60, 170)
 	_root.add_child(hint)
 
@@ -307,13 +307,17 @@ func _is_on_time(progress: float, window: Vector2) -> bool:
 	return progress >= window.x and progress <= window.y
 
 
-## Either player's ability button advances in co-op (there's one shared
+## Either player's interact button advances in co-op (there's one shared
 ## slide/timeline here, not per-player content like Code Review Rush's two
-## independent cursors, so there's nothing to scope a press TO).
+## independent cursors, so there's nothing to scope a press TO). Switched
+## from "ability" (user request: unify the primary action key across every
+## minigame on "interact", which is E by default — the other three
+## non-shooter minigames already use interact; Ticket Blitz's fire stays
+## the dedicated weapon button on purpose).
 func _advance_pressed() -> bool:
-	var actions: Array[StringName] = [&"ability"]
+	var actions: Array[StringName] = [&"interact"]
 	if GameManager.is_coop():
-		actions = [&"p1_ability", &"p2_ability"]
+		actions = [&"p1_interact", &"p2_interact"]
 	for a in actions:
 		if Input.is_action_just_pressed(a):
 			return true

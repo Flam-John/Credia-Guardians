@@ -197,11 +197,11 @@ func test_two_strikes_still_wins_but_shaves_the_bonus() -> void:
 
 # -- co-op / cancel -------------------------------------------------------------------
 
-func test_coop_builds_with_either_players_ability_action_available() -> void:
+func test_coop_builds_with_either_players_interact_action_available() -> void:
 	GameManager.character2 = &"flam"
 	var m := _make()
-	assert_true(InputMap.has_action(&"p1_ability"))
-	assert_true(InputMap.has_action(&"p2_ability"))
+	assert_true(InputMap.has_action(&"p1_interact"))
+	assert_true(InputMap.has_action(&"p2_interact"))
 
 
 func test_ui_cancel_bails_out_with_no_bonus() -> void:
@@ -213,7 +213,7 @@ func test_ui_cancel_bails_out_with_no_bonus() -> void:
 	assert_signal_emitted_with_parameters(m, "finished", [false, 0])
 
 
-func test_pressing_ability_inside_the_window_advances_through_real_process() -> void:
+func test_pressing_interact_inside_the_window_advances_through_real_process() -> void:
 	# One end-to-end confidence pass through the real _process wiring
 	# (progress calc + real Input edge detection), not just the directly-
 	# testable _resolve_advance seam the tests above exercise.
@@ -221,8 +221,8 @@ func test_pressing_ability_inside_the_window_advances_through_real_process() -> 
 	var window: Vector2 = PresentationPaceMinigame.SLIDES[0].window
 	var duration: float = PresentationPaceMinigame.SLIDES[0].duration
 	m._slide_timer = duration * (window.x + window.y) / 2.0
-	Input.action_press(&"ability")
+	Input.action_press(&"interact")
 	await wait_process_frames(1)
-	Input.action_release(&"ability")
+	Input.action_release(&"interact")
 	assert_eq(m._slide_index, 1)
 	assert_eq(m._strikes, 0)
