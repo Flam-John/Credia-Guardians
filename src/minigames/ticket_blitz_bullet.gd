@@ -41,9 +41,28 @@ func launch(from: Vector2, vel: Vector2, dmg: int, tint: Color, bounds: Rect2) -
 
 
 func _physics_process(delta: float) -> void:
+	_spawn_trail_ghost()
 	global_position += velocity * delta
 	if not _bounds.has_point(global_position):
 		queue_free()
+
+
+## A fading afterimage each physics tick (design polish, user request) —
+## same one-shot fire-and-forget pattern as TicketBlitzTicket._burst, just
+## a plain fading ColorRect instead of particles (a bullet's own trail is a
+## smear, not a burst).
+func _spawn_trail_ghost() -> void:
+	var parent := get_parent()
+	if parent == null:
+		return
+	var ghost := ColorRect.new()
+	ghost.color = _visual.color
+	ghost.size = _visual.size * 0.7
+	ghost.position = global_position - ghost.size / 2.0
+	parent.add_child(ghost)
+	var tween := create_tween()
+	tween.tween_property(ghost, "modulate:a", 0.0, 0.15)
+	tween.tween_callback(ghost.queue_free)
 
 
 func _on_area_entered(area: Area2D) -> void:

@@ -77,6 +77,20 @@ func _fire() -> void:
 			stats.bullet_speed, stats.weapon_damage)
 	AudioManager.play_sfx("weapon_fire_chris" if stats.bullet_visual == "PACKET_BOLT" \
 			else "weapon_fire_flam")
+	_muzzle_flash()
+
+
+## A quick bright flash at the gun position (design polish, user request) —
+## a child of self (local coords), same offset the bullet itself spawns at.
+func _muzzle_flash() -> void:
+	var flash := ColorRect.new()
+	flash.color = stats.weapon_color
+	flash.size = Vector2(6, 6)
+	flash.position = Vector2(-3, -23)
+	add_child(flash)
+	var tween := create_tween()
+	tween.tween_property(flash, "modulate:a", 0.0, 0.08)
+	tween.tween_callback(flash.queue_free)
 
 
 func _on_area_entered(area: Area2D) -> void:

@@ -61,6 +61,41 @@ func test_invulnerable_boss_ignores_hits() -> void:
 	assert_signal_not_emitted(t, "died")
 
 
+# -- design-polish wiring (ticket stub, boss shield, hurt signal) ---------------------
+
+func test_the_accent_bar_follows_tier_color() -> void:
+	var t := _make_ticket(TicketBlitzTicket.Tier.HIGH)
+	assert_eq(t._accent_bar.color, TicketBlitzTicket.TIER_COLOR[TicketBlitzTicket.Tier.HIGH])
+
+
+func test_the_shield_is_only_visible_during_the_bosss_invulnerable_window() -> void:
+	var t := _make_ticket(TicketBlitzTicket.Tier.HIGH)
+	t.make_boss(Rect2(0, 0, 400, 200))
+	t._t = 0.0 # start of the vuln window (BOSS_VULN_TIME=2.5)
+	t._physics_process(0.0)
+	assert_false(t._shield.visible, "the shield must be hidden while the boss can be hit")
+	t._t = TicketBlitzTicket.BOSS_VULN_TIME + 0.1 # into the invuln window
+	t._physics_process(0.0)
+	assert_true(t._shield.visible, "the shield must show during the invulnerable window")
+
+
+## The boss-only `hurt` signal is what the minigame hooks its screen
+## micro-shake to (design polish, user request) — a non-boss ticket must
+## never fire it, or every regular ticket surviving a hit would also shake
+## the screen.
+func test_hurt_signal_only_fires_for_the_boss_not_a_regular_high_tier_ticket() -> void:
+	var regular := _make_ticket(TicketBlitzTicket.Tier.HIGH)
+	watch_signals(regular)
+	regular.hit(1) # HIGH has 2 HP — this is a non-lethal hit
+	assert_signal_not_emitted(regular, "hurt")
+
+	var boss := _make_ticket(TicketBlitzTicket.Tier.HIGH)
+	boss.make_boss(Rect2(0, 0, 400, 200))
+	watch_signals(boss)
+	boss.hit(1) # boss has 6 HP — also non-lethal
+	assert_signal_emitted(boss, "hurt")
+
+
 func test_ticket_past_the_bottom_line_reports_and_frees_itself() -> void:
 	var t := _make_ticket(TicketBlitzTicket.Tier.LOW)
 	watch_signals(t)

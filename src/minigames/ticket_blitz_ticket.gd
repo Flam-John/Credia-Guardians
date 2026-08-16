@@ -10,6 +10,11 @@ extends Area2D
 
 signal died(ticket: TicketBlitzTicket, score: int)
 signal reached_bottom(ticket: TicketBlitzTicket)
+## Only emitted while acting as the boss (make_boss()) — design polish,
+## user request: a small screen micro-shake on a boss hit. Regular tickets
+## don't emit this; with many on screen at once a shake per hit would be
+## excessive, and they already get a death burst/sfx for feedback.
+signal hurt
 
 enum Tier { LOW, MED, HIGH }
 
@@ -40,6 +45,8 @@ var _base_x := 0.0
 var _zigzag := false
 var _boss_bounds := Rect2()
 var _label: Label
+var _accent_bar: ColorRect
+var _shield: Panel
 
 
 func _ready() -> void:
@@ -56,14 +63,59 @@ func _ready() -> void:
 	rect.size = Vector2(80, 14)
 	shape.shape = rect
 	add_child(shape)
+	# Design polish (user request): rounded corners + a left content margin
+	# reserved for the tier-colored spine + perforation dots below, so the
+	# whole thing reads as a torn ticket stub instead of a plain text box.
+	var style := UIKit.panel_style(Color(0.04, 0.06, 0.09, 0.9), Color.WHITE)
+	style.set_corner_radius_all(3)
+	style.content_margin_left = 9
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override(
-			&"panel", UIKit.panel_style(Color(0.04, 0.06, 0.09, 0.9), Color.WHITE))
+	panel.add_theme_stylebox_override(&"panel", style)
 	_label = UIKit.caption("", 7, UIKit.WHITE)
 	_label.custom_minimum_size = Vector2(76, 12)
 	panel.add_child(_label)
 	panel.position = Vector2(-40, -7)
+	_build_ticket_stub(panel.position)
+	_build_shield()
 	add_child(panel)
+
+
+## The spine (tier-colored, recolored in setup()) + a column of small
+## perforation dots — both children of self (an Area2D/Node2D), not of
+## panel (a Container), so their direct .position/.size writes are safe
+## (same convention documented elsewhere: a Container's child can't be
+## positioned by hand without it getting silently overwritten).
+func _build_ticket_stub(panel_pos: Vector2) -> void:
+	_accent_bar = ColorRect.new()
+	_accent_bar.position = panel_pos
+	_accent_bar.size = Vector2(3, 14)
+	add_child(_accent_bar)
+	for i in 3:
+		var dot := ColorRect.new()
+		dot.color = Color(1.0, 1.0, 1.0, 0.35)
+		dot.size = Vector2(1, 2)
+		dot.position = panel_pos + Vector2(6, 2 + i * 4)
+		add_child(dot)
+
+
+## A shimmering barrier overlay shown only during the boss's invulnerable
+## windows (design polish, user request) — previously just a label/color
+## change with nothing actually visible protecting it.
+func _build_shield() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.6, 0.9, 1.0, 0.25)
+	style.border_color = Color(0.6, 0.9, 1.0, 0.85)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	_shield = Panel.new()
+	_shield.add_theme_stylebox_override(&"panel", style)
+	_shield.position = Vector2(-46, -12)
+	_shield.size = Vector2(92, 24)
+	_shield.visible = false
+	add_child(_shield)
+	var pulse := create_tween().set_loops()
+	pulse.tween_property(_shield, "modulate:a", 0.5, 0.3).set_trans(Tween.TRANS_SINE)
+	pulse.tween_property(_shield, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_SINE)
 
 
 ## Must be called AFTER add_child (mirrors Projectile.launch — _ready()
@@ -77,6 +129,7 @@ func setup(p_tier: Tier, p_text: String, start_pos: Vector2, zigzag: bool) -> vo
 	_zigzag = zigzag
 	_label.text = text
 	_label.add_theme_color_override(&"font_color", TIER_COLOR[tier])
+	_accent_bar.color = TIER_COLOR[tier]
 
 
 ## The mini-boss reuses this class (same visual language) instead of a
@@ -98,6 +151,7 @@ func _physics_process(delta: float) -> void:
 		_label.text = BOSS_TEXT if invulnerable else text
 		_label.add_theme_color_override(
 				&"font_color", UIKit.GRAY if invulnerable else TIER_COLOR[tier])
+		_shield.visible = invulnerable
 		var half_w: float = _boss_bounds.size.x / 2.0 - 50.0
 		global_position.x = _boss_bounds.position.x + _boss_bounds.size.x / 2.0 \
 				+ sin(_t * 0.8) * half_w
@@ -132,6 +186,8 @@ func hit(damage: int) -> void:
 		queue_free()
 	else:
 		AudioManager.play_sfx("enemy_hurt", true, true)
+		if is_boss:
+			hurt.emit()
 
 
 func _burst(color: Color) -> void:

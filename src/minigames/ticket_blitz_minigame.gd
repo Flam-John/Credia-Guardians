@@ -212,6 +212,7 @@ func _start_boss() -> void:
 	boss.make_boss(_bounds)
 	boss.bottom_y = 1.0e6 # the boss never "reaches the bottom"
 	boss.died.connect(_on_boss_died)
+	boss.hurt.connect(_on_boss_hurt)
 	_tickets.append(boss)
 
 
@@ -317,6 +318,17 @@ func _on_ticket_gone(_ticket: TicketBlitzTicket) -> void:
 func _on_boss_died(_ticket: TicketBlitzTicket, score: int) -> void:
 	_score_bonus += score
 	_win()
+
+
+## A small screen micro-shake on a boss hit (design polish, user request) —
+## shakes _root's own position, not a real Camera2D (this is a CanvasLayer
+## overlay, not the actual game camera).
+func _on_boss_hurt() -> void:
+	var original := _root.position
+	var tween := create_tween()
+	tween.tween_property(_root, "position", original + Vector2(3, 0), 0.03)
+	tween.tween_property(_root, "position", original + Vector2(-3, 0), 0.03)
+	tween.tween_property(_root, "position", original, 0.03)
 
 
 func _win() -> void:
