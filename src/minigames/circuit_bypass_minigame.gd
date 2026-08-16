@@ -134,7 +134,25 @@ func _ready() -> void:
 	_start_board(0)
 
 
+## A sparse, dim dot grid behind everything else (design polish, user
+## request: "make it look more like a real minigame") — reads as a faint
+## circuit-board texture without needing an actual imported background
+## asset. Static: computed once from _root.size (already a direct
+## assignment by this point, not a Container-settled value, so no
+## settling-frame concern), never touched again by board rebuilds.
+func _build_background_texture() -> void:
+	var spacing := 40.0
+	for gy in int(_root.size.y / spacing):
+		for gx in int(_root.size.x / spacing):
+			var dot := ColorRect.new()
+			dot.color = Color(0.1, 0.35, 0.35, 0.25)
+			dot.size = Vector2(2, 2)
+			dot.position = Vector2(gx * spacing + 10, gy * spacing + 10)
+			_root.add_child(dot)
+
+
 func _build_ui() -> void:
+	_build_background_texture()
 	var top := UIKit.title("CIRCUIT BYPASS", 16)
 	top.position = Vector2(12, 6)
 	_root.add_child(top)
@@ -277,6 +295,15 @@ func _build_board_ui() -> void:
 	_refresh_board()
 
 
+## A rounded StyleBoxFlat is what actually gives the "pipe" look (design
+## polish, user request) — a plain ColorRect can't round its corners at all.
+func _pipe_style(color: Color, radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.set_corner_radius_all(radius)
+	return style
+
+
 ## Nubs are siblings of the cell Panel under _root, positioned by absolute
 ## math from the cell's own position — NOT children of the Panel, which
 ## would make them Container-style-managed if the cell were ever changed
@@ -293,15 +320,18 @@ func _build_nubs(cell_pos: Vector2) -> Dictionary:
 		"W": [Vector2(-6, mid - 3), Vector2(10, 6)],
 	}
 	for key in specs:
-		var rect := ColorRect.new()
-		rect.position = cell_pos + specs[key][0]
-		rect.size = specs[key][1]
-		rect.visible = false
-		_root.add_child(rect)
-		nubs[key] = rect
-	var core := ColorRect.new()
+		var panel := Panel.new()
+		panel.position = cell_pos + specs[key][0]
+		panel.size = specs[key][1]
+		panel.visible = false
+		panel.add_theme_stylebox_override(&"panel", _pipe_style(UIKit.CYAN, 3))
+		_root.add_child(panel)
+		nubs[key] = panel
+	var core := Panel.new()
 	core.position = cell_pos + Vector2(mid - 6, mid - 6)
 	core.size = Vector2(12, 12)
+	core.pivot_offset = Vector2(6, 6)
+	core.add_theme_stylebox_override(&"panel", _pipe_style(UIKit.CYAN, 6))
 	_root.add_child(core)
 	nubs["core"] = core
 	return nubs
@@ -332,10 +362,10 @@ func _refresh_board() -> void:
 				var color := UIKit.GREEN if solved else UIKit.CYAN
 				var nubs: Dictionary = _nub_rects[idx]
 				for dir in DIR_BIT:
-					var rect: ColorRect = nubs[dir]
-					rect.visible = (mask & DIR_BIT[dir]) != 0
-					rect.color = color
-				(nubs["core"] as ColorRect).color = color
+					var panel: Panel = nubs[dir]
+					panel.visible = (mask & DIR_BIT[dir]) != 0
+					panel.add_theme_stylebox_override(&"panel", _pipe_style(color, 3))
+				(nubs["core"] as Panel).add_theme_stylebox_override(&"panel", _pipe_style(color, 6))
 
 
 ## -- input / gameplay loop -------------------------------------------------
@@ -400,9 +430,21 @@ func _try_rotate(player_index: int) -> void:
 	var ti: int = _tile_index_at[pos]
 	_rotation[ti] = (_rotation[ti] + 1) % 4
 	AudioManager.play_sfx("menu_select", true, true)
+	_bounce_core(idx)
 	_refresh_board()
 	if _is_board_solved():
 		_complete_board(true)
+
+
+## A quick scale "click" on the tile's own hub (design polish, user
+## request) — only the core, not the nubs or the cell panel, so there's no
+## risk of a rotated background box visually disagreeing with its own
+## (separately positioned, axis-aligned) nub siblings.
+func _bounce_core(idx: int) -> void:
+	var core := _nub_rects[idx]["core"] as Panel
+	core.scale = Vector2(1.4, 1.4)
+	create_tween().tween_property(core, "scale", Vector2.ONE, 0.12) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _is_board_solved() -> bool:
@@ -455,10 +497,46 @@ func _lose_a_life() -> void:
 func _win() -> void:
 	_won = true
 	_board_label.text = "CIRCUIT RESTORED"
+	_play_energy_flow()
+	_flash_target_label()
 	var lives_lost := MAX_LIVES - _lives_remaining
 	var bonus := maxi(0, BASE_BONUS + _score_bonus - lives_lost * LIFE_LOST_PENALTY)
 	await get_tree().create_timer(0.9).timeout
 	finished.emit(true, bonus)
+
+
+## A small pulse travels source -> every path tile's center -> target on
+## the winning solve (design polish, user request) — fires only from _win(),
+## never from an intermediate board's solve, specifically so it can't get
+## caught mid-flight by _start_board()'s grid rebuild the way it would if
+## it played on every board (this class of instance still queue_frees
+## itself fine even if the CanvasLayer is torn down first, same as any
+## other one-shot decorative node in this codebase).
+func _play_energy_flow() -> void:
+	var origin_x := (_root.size.x - _cols * (CELL_SIZE + CELL_GAP)) / 2.0
+	var pulse := Panel.new()
+	pulse.size = Vector2(10, 10)
+	pulse.add_theme_stylebox_override(&"panel", _pipe_style(UIKit.GREEN, 5))
+	_root.add_child(pulse)
+	var waypoints: Array[Vector2] = [_source_label.position + Vector2(20, 3)]
+	for p in _path:
+		waypoints.append(Vector2(
+				origin_x + p.x * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0 - 5,
+				GRID_TOP + p.y * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2.0 - 5))
+	waypoints.append(_target_label.position)
+	pulse.position = waypoints[0]
+	var tween := create_tween()
+	for i in range(1, waypoints.size()):
+		tween.tween_property(pulse, "position", waypoints[i], 0.08)
+	tween.tween_callback(pulse.queue_free)
+
+
+func _flash_target_label() -> void:
+	_target_label.add_theme_color_override(&"font_color", UIKit.GREEN)
+	_target_label.pivot_offset = _target_label.size / 2.0
+	_target_label.scale = Vector2(1.6, 1.6)
+	create_tween().tween_property(_target_label, "scale", Vector2.ONE, 0.25) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 ## MAX_LIVES exhausted — a hard fail, same outcome contract as an explicit

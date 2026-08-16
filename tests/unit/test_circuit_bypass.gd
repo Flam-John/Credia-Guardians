@@ -40,6 +40,32 @@ func _assert_fits(node: Node, vp_size: Vector2) -> void:
 		_assert_fits(child, vp_size)
 
 
+# -- design-polish wiring (pipe nubs, energy flow) -------------------------------------
+
+func test_nub_panels_use_a_rounded_stylebox() -> void:
+	var m := _make()
+	m._start_board(0)
+	var pos: Vector2i = m._path[0]
+	var idx := pos.y * m._cols + pos.x
+	var core := m._nub_rects[idx]["core"] as Panel
+	var style := core.get_theme_stylebox(&"panel") as StyleBoxFlat
+	assert_not_null(style, "the core hub must have a stylebox (the rounded-pipe look)")
+	assert_gt(style.corner_radius_top_left, 0, "the hub must actually be rounded, not a square")
+
+
+## _play_energy_flow() only runs from _win() (never an intermediate board's
+## solve — see its own doc comment on why) and must not error even though it
+## reads _source_label/_target_label/_path belonging to whatever board was
+## on screen at that exact moment.
+func test_energy_flow_plays_without_error_on_win() -> void:
+	var m := _make()
+	m._board = CircuitBypassMinigame.BOARD_COUNT - 1
+	m._start_board(m._board)
+	m._play_energy_flow()
+	await wait_process_frames(1)
+	assert_true(true, "must reach here without a script error")
+
+
 # -- bit-rotation math ----------------------------------------------------------------
 
 func test_rotating_a_straight_mask_90_degrees_swaps_axis() -> void:
