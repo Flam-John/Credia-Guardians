@@ -258,6 +258,17 @@ func _build_board_ui() -> void:
 		if is_instance_valid(c):
 			c.queue_free()
 	_cells.clear()
+	# Bug fix: _nub_rects.clear() alone only drops the TRACKING array — the
+	# actual nub/core Panel nodes it references stay alive as orphaned
+	# children of _root forever, since nothing else ever frees them. Every
+	# previous board's wires kept accumulating on screen (most visible after
+	# a life-loss restart, since a differently-sized earlier board's leaked
+	# wires render scattered outside the new, differently-positioned grid).
+	for nubs in _nub_rects:
+		for key in nubs:
+			var p: Panel = nubs[key]
+			if is_instance_valid(p):
+				p.queue_free()
 	_nub_rects.clear()
 	if is_instance_valid(_source_label):
 		_source_label.queue_free()

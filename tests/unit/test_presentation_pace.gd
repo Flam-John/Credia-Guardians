@@ -46,6 +46,23 @@ func _assert_fits(node: Node, vp_size: Vector2) -> void:
 
 # -- design-polish wiring (audience dots, transition) --------------------------------
 
+## Bug fix (user report, with a screenshot): the dots row used to sit at a
+## hand-guessed fixed x=255 that overlapped the tail of "INTEREST: 30%" at
+## this font size — measure the label's REAL rendered width instead and
+## check the dots always start strictly after it, at the widest possible
+## text ("INTEREST: 100%", the longest the label can ever render).
+func test_audience_dots_never_overlap_the_interest_label() -> void:
+	var m := _make()
+	m._interest = 100.0
+	m._update_interest_label()
+	var font := m._interest_label.get_theme_default_font()
+	var text_end := m._interest_label.position.x + font.get_string_size(
+			m._interest_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			PresentationPaceMinigame.INTEREST_LABEL_FONT_SIZE).x
+	assert_gt(m._audience_row.position.x, text_end,
+			"the dots row must start after the interest label's real rendered width")
+
+
 func test_audience_dots_light_up_proportionally_to_interest() -> void:
 	var m := _make()
 	assert_eq(m._audience_dots.size(), PresentationPaceMinigame.AUDIENCE_DOT_COUNT)

@@ -51,6 +51,18 @@ func _physics_process(delta: float) -> void:
 ## same one-shot fire-and-forget pattern as TicketBlitzTicket._burst, just
 ## a plain fading ColorRect instead of particles (a bullet's own trail is a
 ## smear, not a burst).
+##
+## Bug fix: the fade tween used to be created via this bullet's own
+## create_tween() (i.e. bound to self) — but a bullet is almost always
+## freed the very next tick (on hitting a ticket, or leaving bounds), and
+## while the whole stage is paused (which it is for this entire minigame),
+## a Tween bound to a node that gets freed mid-animation can lose track of
+## whether it's still allowed to keep running and freeze instead of
+## finishing — leaving that one ghost stuck fully visible forever, which
+## piles up over a wave into exactly the litter of frozen bars this was
+## reported as. Binding the tween to the ghost ITSELF instead fixes this:
+## the ghost only needs to survive its own 0.15s fade and nothing else
+## ever frees it early.
 func _spawn_trail_ghost() -> void:
 	var parent := get_parent()
 	if parent == null:
@@ -60,7 +72,7 @@ func _spawn_trail_ghost() -> void:
 	ghost.size = _visual.size * 0.7
 	ghost.position = global_position - ghost.size / 2.0
 	parent.add_child(ghost)
-	var tween := create_tween()
+	var tween := ghost.create_tween()
 	tween.tween_property(ghost, "modulate:a", 0.0, 0.15)
 	tween.tween_callback(ghost.queue_free)
 

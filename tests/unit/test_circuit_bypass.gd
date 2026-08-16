@@ -42,6 +42,26 @@ func _assert_fits(node: Node, vp_size: Vector2) -> void:
 
 # -- design-polish wiring (pipe nubs, energy flow) -------------------------------------
 
+## Bug fix (user report, with a screenshot): _nub_rects.clear() only
+## dropped the TRACKING array, never the actual nub/core Panel nodes —
+## every previous board's wires stayed alive as orphaned children of _root
+## forever, most visible after a life-lost restart (a differently-sized
+## earlier board's leaked wires render scattered outside the new grid).
+func test_rebuilding_a_board_frees_the_previous_boards_wire_nubs() -> void:
+	var m := _make()
+	m._start_board(0)
+	var old_panels: Array = []
+	for nubs in m._nub_rects:
+		for key in nubs:
+			old_panels.append(nubs[key])
+	assert_gt(old_panels.size(), 0, "board 0 must have built at least one wire tile")
+	m._start_board(1)
+	await wait_process_frames(1) # queue_free() only takes effect end-of-frame
+	for p in old_panels:
+		assert_false(is_instance_valid(p),
+				"board 0's wire nubs must not survive rebuilding into board 1")
+
+
 func test_nub_panels_use_a_rounded_stylebox() -> void:
 	var m := _make()
 	m._start_board(0)

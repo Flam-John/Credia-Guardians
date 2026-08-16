@@ -127,6 +127,46 @@ func test_bullet_outside_bounds_despawns() -> void:
 	assert_true(bullet.is_queued_for_deletion())
 
 
+## Bug fix (user report, with a screenshot: bullets/trails frozen in the
+## air): the trail ghost's fade tween used to be bound to the BULLET
+## itself, but a bullet is almost always freed the very next tick — while
+## the whole stage is paused (as it is for this entire minigame), a Tween
+## bound to a node that dies mid-animation can lose track of whether it's
+## still allowed to keep running and freeze instead of finishing, leaving
+## that ghost stuck fully visible forever. Drives the REAL paused-tree
+## conditions (same technique as the other genuinely-paused test in this
+## file) rather than the directly-testable seam, since the bug is
+## specifically about that pause boundary.
+func test_trail_ghost_still_fades_out_after_its_bullet_is_freed_while_paused() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	var bullet := TicketBlitzBullet.new()
+	bullet.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child_autofree(bullet)
+	bullet.launch(Vector2.ZERO, Vector2.ZERO, 1, Color.CYAN, Rect2(-500, -500, 1000, 1000))
+	await wait_physics_frames(2)
+	get_tree().paused = true
+
+	bullet._spawn_trail_ghost()
+	var ghost: ColorRect = null
+	for c in get_children():
+		if c is ColorRect:
+			ghost = c
+	assert_not_null(ghost, "the trail ghost must have been spawned as a sibling of the bullet")
+
+	bullet.queue_free()
+	await wait_physics_frames(1) # let the bullet's own queue_free() actually take effect
+	assert_false(is_instance_valid(bullet))
+
+	for i in 20:
+		await wait_physics_frames(1)
+		if not is_instance_valid(ghost):
+			break
+	assert_false(is_instance_valid(ghost),
+			"the ghost's own fade tween must still complete and free it, even paused, even after its spawning bullet is gone")
+
+	get_tree().paused = false
+
+
 # -- TicketBlitzShip -----------------------------------------------------------------
 
 func _make_ship(player_index := 0, stats := CHRIS) -> TicketBlitzShip:

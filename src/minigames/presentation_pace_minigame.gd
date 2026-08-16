@@ -59,6 +59,8 @@ const SLIDES: Array[Dictionary] = [
 
 const TRACK_POS := Vector2(60, 150)
 const TRACK_SIZE := Vector2(360, 14)
+const INTEREST_LABEL_FONT_SIZE := 9
+const INTEREST_LABEL_POS := Vector2(200, 22)
 
 ## A static decorative rect the slide panel sits inside — generous margin
 ## around the panel's own (dynamically auto-fit) bounds rather than trying
@@ -89,6 +91,7 @@ var _marker_rect: ColorRect
 var _marker_glow: ColorRect
 var _slide_panel: PanelContainer
 var _audience_dots: Array[ColorRect] = []
+var _audience_row: HBoxContainer
 
 
 func _ready() -> void:
@@ -125,8 +128,8 @@ func _build_ui() -> void:
 	_hits_label.position = Vector2(12, 22)
 	_root.add_child(_hits_label)
 
-	_interest_label = UIKit.caption("", 9, UIKit.GOLD)
-	_interest_label.position = Vector2(200, 22)
+	_interest_label = UIKit.caption("", INTEREST_LABEL_FONT_SIZE, UIKit.GOLD)
+	_interest_label.position = INTEREST_LABEL_POS
 	_root.add_child(_interest_label)
 	_build_audience_dots()
 	_update_interest_label()
@@ -206,17 +209,20 @@ func _build_projector_frame() -> void:
 ## A small VU-meter style row next to the INTEREST% label — how many dots
 ## are lit reflects the interest fraction at a glance, same idea as Code
 ## Review Rush's bug-found pips (plain ColorRects, no font-glyph risk).
+## Positioned dynamically in _update_interest_label() (bug fix: a fixed
+## x=255 guess overlapped the label's own text — "INTEREST: 30%" already
+## renders past that at this font size, so the dots drew on top of it)
+## rather than a hand-guessed offset.
 func _build_audience_dots() -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override(&"separation", 3)
-	row.position = Vector2(255, 23)
+	_audience_row = HBoxContainer.new()
+	_audience_row.add_theme_constant_override(&"separation", 3)
 	for i in AUDIENCE_DOT_COUNT:
 		var dot := ColorRect.new()
 		dot.custom_minimum_size = Vector2(6, 6)
 		dot.color = UIKit.GRAY
-		row.add_child(dot)
+		_audience_row.add_child(dot)
 		_audience_dots.append(dot)
-	_root.add_child(row)
+	_root.add_child(_audience_row)
 
 
 ## The presenting character(s)' own idle animation (already-animated
@@ -255,8 +261,19 @@ func _refresh_slide_labels() -> void:
 	_zone_rect.size.x = (window.y - window.x) * TRACK_SIZE.x
 
 
+## Bug fix: the audience dots row used to sit at a hand-guessed fixed x
+## that overlapped the INTEREST label's own text at this font size — measure
+## the label's REAL rendered width (Font.get_string_size(), the same
+## technique this codebase already uses elsewhere for exactly this reason,
+## e.g. CodeReviewMinigame's terminal width budget) and place the dots
+## after it every time the text changes, so it's correct for any value.
 func _update_interest_label() -> void:
 	_interest_label.text = "INTEREST: %d%%" % int(_interest)
+	var font := _interest_label.get_theme_default_font()
+	var text_width := font.get_string_size(_interest_label.text, HORIZONTAL_ALIGNMENT_LEFT,
+			-1, INTEREST_LABEL_FONT_SIZE).x
+	_audience_row.position = INTEREST_LABEL_POS + Vector2(text_width + 10.0, 1.0)
+
 	var lit := int(round(_interest / 100.0 * AUDIENCE_DOT_COUNT))
 	var color := UIKit.GREEN if _interest >= 66.0 else (UIKit.GOLD if _interest >= 33.0 else UIKit.RED)
 	for i in _audience_dots.size():
