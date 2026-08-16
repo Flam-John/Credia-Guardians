@@ -60,6 +60,16 @@ const SLIDES: Array[Dictionary] = [
 const TRACK_POS := Vector2(60, 150)
 const TRACK_SIZE := Vector2(360, 14)
 
+## A static decorative rect the slide panel sits inside — generous margin
+## around the panel's own (dynamically auto-fit) bounds rather than trying
+## to hug its exact settled size, so the corner brackets never depend on a
+## Container's own layout pass finishing first (design polish, user request:
+## "make it look more like a real minigame" — a projector-frame look).
+const FRAME_RECT := Rect2(56, 34, 340, 92)
+const BRACKET_LEN := 10.0
+
+const AUDIENCE_DOT_COUNT := 5
+
 var _slide_index := 0
 var _slide_timer := 0.0
 var _strikes := 0
@@ -76,6 +86,9 @@ var _title_label: Label
 var _body_label: Label
 var _zone_rect: ColorRect
 var _marker_rect: ColorRect
+var _marker_glow: ColorRect
+var _slide_panel: PanelContainer
+var _audience_dots: Array[ColorRect] = []
 
 
 func _ready() -> void:
@@ -115,7 +128,10 @@ func _build_ui() -> void:
 	_interest_label = UIKit.caption("", 9, UIKit.GOLD)
 	_interest_label.position = Vector2(200, 22)
 	_root.add_child(_interest_label)
+	_build_audience_dots()
 	_update_interest_label()
+
+	_build_projector_frame()
 
 	var column := VBoxContainer.new()
 	_title_label = UIKit.caption("", 12, UIKit.GOLD)
@@ -123,9 +139,9 @@ func _build_ui() -> void:
 	_body_label.custom_minimum_size = Vector2(300, 32)
 	column.add_child(_title_label)
 	column.add_child(_body_label)
-	var panel := UIKit.framed_panel(column)
-	panel.position = Vector2(66, 44)
-	_root.add_child(panel)
+	_slide_panel = UIKit.framed_panel(column)
+	_slide_panel.position = Vector2(66, 44)
+	_root.add_child(_slide_panel)
 
 	var track := ColorRect.new()
 	track.color = Color(0.05, 0.08, 0.12)
@@ -138,6 +154,18 @@ func _build_ui() -> void:
 	_zone_rect.position = TRACK_POS
 	_zone_rect.size = Vector2(0, TRACK_SIZE.y)
 	_root.add_child(_zone_rect)
+	# A gentle pulse draws the eye to the sweet-spot zone (design polish,
+	# user request) — alpha only, never touches .size/.position, so it
+	# can't fight _refresh_slide_labels()'s own per-slide zone resizing.
+	var zone_pulse := create_tween().set_loops()
+	zone_pulse.tween_property(_zone_rect, "modulate:a", 0.65, 0.5).set_trans(Tween.TRANS_SINE)
+	zone_pulse.tween_property(_zone_rect, "modulate:a", 1.0, 0.5).set_trans(Tween.TRANS_SINE)
+
+	_marker_glow = ColorRect.new()
+	_marker_glow.color = Color(UIKit.GOLD, 0.35)
+	_marker_glow.size = Vector2(11, TRACK_SIZE.y + 10)
+	_marker_glow.position = TRACK_POS + Vector2(0, -5)
+	_root.add_child(_marker_glow)
 
 	_marker_rect = ColorRect.new()
 	_marker_rect.color = UIKit.GOLD
@@ -148,6 +176,73 @@ func _build_ui() -> void:
 	var hint := UIKit.caption("HOLD THE ROOM — PRESS ABILITY IN THE GREEN ZONE", 8, UIKit.GRAY)
 	hint.position = Vector2(60, 170)
 	_root.add_child(hint)
+
+	_build_presenter_portraits()
+
+
+## A generous static frame around the slide panel (see FRAME_RECT's own
+## comment on why it doesn't try to hug the panel's exact auto-fit size) —
+## just 4 corner brackets, cheap "projector screen" framing with zero new
+## art (design polish, user request).
+func _build_projector_frame() -> void:
+	var corners := [FRAME_RECT.position, Vector2(FRAME_RECT.end.x, FRAME_RECT.position.y),
+			Vector2(FRAME_RECT.position.x, FRAME_RECT.end.y), FRAME_RECT.end]
+	for i in corners.size():
+		var corner: Vector2 = corners[i]
+		var right := i % 2 == 1 # corner is on the frame's right edge
+		var down := i >= 2 # corner is on the frame's bottom edge
+		var h := ColorRect.new()
+		h.color = UIKit.GOLD
+		h.size = Vector2(BRACKET_LEN, 2)
+		h.position = corner + Vector2(-BRACKET_LEN if right else 0, -1 if down else -1)
+		_root.add_child(h)
+		var v := ColorRect.new()
+		v.color = UIKit.GOLD
+		v.size = Vector2(2, BRACKET_LEN)
+		v.position = corner + Vector2(-1, -BRACKET_LEN if down else 0)
+		_root.add_child(v)
+
+
+## A small VU-meter style row next to the INTEREST% label — how many dots
+## are lit reflects the interest fraction at a glance, same idea as Code
+## Review Rush's bug-found pips (plain ColorRects, no font-glyph risk).
+func _build_audience_dots() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override(&"separation", 3)
+	row.position = Vector2(255, 23)
+	for i in AUDIENCE_DOT_COUNT:
+		var dot := ColorRect.new()
+		dot.custom_minimum_size = Vector2(6, 6)
+		dot.color = UIKit.GRAY
+		row.add_child(dot)
+		_audience_dots.append(dot)
+	_root.add_child(row)
+
+
+## The presenting character(s)' own idle animation (already-animated
+## sprite frames, unlike Zaf's single static portrait in Code Review Rush)
+## grounds the minigame in "Chris/Flam are the ones up there talking"
+## (design polish, user request) — same technique as CodeReviewMinigame's
+## _build_player_portraits.
+func _build_presenter_portraits() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override(&"separation", 16)
+	var chars: Array[StringName] = [GameManager.character]
+	if GameManager.is_coop():
+		chars.append(GameManager.character2)
+	for char_id in chars:
+		var stats := GameManager.character_stats(char_id)
+		var sprite := AnimatedSprite2D.new()
+		sprite.sprite_frames = SpriteFramesBuilder.build_player_frames(stats.sheet)
+		sprite.play(&"idle")
+		sprite.scale = Vector2(1.3, 1.3)
+		var holder := Control.new()
+		holder.custom_minimum_size = Vector2(40, 40)
+		sprite.position = Vector2(20, 34)
+		holder.add_child(sprite)
+		row.add_child(holder)
+	row.position = Vector2(200, 186)
+	_root.add_child(row)
 
 
 func _refresh_slide_labels() -> void:
@@ -162,6 +257,10 @@ func _refresh_slide_labels() -> void:
 
 func _update_interest_label() -> void:
 	_interest_label.text = "INTEREST: %d%%" % int(_interest)
+	var lit := int(round(_interest / 100.0 * AUDIENCE_DOT_COUNT))
+	var color := UIKit.GREEN if _interest >= 66.0 else (UIKit.GOLD if _interest >= 33.0 else UIKit.RED)
+	for i in _audience_dots.size():
+		_audience_dots[i].color = color if i < lit else UIKit.GRAY
 
 
 func _process(delta: float) -> void:
@@ -184,6 +283,7 @@ func _process(delta: float) -> void:
 
 func _update_pace_marker(progress: float) -> void:
 	_marker_rect.position.x = TRACK_POS.x + progress * TRACK_SIZE.x - _marker_rect.size.x / 2.0
+	_marker_glow.position.x = TRACK_POS.x + progress * TRACK_SIZE.x - _marker_glow.size.x / 2.0
 
 
 func _is_on_time(progress: float, window: Vector2) -> bool:
@@ -221,7 +321,25 @@ func _resolve_advance(on_time: bool) -> void:
 		_win()
 	else:
 		_slide_timer = 0.0
-		_refresh_slide_labels()
+		_transition_to_next_slide()
+
+
+## A quick fade-in instead of an instant text swap (design polish, user
+## request) — _refresh_slide_labels() runs SYNCHRONOUSLY first, exactly
+## like before this polish pass; only the cosmetic fade is deferred to a
+## tween. A first attempt deferred the label refresh itself into a
+## tween_callback, which reads _slide_index at CALLBACK time rather than
+## call time — existing tests (and nothing stops real code either) can call
+## _resolve_advance() multiple times before a single frame elapses, so
+## several stale queued callbacks would all fire later against whatever
+## _slide_index had since become (including past the end of SLIDES, once a
+## run had already advanced to _win()) — an out-of-bounds crash. Keeping
+## the refresh synchronous and the tween purely cosmetic (touches only
+## modulate:a, never SLIDES/game state) closes that off entirely.
+func _transition_to_next_slide() -> void:
+	_refresh_slide_labels()
+	_slide_panel.modulate.a = 0.0
+	create_tween().tween_property(_slide_panel, "modulate:a", 1.0, 0.15)
 
 
 ## Guarded against being called again once the run has already ended —

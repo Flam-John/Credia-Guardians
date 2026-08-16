@@ -44,7 +44,36 @@ func _assert_fits(node: Node, vp_size: Vector2) -> void:
 		_assert_fits(child, vp_size)
 
 
-# -- slide data sanity --------------------------------------------------------------
+# -- design-polish wiring (audience dots, transition) --------------------------------
+
+func test_audience_dots_light_up_proportionally_to_interest() -> void:
+	var m := _make()
+	assert_eq(m._audience_dots.size(), PresentationPaceMinigame.AUDIENCE_DOT_COUNT)
+	m._interest = 100.0
+	m._update_interest_label()
+	for dot in m._audience_dots:
+		assert_ne((dot as ColorRect).color, UIKit.GRAY, "full interest must light every dot")
+	m._interest = 0.0
+	m._update_interest_label()
+	for dot in m._audience_dots:
+		assert_eq((dot as ColorRect).color, UIKit.GRAY, "zero interest must light no dots")
+
+
+## Regression: a first attempt at the slide fade-in deferred the actual
+## label refresh into a tween_callback, which reads _slide_index at
+## CALLBACK time rather than call time. Calling _resolve_advance()
+## repeatedly with no frame in between (exactly what this test itself
+## does) left multiple stale queued callbacks that all fired later against
+## whatever _slide_index had since become — including past the end of
+## SLIDES once the run had already won — an out-of-bounds crash. The fix
+## keeps _refresh_slide_labels() synchronous and makes the tween purely
+## cosmetic; this test is the actual guard against that regression.
+func test_repeated_advances_with_no_frame_between_them_do_not_crash() -> void:
+	var m := _make()
+	for i in PresentationPaceMinigame.SLIDES.size():
+		m._resolve_advance(true)
+	await wait_seconds(1.1) # let any queued tweens/timers actually flush
+	assert_true(m._won)
 
 func test_every_slide_has_real_content_and_a_valid_window() -> void:
 	for slide in PresentationPaceMinigame.SLIDES:
