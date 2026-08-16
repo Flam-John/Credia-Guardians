@@ -22,4 +22,9 @@ func _ready() -> void:
 	super._ready()
 	if GameManager.pending_zaf_intro:
 		GameManager.pending_zaf_intro = false
-		add_child(ZafGhostIntro.new())
+		var ghost := ZafGhostIntro.new()
+		# A step to the right of the player's own spawn point (user request:
+		# he should be "stepping in the map" standing next to you, not on
+		# top of you) — only stage_1.gd knows where that actually is.
+		ghost.world_position = respawner.spawn_point + Vector2(28, 0)
+		add_child(ghost)

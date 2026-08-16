@@ -10,6 +10,34 @@ extends CanvasLayer
 ## stage, we just pause it while he talks (same mechanism MinigameLauncher
 ## already uses to freeze gameplay under a full-screen overlay) and unpause
 ## when he's done.
+##
+## His CHARACTER is a real world-space Sprite2D (user request: he should be
+## "stepping in the map" at player size, not a giant screen-space portrait)
+## added as a sibling of the player/enemies under the stage, positioned at
+## `world_position` (set by stage_1.gd before add_child, since only the
+## caller knows where the player actually spawned). Only the dialogue
+## TEXT BOX stays a fixed screen-space CanvasLayer panel — a separate
+## "dialogue box" area is a normal convention and doesn't need to track
+## wherever the camera happens to frame his character on screen.
+##
+## Bug fix (user report: an enemy kept moving and hit the player while Zaf
+## was talking): SceneManager.change_scene() unconditionally sets
+## get_tree().paused = false right after instantiating the new scene —
+## and stage_1.gd's _ready() (which spawns this node and used to pause
+## immediately) runs SYNCHRONOUSLY as part of that very same instantiation,
+## meaning the pause was set and then immediately stomped by SceneManager
+## a line later, before the fade-in even finished. Gate minigames never hit
+## this because they always pause well after any scene transition has
+## settled — this is the first thing in the project that pauses DURING one.
+## Fixed two ways, matching how MinigameLauncher already defends itself
+## twice for the same class of reason: (1) the actual get_tree().paused=true
+## is deferred one process_frame, guaranteeing it runs after SceneManager's
+## own reset so it actually sticks; (2) belt-and-suspenders, every live
+## Player (Player.alive, the same static list MinigameLauncher itself
+## reads) and every EnemyBase in the stage gets explicitly frozen
+## (set_physics_process(false)) the INSTANT this node exists, independent
+## of the global pause flag entirely — closing the gap regardless of any
+## timing race, restored in _finish().
 
 signal finished # tests listen here
 
@@ -21,18 +49,26 @@ const TICK := 0.11
 ## A hologram tint + translucency (design polish, user request: he should
 ## read as "a clone/ghost", not a solid character standing there).
 const GHOST_MODULATE := Color(0.75, 1.0, 1.0, 0.8)
+## Fixed screen position for the dialogue box (see class doc: it no longer
+## tracks Zaf's on-screen position, which now depends on the camera).
+const PANEL_POS := Vector2(200, 60)
 
 enum Phase { ENTER, TALK, LEAVE }
+
+## Where Zaf's world-space character appears — set by stage_1.gd before
+## add_child() to a spot near the player's actual spawn point.
+var world_position := Vector2.ZERO
 
 var _pages: Array[String] = []
 var _index := 0
 var _phase := Phase.ENTER
 var _anim := 0
 var _finished := false
+var _frozen_enemies: Array[EnemyBase] = []
 
 var _root: Control
-var _sprite: TextureRect
-var _atlas: AtlasTexture
+var _world_holder: Node2D
+var _sprite: Sprite2D
 var _panel: Control
 var _text: Label
 var _sparks: CPUParticles2D
@@ -41,11 +77,7 @@ var _sparks: CPUParticles2D
 func _ready() -> void:
 	layer = MinigameLauncher.CANVAS_LAYER
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# Freeze the real stage (player, enemies, everything) while Zaf talks —
-	# same mechanism every gate minigame already uses, just without a
-	# teleport-out step: he's appearing NEXT TO the player, not taking them
-	# somewhere else.
-	get_tree().paused = true
+	_freeze_gameplay()
 
 	_pages = [
 		tr("ZAF_1"),
@@ -63,23 +95,84 @@ func _ready() -> void:
 	add_child(_root)
 	_root.size = _root.get_viewport().get_visible_rect().size
 
-	# Zaf, big, left of center — starts on the first materialize frame,
-	# tinted as a translucent hologram rather than solid.
-	_atlas = AtlasTexture.new()
-	_atlas.atlas = SHEET
-	_atlas.region = Rect2(0, 0, FRAME, FRAME)
-	_sprite = TextureRect.new()
-	_sprite.texture = _atlas
+	_build_world_sprite()
+	_build_panel()
+	_panel.visible = false # Zaf materializes first, then talks
+
+	var ticker := Timer.new()
+	ticker.wait_time = TICK
+	ticker.autostart = true
+	ticker.timeout.connect(_tick)
+	add_child(ticker)
+	# ui=true: the tree is genuinely paused (not routed through PauseMenu/
+	# EventBus.pause_toggled), and the gameplay sfx pool freezes with it —
+	# only the small ALWAYS-mode UI pool keeps playing through a direct
+	# get_tree().paused=true. Every gate minigame's own sfx calls already
+	# follow this same rule; missing it here would make Zaf's teleport-in/
+	# out sound silently never play.
+	AudioManager.play_sfx("ai_teleport", true, true)
+
+	# See the class doc comment: SceneManager.change_scene() unconditionally
+	# unpauses right after instantiating the new scene, which happens
+	# synchronously as part of THIS node's own creation — waiting one frame
+	# guarantees this runs after that reset, so it actually sticks.
+	await get_tree().process_frame
+	get_tree().paused = true
+
+
+## Explicit, synchronous, independent of the global pause flag entirely —
+## see the class doc comment for why relying on get_tree().paused alone
+## isn't enough here. Every Player (Player.alive) and every EnemyBase
+## currently in the stage stops processing the instant Zaf exists.
+func _freeze_gameplay() -> void:
+	for player in Player.alive:
+		if is_instance_valid(player):
+			player.set_physics_process(false)
+			player.set_process_unhandled_input(false)
+	var parent := get_parent()
+	if parent == null:
+		return
+	for child in parent.get_children():
+		if child is EnemyBase:
+			child.set_physics_process(false)
+			_frozen_enemies.append(child)
+
+
+func _unfreeze_gameplay() -> void:
+	for player in Player.alive:
+		if is_instance_valid(player):
+			player.set_physics_process(true)
+			player.set_process_unhandled_input(true)
+	for enemy in _frozen_enemies:
+		if is_instance_valid(enemy):
+			enemy.set_physics_process(true)
+	_frozen_enemies.clear()
+
+
+## A real world-space character (user request: "stepping in the map", at
+## player size — 32x32 native, confirmed to match the player's own
+## in-game rendering) instead of a giant screen-space portrait. Added as a
+## sibling of the player/enemies under the stage (this node's own parent),
+## NOT as a CanvasLayer child, so the camera frames him exactly where he
+## actually stands.
+func _build_world_sprite() -> void:
+	_world_holder = Node2D.new()
+	_world_holder.position = world_position
+	get_parent().add_child(_world_holder)
+
+	_sprite = Sprite2D.new()
+	_sprite.texture = SHEET
+	_sprite.region_enabled = true
+	_sprite.region_rect = Rect2(0, 0, FRAME, FRAME)
+	_sprite.centered = false
+	_sprite.position = Vector2(-FRAME / 2.0, -FRAME)
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_sprite.stretch_mode = TextureRect.STRETCH_SCALE
-	_sprite.size = Vector2(128, 128)
-	_sprite.position = Vector2(52, 70)
 	_sprite.modulate = GHOST_MODULATE
-	_root.add_child(_sprite)
+	_world_holder.add_child(_sprite)
 
 	# cyan code-sparks around the materialization point
 	_sparks = CPUParticles2D.new()
-	_sparks.position = _sprite.position + _sprite.size / 2.0
+	_sparks.position = Vector2(0, -FRAME / 2.0)
 	_sparks.amount = 40
 	_sparks.lifetime = 0.7
 	_sparks.one_shot = true
@@ -90,24 +183,8 @@ func _ready() -> void:
 	_sparks.initial_velocity_max = 90.0
 	_sparks.gravity = Vector2(0, 40)
 	_sparks.color = Color(0.09, 0.88, 0.88)
-	_root.add_child(_sparks)
+	_world_holder.add_child(_sparks)
 	_sparks.emitting = true
-
-	_build_panel()
-	_panel.visible = false # Zaf materializes first, then talks
-
-	var ticker := Timer.new()
-	ticker.wait_time = TICK
-	ticker.autostart = true
-	ticker.timeout.connect(_tick)
-	add_child(ticker)
-	# ui=true: the tree is genuinely paused above (not routed through
-	# PauseMenu/EventBus.pause_toggled), and the gameplay sfx pool freezes
-	# with it — only the small ALWAYS-mode UI pool keeps playing through a
-	# direct get_tree().paused=true. Every gate minigame's own sfx calls
-	# already follow this same rule; missing it here would make Zaf's
-	# teleport-in/out sound silently never play.
-	AudioManager.play_sfx("ai_teleport", true, true)
 
 
 func _build_panel() -> void:
@@ -129,7 +206,7 @@ func _build_panel() -> void:
 
 	# stacked, not side-by-side (see the original tutorial's own history:
 	# two UIKit.button()s at their standard 140px width don't fit next to
-	# each other beside Zaf's portrait on a 480px screen)
+	# each other on a 480px screen)
 	var column := UIKit.menu_column([
 		header,
 		_text,
@@ -138,15 +215,8 @@ func _build_panel() -> void:
 	])
 	var framed := UIKit.framed_panel(column)
 	_panel = framed
+	_panel.position = PANEL_POS
 	_root.add_child(_panel)
-	# center the framed panel in the space to the RIGHT of Zaf, sized
-	# after layout so it can never overflow the 480x270 screen regardless
-	# of locale (Greek strings run longer than English)
-	await get_tree().process_frame
-	var right_area_x := _sprite.position.x + _sprite.size.x
-	var available := _root.size.x - right_area_x
-	framed.position.x = right_area_x + (available - framed.size.x) / 2.0
-	framed.position.y = (_root.size.y - framed.size.y) / 2.0
 
 
 ## Controls page with the CURRENT key bindings (and P2's in co-op).
@@ -172,10 +242,10 @@ func _tick() -> void:
 				_panel.visible = true
 				UIKit.grab_first_focus(_panel)
 			else:
-				_atlas.region = Rect2(_anim * FRAME, 0, FRAME, FRAME)
+				_sprite.region_rect = Rect2(_anim * FRAME, 0, FRAME, FRAME)
 		Phase.TALK:
 			# talk loop while a page is up
-			_atlas.region = Rect2((_anim % 4) * FRAME, 2 * FRAME, FRAME, FRAME)
+			_sprite.region_rect = Rect2((_anim % 4) * FRAME, 2 * FRAME, FRAME, FRAME)
 			_anim += 1
 		Phase.LEAVE:
 			_anim -= 1
@@ -183,7 +253,7 @@ func _tick() -> void:
 				_sprite.visible = false
 				_finish()
 			else:
-				_atlas.region = Rect2(_anim * FRAME, 0, FRAME, FRAME)
+				_sprite.region_rect = Rect2(_anim * FRAME, 0, FRAME, FRAME)
 
 
 func _on_next() -> void:
@@ -212,6 +282,9 @@ func _finish() -> void:
 		return
 	_finished = true
 	get_tree().paused = false
+	_unfreeze_gameplay()
+	if is_instance_valid(_world_holder):
+		_world_holder.queue_free()
 	finished.emit()
 	queue_free()
 
