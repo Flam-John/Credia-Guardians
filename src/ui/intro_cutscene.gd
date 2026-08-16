@@ -26,9 +26,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	_index += 1
 	if _index >= PANELS.size():
 		set_process_unhandled_input(false) # no double-launch
-		# new runs (the only path through this intro) meet the boss first:
-		# Zaf's tutorial launches stage 1 when he leaves
-		SceneManager.change_scene("res://scenes/ui/zaf_tutorial.tscn")
+		# new runs (the only path through this intro) meet Zaf as an
+		# in-game ghost overlay right after stage 1 loads (user request:
+		# "more in-game" instead of a separate tutorial scene) — arm the
+		# one-shot flag stage_1.gd consumes, then launch straight in.
+		GameManager.pending_zaf_intro = true
+		GameManager.launch_stage(1, GameManager.character, GameManager.character2)
 	else:
 		_label.text = tr(PANELS[_index])
 		_label.modulate.a = 0.0

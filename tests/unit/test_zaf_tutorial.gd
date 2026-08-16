@@ -1,10 +1,8 @@
 extends GutTest
-## Zaf's post-intro tutorial: materialize -> talk (NEXT/SKIP) -> dissolve,
-## then launches stage 1. Ticks are driven directly (not via the real
-## Timer) so the test doesn't depend on wall-clock idle time.
-
-const SCENE := preload("res://scenes/ui/zaf_tutorial.tscn")
-
+## Zaf's in-game ghost intro: materialize -> talk (NEXT/SKIP) -> dissolve,
+## pausing/unpausing the real (test) tree around it instead of launching a
+## separate stage scene. Ticks are driven directly (not via the real Timer)
+## so the test doesn't depend on wall-clock idle time.
 
 func before_all() -> void:
 	SaveManager.redirect_for_tests("user://test_saves", "user://test_settings.cfg")
@@ -16,19 +14,18 @@ func after_all() -> void:
 
 func after_each() -> void:
 	GameManager.character2 = &""
+	get_tree().paused = false
 
 
-func _spawn() -> Control:
-	var zaf: Control = SCENE.instantiate()
-	var launched := {"count": 0}
-	zaf.stage_launcher = func() -> void: launched.count += 1
-	zaf.set_meta(&"launched", launched)
+func _spawn() -> ZafGhostIntro:
+	var zaf := ZafGhostIntro.new()
 	add_child_autofree(zaf)
 	return zaf
 
 
-func test_materializes_before_showing_the_panel() -> void:
+func test_pauses_the_tree_immediately_and_materializes_before_showing_the_panel() -> void:
 	var zaf := _spawn()
+	assert_true(get_tree().paused, "the real stage must freeze the instant Zaf appears")
 	assert_eq(zaf._phase, zaf.Phase.ENTER)
 	assert_false(zaf._panel.visible, "Zaf appears before the dialog shows")
 	for i in zaf.MATERIALIZE_FRAMES:
@@ -37,7 +34,7 @@ func test_materializes_before_showing_the_panel() -> void:
 	assert_true(zaf._panel.visible)
 
 
-func test_next_advances_pages_then_skip_departs_and_launches() -> void:
+func test_next_advances_pages_then_skip_departs_and_unpauses() -> void:
 	var zaf := _spawn()
 	for i in zaf.MATERIALIZE_FRAMES:
 		zaf._tick()
@@ -50,11 +47,10 @@ func test_next_advances_pages_then_skip_departs_and_launches() -> void:
 	assert_eq(zaf._phase, zaf.Phase.LEAVE)
 	for i in zaf.MATERIALIZE_FRAMES + 1:
 		zaf._tick()
-	var launched: Dictionary = zaf.get_meta(&"launched")
-	assert_eq(launched.count, 1, "stage launcher fired exactly once")
+	assert_false(get_tree().paused, "control must hand back once Zaf is done")
 
 
-func test_skip_departs_immediately_from_talk() -> void:
+func test_skip_departs_immediately_and_unpauses() -> void:
 	var zaf := _spawn()
 	for i in zaf.MATERIALIZE_FRAMES:
 		zaf._tick()
@@ -62,18 +58,17 @@ func test_skip_departs_immediately_from_talk() -> void:
 	assert_eq(zaf._phase, zaf.Phase.LEAVE)
 	for i in zaf.MATERIALIZE_FRAMES + 1:
 		zaf._tick()
-	var launched: Dictionary = zaf.get_meta(&"launched")
-	assert_eq(launched.count, 1)
+	assert_false(get_tree().paused)
 
 
 func test_finish_is_idempotent() -> void:
 	var zaf := _spawn()
+	watch_signals(zaf)
 	zaf._phase = zaf.Phase.LEAVE
 	zaf._anim = 0
 	zaf._tick() # anim -> -1, calls _finish()
-	zaf._finish() # a stray second call must not double-launch
-	var launched: Dictionary = zaf.get_meta(&"launched")
-	assert_eq(launched.count, 1, "_finish is idempotent")
+	zaf._finish() # a stray second call must not double-emit/double-unpause
+	assert_signal_emit_count(zaf, "finished", 1, "_finish is idempotent")
 
 
 func test_controls_page_lists_current_keys() -> void:

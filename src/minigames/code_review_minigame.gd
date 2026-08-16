@@ -57,7 +57,7 @@ const ZAF_TIMEOUT := "Again. Faster this time."
 const ZAF_WIN := "Actually mergeable. Barely."
 
 ## Tests inject a fixed sequence instead of RNG (same seam idea as
-## RespawnController.scene_router / zaf_tutorial.stage_launcher).
+## RespawnController.scene_router).
 var rng := RandomNumberGenerator.new()
 
 ## P1's own colour also covers solo (player_index 0) — only P2 (index 2) is

@@ -12,6 +12,35 @@ func after_all() -> void:
 	SaveManager.restore_default_paths()
 
 
+func after_each() -> void:
+	GameManager.pending_zaf_intro = false
+	get_tree().paused = false
+
+
+func test_pending_zaf_intro_spawns_the_ghost_and_is_consumed() -> void:
+	GameManager.start_stage(1, &"chris")
+	GameManager.pending_zaf_intro = true
+	var stage: LevelBase = STAGE.instantiate()
+	add_child_autofree(stage)
+	await wait_physics_frames(3)
+	var ghosts := stage.get_children().filter(func(c: Node) -> bool: return c is ZafGhostIntro)
+	assert_eq(ghosts.size(), 1, "a fresh new game must meet Zaf's in-game ghost intro")
+	assert_false(GameManager.pending_zaf_intro,
+			"the flag must be consumed so a later re-entry doesn't show it again")
+	GameManager.end_stage()
+
+
+func test_without_the_pending_flag_stage_1_never_spawns_the_ghost() -> void:
+	GameManager.start_stage(1, &"chris")
+	GameManager.pending_zaf_intro = false
+	var stage: LevelBase = STAGE.instantiate()
+	add_child_autofree(stage)
+	await wait_physics_frames(3)
+	var ghosts := stage.get_children().filter(func(c: Node) -> bool: return c is ZafGhostIntro)
+	assert_eq(ghosts.size(), 0, "a retry/replay of stage 1 must not show Zaf again")
+	GameManager.end_stage()
+
+
 func test_stage_1_content_counts() -> void:
 	GameManager.start_stage(1, &"chris")
 	var stage: LevelBase = STAGE.instantiate()

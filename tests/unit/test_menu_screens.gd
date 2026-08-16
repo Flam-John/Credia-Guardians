@@ -17,7 +17,6 @@ const SCREENS := [
 	"res://scenes/ui/character_select.tscn",
 	"res://scenes/ui/options_menu.tscn",
 	"res://scenes/ui/game_over.tscn",
-	"res://scenes/ui/zaf_tutorial.tscn",
 ]
 
 

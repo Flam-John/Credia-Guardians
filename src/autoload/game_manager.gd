@@ -25,6 +25,12 @@ var stage_id: int = 1
 ## Scene the current run lives in — retry/restart route through this, so
 ## non-stage modes (boss rush) retry correctly (review P0-1).
 var current_scene_path := ""
+## One-shot: set by intro_cutscene right before launching stage 1 on a fresh
+## new game, consumed by stage_1.gd the moment it actually spawns Zaf's
+## in-game ghost intro (same "set before a scene change, consumed exactly
+## once on the other side" pattern as SlotSelectFlow.force_new) — so a later
+## re-entry into stage 1 (retry, replay) never shows it again.
+var pending_zaf_intro := false
 
 
 func is_coop() -> bool:
