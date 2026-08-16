@@ -40,6 +40,16 @@ const LINE_BANK: Array[Dictionary] = [
 			"bugged": "collateral.setStatus(status.APPROVED);"},
 ]
 
+## Lightweight syntax highlighting (design polish, user request: "make it
+## look like a real minigame") — reserved words and string literals get a
+## BBCode color tag, everything else keeps inheriting the RichTextLabel's
+## own "default_color" override, which is how the existing found/cursor
+## state coloring keeps working unchanged (see _refresh_line_labels).
+const JAVA_KEYWORDS := ["if", "for", "int", "return", "public", "double", "null",
+		"String", "private", "static", "final", "boolean", "new", "void", "true", "false"]
+const KEYWORD_COLOR := "#8f9dff"
+const STRING_COLOR := "#ffb454"
+
 const ZAF_INTRO := "This wouldn't pass MY review."
 const ZAF_CORRECT := ["Caught it.", "Good eye.", "That's one."]
 const ZAF_WRONG := ["That line's fine...", "Look closer.", "Not that one."]
@@ -69,9 +79,11 @@ var _won := false
 var _active_indices: Array[int] = [0]
 
 var _root: Control
-var _line_labels: Array[Label] = []
+var _line_labels: Array[RichTextLabel] = []
 var _timer_label: Label
 var _zaf_text: Label
+var _bug_dots: Array[ColorRect] = []
+var _highlight_regex := RegEx.new()
 
 
 func _ready() -> void:
@@ -97,6 +109,8 @@ func _ready() -> void:
 	add_child(_root)
 	_root.size = _root.get_viewport().get_visible_rect().size
 	bg.size = _root.size
+
+	_highlight_regex.compile("\"[^\"]*\"|\\b(%s)\\b" % "|".join(JAVA_KEYWORDS))
 
 	_build_layout()
 	_start_round()
@@ -127,10 +141,24 @@ func _build_layout() -> void:
 	_timer_label.position = Vector2(440, 8)
 	_root.add_child(_timer_label)
 
+	_build_bug_dots()
+
 	var terminal_column: Array[Control] = [_build_monitor_titlebar()]
 	for i in LINE_BANK.size():
-		var label := UIKit.caption("", TERMINAL_FONT_SIZE, UIKit.WHITE)
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		# RichTextLabel instead of a plain Label (design polish: syntax-color
+		# keywords/strings so the line actually reads as code) — bbcode text
+		# is otherwise IDENTICAL in rendered width to before (color tags emit
+		# no visible glyphs), so the documented tight width budget below is
+		# unaffected. "default_color" is RichTextLabel's equivalent of
+		# Label's "font_color" and is what _refresh_line_labels still drives
+		# for the found/cursor state colors — only keyword/string spans get
+		# an explicit, higher-priority BBCode color on top of that.
+		var label := RichTextLabel.new()
+		label.bbcode_enabled = true
+		label.scroll_active = false
+		label.fit_content = true
+		label.add_theme_font_size_override(&"normal_font_size", TERMINAL_FONT_SIZE)
+		label.add_theme_color_override(&"default_color", UIKit.WHITE)
 		label.custom_minimum_size = Vector2(TERMINAL_LABEL_W, 10)
 		terminal_column.append(label)
 		_line_labels.append(label)
@@ -144,6 +172,7 @@ func _build_layout() -> void:
 	atlas.region = Rect2(0, 0, 48, 48)
 	portrait.texture = atlas
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_animate_zaf_bob(portrait)
 	_zaf_text = UIKit.caption(ZAF_INTRO, 9, UIKit.CYAN)
 	_zaf_text.custom_minimum_size = Vector2(ZAF_TEXT_W, 48)
 	_zaf_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -156,6 +185,65 @@ func _build_layout() -> void:
 	_root.add_child(zaf_panel)
 
 	_build_player_portraits()
+
+
+## Zaf's portrait is a single static 48x48 frame (no idle/blink art exists)
+## — a gentle procedural bob is the cheap way to make it read as "alive"
+## without needing new sprite frames (design polish, user request).
+func _animate_zaf_bob(portrait: TextureRect) -> void:
+	var bob := create_tween().set_loops()
+	bob.tween_property(portrait, "position:y", 2.0, 0.6) \
+			.as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	bob.tween_property(portrait, "position:y", -2.0, 0.6) \
+			.as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## Small "bugs found" progress pips next to the timer — plain ColorRects
+## rather than a text glyph (a unicode bullet/checkmark risks not existing
+## in this game's pixel font at all; a colored square can't miss).
+func _build_bug_dots() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override(&"separation", 4)
+	row.position = Vector2(390, 10)
+	for i in BUG_COUNT:
+		var dot := ColorRect.new()
+		dot.color = UIKit.GRAY
+		dot.custom_minimum_size = Vector2(8, 8)
+		row.add_child(dot)
+		_bug_dots.append(dot)
+	_root.add_child(row)
+
+
+## Wraps recognized Java keywords and quoted string literals in BBCode
+## color tags; everything else is left untagged so it keeps inheriting
+## whatever "default_color" the label's current found/cursor state sets.
+## Also escapes literal '[' / ']' in the source text itself so a stray
+## bracket in a line (or the "[FIXED]" suffix appended by the caller)
+## can't be misread as a BBCode tag.
+func _highlight_java(text: String) -> String:
+	# NOT text.replace("[", "[lb]").replace("]", "[rb]") — escaping "["
+	# first introduces brand-new "]" characters (the closing bracket of
+	# "[lb]" itself), which the second .replace("]", ...) pass then also
+	# catches and corrupts. A single character-by-character pass avoids
+	# ever re-scanning text this function itself just inserted.
+	var escaped := ""
+	for ch in text:
+		if ch == "[":
+			escaped += "[lb]"
+		elif ch == "]":
+			escaped += "[rb]"
+		else:
+			escaped += ch
+	var out := ""
+	var last_end := 0
+	for m in _highlight_regex.search_all(escaped):
+		out += escaped.substr(last_end, m.get_start() - last_end)
+		var matched := m.get_string()
+		var color := STRING_COLOR if matched.begins_with("\"") else KEYWORD_COLOR
+		out += "[color=%s]%s[/color]" % [color, matched]
+		last_end = m.get_end()
+	out += escaped.substr(last_end)
+	return out
 
 
 ## Fake window chrome (traffic-light dots + a filename tab) so the code
@@ -235,6 +323,8 @@ func _start_round() -> void:
 	_found = 0
 	_mistakes = 0
 	_time_left = TIME_LIMIT
+	for dot in _bug_dots:
+		dot.color = UIKit.GRAY
 	_refresh_line_labels()
 
 
@@ -252,16 +342,16 @@ func _refresh_line_labels() -> void:
 		var prefix := (marker + "> ") if not marker.is_empty() else "  "
 		var suffix := "  [FIXED]" if line.found else ""
 		var gutter := "%2d|" % (i + 1) # line number, IDE-style
-		label.text = gutter + " " + prefix + String(line.text) + suffix
+		label.text = _highlight_java(gutter + " " + prefix + String(line.text) + suffix)
 		if line.found:
-			label.add_theme_color_override(&"font_color", UIKit.GREEN)
+			label.add_theme_color_override(&"default_color", UIKit.GREEN)
 		elif here.size() > 1:
-			label.add_theme_color_override(&"font_color", CURSOR_COLOR_BOTH)
+			label.add_theme_color_override(&"default_color", CURSOR_COLOR_BOTH)
 		elif here.size() == 1:
-			label.add_theme_color_override(&"font_color",
+			label.add_theme_color_override(&"default_color",
 					CURSOR_COLOR_P2 if here[0] == 2 else CURSOR_COLOR_P1)
 		else:
-			label.add_theme_color_override(&"font_color", UIKit.WHITE)
+			label.add_theme_color_override(&"default_color", UIKit.WHITE)
 
 
 func _process(delta: float) -> void:
@@ -302,10 +392,12 @@ func _flag_current(player_index: int) -> void:
 	if line.is_bug:
 		line.found = true
 		_lines[idx] = line
+		_bug_dots[_found].color = UIKit.GREEN
 		_found += 1
 		AudioManager.play_sfx("menu_select", true, true)
 		_zaf_say(ZAF_CORRECT[rng.randi_range(0, ZAF_CORRECT.size() - 1)])
 		_refresh_line_labels()
+		_pulse_found(idx)
 		if _found >= BUG_COUNT:
 			_win()
 	else:
@@ -320,10 +412,21 @@ func _flag_current(player_index: int) -> void:
 ## the actual line RED (this game's damage/corruption colour) so a mistake
 ## is unmistakable, then let _refresh_line_labels restore its real state.
 func _flash_wrong(idx: int) -> void:
-	_line_labels[idx].add_theme_color_override(&"font_color", UIKit.RED)
+	_line_labels[idx].add_theme_color_override(&"default_color", UIKit.RED)
 	var tween := create_tween()
 	tween.tween_interval(0.2)
 	tween.tween_callback(_refresh_line_labels)
+
+
+## A quick scale "pop" on a correctly-flagged line (design polish, user
+## request) — RichTextLabel scales from its own center via pivot_offset so
+## it doesn't visibly shift position while popping.
+func _pulse_found(idx: int) -> void:
+	var label := _line_labels[idx]
+	label.pivot_offset = label.size / 2.0
+	label.scale = Vector2(1.15, 1.15)
+	create_tween().tween_property(label, "scale", Vector2.ONE, 0.15) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _zaf_say(text: String) -> void:

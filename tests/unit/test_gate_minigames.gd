@@ -203,6 +203,56 @@ func _make_code_review() -> CodeReviewMinigame:
 	return m
 
 
+## This exact file has TWO documented past screen-overflow bugs (the Zaf/
+## portrait column originally sat 68px past the 480px edge) — verify every
+## Control's real position + size against the actual viewport, same
+## technique used for the three newer gate minigames, especially relevant
+## now that the design-polish pass added a bug-dots row and switched the
+## line labels from Label to RichTextLabel.
+func test_every_control_fits_inside_the_native_screen() -> void:
+	var m := _make_code_review()
+	await wait_process_frames(1)
+	var vp_size := m._root.get_viewport().get_visible_rect().size
+	_assert_fits(m._root, vp_size)
+
+
+func _assert_fits(node: Node, vp_size: Vector2) -> void:
+	if node is Control:
+		var c: Control = node
+		assert_lte(c.position.x + c.size.x, vp_size.x,
+				"%s right edge overflows the %d px screen" % [c, int(vp_size.x)])
+		assert_lte(c.position.y + c.size.y, vp_size.y,
+				"%s bottom edge overflows the %d px screen" % [c, int(vp_size.y)])
+	for child in node.get_children():
+		_assert_fits(child, vp_size)
+
+
+func test_highlight_java_colors_keywords_and_string_literals() -> void:
+	var m := _make_code_review()
+	var highlighted := m._highlight_java("if (custId == \"abc\") return;")
+	assert_true(highlighted.contains("[color=%s]if[/color]" % CodeReviewMinigame.KEYWORD_COLOR))
+	assert_true(highlighted.contains("[color=%s]return[/color]" % CodeReviewMinigame.KEYWORD_COLOR))
+	assert_true(highlighted.contains("[color=%s]\"abc\"[/color]" % CodeReviewMinigame.STRING_COLOR))
+
+
+## The whole point of routing text through BBCode color tags is that it
+## must be visually invisible otherwise — this file has TWO documented past
+## screen-overflow bugs from exactly this kind of "just add more to the
+## line" change, so directly prove the syntax highlighting adds zero
+## visible characters (RichTextLabel.get_parsed_text() is the real
+## rendered plain text after BBCode parsing) rather than trusting the width
+## math by inspection.
+func test_highlight_java_preserves_the_visible_text_exactly() -> void:
+	var m := _make_code_review()
+	var original := " 1|  1> if (balance >= amount) {  [FIXED]"
+	var label := RichTextLabel.new()
+	label.bbcode_enabled = true
+	add_child_autofree(label)
+	label.text = m._highlight_java(original)
+	assert_eq(label.get_parsed_text(), original,
+			"syntax highlighting must not change any visible character, only color")
+
+
 func test_round_plants_exactly_three_bugs_across_ten_lines() -> void:
 	var m := _make_code_review()
 	assert_eq(m._lines.size(), CodeReviewMinigame.LINE_BANK.size())
