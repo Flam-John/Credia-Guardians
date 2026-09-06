@@ -4,9 +4,9 @@ A retro 16-bit action platformer built in **Godot 4.7**. Two developers —
 **Chris** and **Flam** — jack into the CrediaBank system to purge the
 corrupted bankers across five stages and delete **The Chairman** at the core.
 
-![version](https://img.shields.io/badge/version-1.0.0-39ff5a)
+![version](https://img.shields.io/badge/version-1.18.0-39ff5a)
 
-This is the **first complete version (v1.0.0)** of the game.
+This is the **first complete version (v1.18.0)** of the game.
 
 ## Play
 
