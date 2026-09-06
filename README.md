@@ -6,6 +6,8 @@ corrupted bankers across five stages and delete **The Chairman** at the core.
 
 ![version](https://img.shields.io/badge/version-1.0.0-39ff5a)
 
+This is the **first complete version (v1.0.0)** of the game.
+
 ## Play
 
 - **Windows build**: run `build/credia_guardians.exe` (or grab the release zip)
@@ -25,15 +27,31 @@ corrupted bankers across five stages and delete **The Chairman** at the core.
 
 Keys are rebindable in Options. All settings and 3 save slots persist.
 
-## The game
+## What's included
 
-- **Chris** — 6 HP, Firewall Shield (hold to block frontal hits). The tank.
-- **Flam** — 4 HP, faster, Overclock Dash (i-frames, 2 air charges). The speedster.
-- Each stage: 100 Credia Coins, 3 security nodes (hold E), hidden vaults,
-  checkpoints, an exit gate — and a rank on clear (**S** = all coins, all
-  nodes, under par, deathless).
-- Stage 5 ends at the three-phase CEO. Hit him only when he's staggered —
-  or, in demon form, when the core glows green.
+- **2 playable characters**, each with their own feel and moveset:
+  - **Chris** — 6 HP, Firewall Shield (hold to block frontal hits). The tank.
+  - **Flam** — 4 HP, faster, Overclock Dash (i-frames, 2 air charges). The speedster.
+- **5 full stages**, each with 100 Credia Coins to collect, 3 security nodes
+  (hold E to hack), hidden vaults, checkpoints, an exit gate, and a
+  clear rank (**S** = all coins, all nodes, under par, deathless).
+- **7 enemy types** — junior bankers, AI bankers (and an elite variant),
+  angry managers, regional managers, auditors, and loan sharks — each with
+  their own AI behavior.
+- **A three-phase final boss** — The Chairman/CEO — hit him only when he's
+  staggered, or in his demon form, when the core glows green.
+- **5 hacking minigames** woven into the security-node system: Circuit
+  Bypass, Code Review, Presentation Pace, Server Cooling, and Ticket Blitz.
+- **An in-game tutorial** — Zaf, Chris & Flam's boss, materializes as a
+  ghost overlay on stage 1 to walk new players through the basics without
+  leaving the real stage.
+- **Full menu flow**: splash screen, main menu, character select, stage
+  select, a Boss Rush mode, options (with rebindable controls), 3 save
+  slots, stage clear / game over / victory screens, and an intro cutscene.
+- **Placeholder art, SFX, and music generated deterministically** by
+  in-repo Python tools (see below) — no external assets required to build.
+- **Automated test suite** (GUT) covering player state machine, HUD, enemy
+  AI, and level systems.
 
 ## Development
 
@@ -55,5 +73,7 @@ godot --headless --path . -s addons/gut/gut_cmdln.gd -gexit
 ```
 
 Design docs (GDD, TDD, FSM diagrams, milestone plan…) live in `docs/`.
+
+## Credits
 
 Made by FLAMUPIA. Built with [Godot Engine](https://godotengine.org).
