@@ -215,6 +215,7 @@ func _ready() -> void:
 	EventBus.usb_keys_changed.connect(_on_usb_keys_changed)
 	EventBus.player_shield_changed.connect(_on_player_shield_changed)
 	EventBus.player_upgrade_changed.connect(_on_player_upgrade_changed)
+	SceneManager.scene_changed.connect(_on_scene_changed)
 
 
 var _timer_accum := 0.0
@@ -332,6 +333,17 @@ func _set_boss_hp(hp: int, max_hp: int) -> void:
 
 
 func _on_boss_died() -> void:
+	_boss_bar.visible = false
+	_boss_name.visible = false
+
+
+func _on_scene_changed(_path: String) -> void:
+	# HUD lives in the persistent shell and survives RESTART STAGE / QUIT TO
+	# MENU / reload_current — without this, a boss bar left visible from a
+	# fight that was in progress when the player died stays stuck showing
+	# stale HP after a restart, since the reloaded boss goes dormant again
+	# (CeoBoss.activated=false) and won't re-fire boss_spawned until the
+	# player re-approaches the arena.
 	_boss_bar.visible = false
 	_boss_name.visible = false
 
